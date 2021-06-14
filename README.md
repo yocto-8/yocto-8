@@ -40,6 +40,6 @@ Pretty much nothing is done, on the software and hardware side.
 I can imagine a few:
 - Memory requirements are probably the largest issue. The pico-8 "CPU" "RAM" easily fits into the RP2040 SRAM, and the rest of the runtime should not be much of a problem wrt RAM requirements. Lua memory (which seems to be for the program + any lua allocs), on the other hand, can apparently reach 2MB. This is absolutely not going to fit in the RP2040 SRAM, hence the SPI RAM requirement - I am thinking of doing some sort of caching with the remaining SRAM and swap to/back from the SPI RAM as required. I do not know whether this will be fast enough.
 - The above issue may have funny consequences and may require me to hack or reimplement the Lua VM.
-- On that matter, I don't know if the Lua VM is suitable at all for embedded.
+- On that matter, I don't know if the Lua VM is suitable at all for such an embedded project.
 - Some level of optimization will probably be required to run the pico-8 at full speed. Looking at the pico-8 "CPU" timings it seems quite feasible. Regardless, squeezing as much performance as possible is interesting in the scope of this project as power draw scales with the CPU frequency somewhat, and a lower power draw is nice when running off a battery. I have _no idea_ how the battery lifetime would turn out for, say, the 3.7V 1800mAh battery I got, but it should hopefully be good.
 - I haven't thought or cared about mouse support for now.
