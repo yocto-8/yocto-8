@@ -1,0 +1,6 @@
+[submodule "pico-sdk"]
+	path = pico-sdk
+	url = git@github.com:raspberrypi/pico-sdk.git
+[submodule "lua"]
+	path = lua
+	url = git@github.com:yocto-8/lua.git
