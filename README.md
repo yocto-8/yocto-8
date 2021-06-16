@@ -6,6 +6,10 @@ This is currently in its very early stages.
 
 yocto = pico².
 
+# Current progress
+
+**Pretty much nothing is done, both on the software and hardware side.**
+
 # Why?
 
 This is an excellent question.
@@ -30,10 +34,6 @@ Probably not, this solution is barely cheaper but may have a few differences:
 - But hey, it's going to look cool. Hopefully. If I even have the motivation to do progress past the 3 first days. `"A" * 9999`
 
 This is not really intended to be practical, though.
-
-# Current progress
-
-Pretty much nothing is done, on the software and hardware side.
 
 # Design challenges
 
