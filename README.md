@@ -42,3 +42,20 @@ I can imagine a few:
 - Lua will need to be patched heavily to provide compat with pico-8 lua because of the above point and due to a [significant number of changes done in pico-8](https://gist.github.com/josefnpat/bfe4aaa5bbb44f572cd0).
 - Some level of optimization will probably be required to run the pico-8 at full speed. Looking at the pico-8 "CPU" timings it seems quite feasible. Regardless, squeezing as much performance as possible is interesting in the scope of this project as power draw scales with the CPU frequency somewhat, and a lower power draw is nice when running off a battery. I have _no idea_ how the battery lifetime would turn out for, say, the 3.7V 1800mAh battery I got, but it should hopefully be good.
 - I haven't thought or cared about mouse support for now.
+
+## PSRAM handling
+
+It is currently unclear how to even use the external RAM. The most obvious solution is to rewrite the Lua VM to allow this, but this is of course complicated.
+
+An extremely cursed idea I had was to handle faults caused by unmapped accesses within some dedicated memory region, because we do not have any form of address translation available on the RP2040 (apparently).  
+However, such faults do not seem to provide much if any information in related registers at all. Emulating the faulting instruction will likely require disassembling it and handling the memory transaction (through some cache for the PSRAM and swapping if needed).  
+This appears to be _really_ slow but I'm not sure how much can be done otherwise TBH. To my understanding the overhead would be:
+- Causing the fault itself (as it has to push regs onto the stack for the fault handler)
+- Checking whether the address is a hit in the PSRAM cache. If not then this overhead won't matter very much as we need to start a whole transfer for that (we could DMA writes for pages that should be swapped back too as an optimization but lol whatever at this point)
+- Dispatch depending on opcode
+- Perform memory transaction
+- Returning and restoring state
+
+Now, as to whether this way too garbage or not...
+
+The original idea was to use the MPU to cause the faults but that does not seem to be very required really?
