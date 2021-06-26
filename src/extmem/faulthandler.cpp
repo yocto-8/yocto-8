@@ -64,23 +64,11 @@ void hard_fault_handler_c(std::uint32_t* args)
     auto*& instr_address = reinterpret_cast<const std::uint16_t*&>(pc);
     //printf("Trying to recover from fault for op @%p\n", instr_address);
 
-    /*Reads
-Reads are defined as memory operations that have the semantics of a load. For ARMv6-M and Thumb these
-are:
-•
- LDR{S}B, LDR{S}H, LDR
-•
- LDM, POP
-Writes
-Writes are defined as operations that have the semantics of a store. For ARMv6-M and Thumb these are:
-•
- STRB, STRH, STR
-•
- STM, PUSH
-*/
-
     const std::uint16_t first_word = *instr_address;
 
+    // NOTE: this is the 7 MSBs, so not strictly the opcode as per the ARMv6 ARM (6 MSBs).
+    //       the reason is that some ops (e.g. LDR) makes use of those bits to perform a
+    //       different memory operation entirely.
     const auto opcode = first_word >> 9;
 
     const auto get_low_register = [&](std::uint8_t index) -> std::uint32_t& {
@@ -98,11 +86,98 @@ Writes are defined as operations that have the semantics of a store. For ARMv6-M
         }
     };
 
+    const auto todo = [](const char* str) {
+        printf("Unimplemented memory op to emulate (%s)\n", str);
+        for (;;)
+            ;
+    };
+
+    // TODO: implement tests for all this.
+    //       debugging this is as bad as debugging random memory corruptions mind you.
+    
+    // TODO: implement all todo() instructions here
+
     //printf("Opcode %d\n", int(opcode));
 
     switch (opcode)
     {
-    // LDR(imm) || 2 lsb to ignore
+    // LDR(literal):     01001xx
+    case 0b0100'100:
+    case 0b0100'101:
+    case 0b0100'110:
+    case 0b0100'111:
+    {
+        todo("LDR(literal)");
+        break;
+    }
+
+    // STR(register):    0101000
+    case 0b0101'000:
+    {
+        todo("STR(register)");
+        break;
+    }
+
+    // STRH(register):   0101001
+    case 0b0101'001:
+    {
+        todo("STRH(register)");
+        break;
+    }
+
+    // STRB(register):   0101010
+    case 0b0101'010:
+    {
+        todo("STRB(register)");
+        break;
+    }
+
+    // LDRSB(register):  0101011
+    case 0b0101'011:
+    {
+        todo("LDRSB(register)");
+        break;
+    }
+
+    // LDR(register):    0101100
+    case 0b0101'100:
+    {
+        todo("LDR(register)");
+        break;
+    }
+
+    // LDRH(register):   0101101
+    case 0b0101'101:
+    {
+        todo("LDRH(register)");
+        break;
+    }
+
+    // LDRB(register):   0101110
+    case 0b0101'110:
+    {
+        todo("LDRB(register)");
+        break;
+    }
+
+    // LDRSH(register):  0101111
+    case 0b0101'111:
+    {
+        todo("LDRSH(register)");
+        break;
+    }
+
+    // STR(imm):         01100xx
+    case 0b0110'000:
+    case 0b0110'001:
+    case 0b0110'010:
+    case 0b0110'011:
+    {
+        todo("STR(imm)");
+        break;
+    }
+
+    // LDR(imm):         01101xx
     case 0b0110'100:
     case 0b0110'101:
     case 0b0110'110:
@@ -118,14 +193,91 @@ Writes are defined as operations that have the semantics of a store. For ARMv6-M
 
         get_low_register(target_reg) = get_temporary_access<std::uint32_t>(resolved_address);
 
-       // printf("%d %d %d\n", addr_base_reg, target_reg, addr_offset);
-
-        // TODO: JITing out the access seems like a good plan
-        //       this shit is cursed enough already so
-
         instr_address += 1;
         break;
     }
+
+    // STRB(imm):        01110xx
+    case 0b0111'000:
+    case 0b0111'001:
+    case 0b0111'010:
+    case 0b0111'011:
+    {
+        todo("STRB(imm)");
+        break;
+    }
+
+    // LDRB(imm):        01111xx
+    case 0b0111'100:
+    case 0b0111'101:
+    case 0b0111'110:
+    case 0b0111'111:
+    {
+        todo("LDRB(imm)");
+        break;
+    }
+
+    // STRH(imm):        10000xx
+    case 0b1000'000:
+    case 0b1000'001:
+    case 0b1000'010:
+    case 0b1000'011:
+    {
+        todo("STRH(imm)");
+        break;
+    }
+
+    // LDRH(imm):        10001xx
+    case 0b1000'100:
+    case 0b1000'101:
+    case 0b1000'110:
+    case 0b1000'111:
+    {
+        todo("LDRH(imm)");
+        break;
+    }
+
+    // STR(imm,sprel):   10010xx
+    case 0b1001'000:
+    case 0b1001'001:
+    case 0b1001'010:
+    case 0b1001'011:
+    {
+        todo("STR(imm,sprel)");
+        break;
+    }
+
+    // LDR(imm,sprel):   10011xx
+    case 0b1001'100:
+    case 0b1001'101:
+    case 0b1001'110:
+    case 0b1001'111:
+    {
+        todo("LDR(imm,sprel)");
+        break;
+    }
+
+    // STM:              11000xx
+    case 0b1100'000:
+    case 0b1100'001:
+    case 0b1100'010:
+    case 0b1100'011:
+    {
+        todo("STM*");
+        break;
+    }
+
+    // LDM:              11001xx
+    case 0b1100'100:
+    case 0b1100'101:
+    case 0b1100'110:
+    case 0b1100'111:
+    {
+        todo("LDM*");
+        break;
+    }
+
+    // POP/PUSH: not implemented, we don't need this for now
 
     default:
     {

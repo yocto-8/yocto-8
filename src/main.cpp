@@ -28,7 +28,7 @@ int main() {
 
     printf("Now trying cortex-M Crimes\n");
 
-    printf("%d\n", *(volatile int*)0x2F400000);
+    /*printf("%d\n", *(volatile int*)0x2F400000);
     
     const auto time_start = get_absolute_time();
     for (int i = 0; i < 10'000'000; ++i)
@@ -36,8 +36,9 @@ int main() {
         foo(*(volatile int*)(0x2F000000+i*4));
     }
     const auto time_end = get_absolute_time();
-    printf("10e6/%lldµs\n", absolute_time_diff_us(time_start, time_end));
+    printf("10e6/%lldµs\n", absolute_time_diff_us(time_start, time_end));*/
 
+    *(volatile int*)0x2F000000 = 0xDEADBEEF;
     printf("uwu bitch %d\n", *(volatile int*)0x2F000000);
 
     //lua_close(lua);
