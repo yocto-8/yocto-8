@@ -9,7 +9,8 @@ pico_sdk_init()
 add_executable(yocto-8
     src/extmem/cachedinterface.cpp
     src/extmem/faulthandler.cpp
-    src/main.cpp
+    #src/main.cpp
+    src/tests/extmem.cpp
 )
 
 target_include_directories(yocto-8 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lua")

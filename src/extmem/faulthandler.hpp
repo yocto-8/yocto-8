@@ -1,3 +1,7 @@
+#pragma once
+
+#include "pico/platform.h"
+
 #include <cstdint>
 
 namespace extmem
@@ -5,9 +9,9 @@ namespace extmem
 extern "C"
 {
 [[gnu::naked, gnu::used]] // owo
-void isr_hardfault();
+void __not_in_flash_func(isr_hardfault)();
 
-[[gnu::used]]
-void hard_fault_handler_c(std::uint32_t* args);
+[[gnu::used, gnu::flatten]]
+void __not_in_flash_func(hard_fault_handler_c)(std::uint32_t* args);
 }
 }

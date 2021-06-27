@@ -2,6 +2,7 @@
 
 #include <cstdio>
 
+#include "armdisassembler.hpp"
 #include "cachedinterface.hpp"
 
 namespace extmem
@@ -11,24 +12,26 @@ extern "C"
 void isr_hardfault()
 {
     asm(
-        "push {lr}\n" // TODO: unnecessary
+        "push {lr}\n"
 
         // Push registers we want to be able to manipulate
-        "mov r0, r8\n"
+        /*"mov r0, r8\n"
         "mov r1, r9\n"
         "mov r2, r10\n"
         "mov r3, r11\n"
-        "push {r0-r7}\n"
+        "push {r0-r7}\n"*/
+        "push {r4-r7}\n"
 
         "mrs r0, msp\n"
         "bl hard_fault_handler_c\n"
 
         // Restore registers that may have been edited by the memory access emulator
-        "pop {r0-r7}\n"
+        /*"pop {r0-r7}\n"
         "mov r8, r0\n"
         "mov r9, r1\n"
         "mov r10, r2\n"
-        "mov r11, r3\n"
+        "mov r11, r3\n"*/
+        "pop {r4-r7}\n"
 
         "pop {pc}\n"
     );
@@ -36,54 +39,49 @@ void isr_hardfault()
 
 void hard_fault_handler_c(std::uint32_t* args)
 {
-    auto& r4 = args[0];
-    auto& r5 = args[1];
-    auto& r6 = args[2];
-    auto& r7 = args[3];
+    enum RegisterOffset : std::uint8_t
+    {
+        /*R8 = 0,
+        R9,
+        R10,
+        R11,*/
 
-    auto& r8 = args[4];
-    auto& r9 = args[5];
-    auto& r10 = args[6];
-    auto& r11 = args[7];
+        R4 = 0,
+        R5,
+        R6,
+        R7,
 
-    auto& eh_lr = args[8];
+        EH_LR = 4,
 
-    std::uint32_t* exception_frame = &args[9];
-
-    auto& r0 = exception_frame[0];
-    auto& r1 = exception_frame[1];
-    auto& r2 = exception_frame[2];
-    auto& r3 = exception_frame[3];
-    auto& r12 = exception_frame[4];
-    auto& lr = exception_frame[5];
-    auto& pc = exception_frame[6];
-    auto& psr = exception_frame[7];
+        EH_FRAME = 5,
+        R0 = EH_FRAME,
+        R1,
+        R2,
+        R3,
+        R12,
+        LR,
+        PC,
+        PSR
+    };
 
     // printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, lr, pc, psr);
 
-    auto*& instr_address = reinterpret_cast<const std::uint16_t*&>(pc);
+    const auto*& pc = reinterpret_cast<const std::uint16_t*&>(args[PC]);
     //printf("Trying to recover from fault for op @%p\n", instr_address);
 
-    const std::uint16_t first_word = *instr_address;
+    const std::uint16_t first_word = *pc;
 
     // NOTE: this is the 7 MSBs, so not strictly the opcode as per the ARMv6 ARM (6 MSBs).
     //       the reason is that some ops (e.g. LDR) makes use of those bits to perform a
     //       different memory operation entirely.
     const auto opcode = first_word >> 9;
 
-    const auto get_low_register = [&](std::uint8_t index) -> std::uint32_t& {
-        switch (index)
-        {
-        case 0: return r0;
-        case 1: return r1;
-        case 2: return r2;
-        case 3: return r3;
-        case 4: return r4;
-        case 5: return r5;
-        case 6: return r6;
-        case 7: return r7;
-        default: __builtin_unreachable();
-        }
+    const auto get_low_register = [&](std::size_t index) -> std::uint32_t& {
+        return args[std::array{R0, R1, R2, R3, R4, R5, R6, R7}[index]];
+    };
+
+    const auto resolve_address = [&](const arm::ImmediateMemoryOp& op, std::uint32_t offset_multiplier) -> std::uintptr_t {
+        return get_low_register(op.rt) + op.raw_memory_offset * offset_multiplier;
     };
 
     const auto todo = [](const char* str) {
@@ -101,7 +99,8 @@ void hard_fault_handler_c(std::uint32_t* args)
 
     switch (opcode)
     {
-    // LDR(literal):     01001xx
+    // not implemented: we do not support executing code in RAM
+    /*// LDR(literal):     01001xx
     case 0b0100'100:
     case 0b0100'101:
     case 0b0100'110:
@@ -109,61 +108,85 @@ void hard_fault_handler_c(std::uint32_t* args)
     {
         todo("LDR(literal)");
         break;
-    }
+    }*/
 
     // STR(register):    0101000
     case 0b0101'000:
     {
-        todo("STR(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_temporary_ref<std::uint32_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
+
+        pc += 1;
         break;
     }
 
     // STRH(register):   0101001
     case 0b0101'001:
     {
-        todo("STRH(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_temporary_ref<std::uint16_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
+
+        pc += 1;
         break;
     }
 
     // STRB(register):   0101010
     case 0b0101'010:
     {
-        todo("STRB(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_temporary_ref<std::uint8_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
+
+        pc += 1;
         break;
     }
 
     // LDRSB(register):  0101011
     case 0b0101'011:
     {
-        todo("LDRSB(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_low_register(op.rt) = get_temporary_ref<std::int8_t>(get_low_register(op.rn) + get_low_register(op.rm));
+
+        pc += 1;
         break;
     }
 
     // LDR(register):    0101100
     case 0b0101'100:
     {
-        todo("LDR(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(get_low_register(op.rn) + get_low_register(op.rm));
+
+        pc += 1;
         break;
     }
 
     // LDRH(register):   0101101
     case 0b0101'101:
     {
-        todo("LDRH(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_low_register(op.rt) = get_temporary_ref<std::uint16_t>(get_low_register(op.rn) + get_low_register(op.rm));
+
+        pc += 1;
         break;
     }
 
     // LDRB(register):   0101110
     case 0b0101'110:
     {
-        todo("LDRB(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_low_register(op.rt) = get_temporary_ref<std::uint8_t>(get_low_register(op.rn) + get_low_register(op.rm));
+
+        pc += 1;
         break;
     }
 
     // LDRSH(register):  0101111
     case 0b0101'111:
     {
-        todo("LDRSH(register)");
+        const arm::RegisterMemoryOp op(first_word);
+        get_low_register(op.rt) = get_temporary_ref<std::int16_t>(get_low_register(op.rn) + get_low_register(op.rm));
+
+        pc += 1;
         break;
     }
 
@@ -173,7 +196,10 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0110'010:
     case 0b0110'011:
     {
-        todo("STR(imm)");
+        const arm::ImmediateMemoryOp op(first_word);
+        get_temporary_ref<std::uint32_t>(resolve_address(op, 4)) = get_low_register(op.rn);
+
+        pc += 1;
         break;
     }
 
@@ -183,17 +209,10 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0110'110:
     case 0b0110'111:
     {
-        const std::uint8_t addr_base_reg = (first_word >> 3) & 0b111;
-        const std::uint8_t target_reg = first_word & 0b111;
-        const std::uint32_t addr_offset = ((first_word >> 6) & 0b11111) * 4;
+        const arm::ImmediateMemoryOp op(first_word);
+        get_low_register(op.rn) = get_temporary_ref<std::uint32_t>(resolve_address(op, 4));
 
-        const std::uintptr_t resolved_address = get_low_register(addr_base_reg) + addr_offset;
-
-        assert_address_within_bank(resolved_address);
-
-        get_low_register(target_reg) = get_temporary_access<std::uint32_t>(resolved_address);
-
-        instr_address += 1;
+        pc += 1;
         break;
     }
 
@@ -203,7 +222,10 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0111'010:
     case 0b0111'011:
     {
-        todo("STRB(imm)");
+        const arm::ImmediateMemoryOp op(first_word);
+        get_temporary_ref<std::uint8_t>(resolve_address(op, 1)) = get_low_register(op.rn);
+
+        pc += 1;
         break;
     }
 
@@ -213,7 +235,10 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0111'110:
     case 0b0111'111:
     {
-        todo("LDRB(imm)");
+        const arm::ImmediateMemoryOp op(first_word);
+        get_low_register(op.rn) = std::uint32_t(get_temporary_ref<std::uint8_t>(resolve_address(op, 1)));
+
+        pc += 1;
         break;
     }
 
@@ -223,7 +248,10 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b1000'010:
     case 0b1000'011:
     {
-        todo("STRH(imm)");
+        const arm::ImmediateMemoryOp op(first_word);
+        get_temporary_ref<std::uint16_t>(resolve_address(op, 2)) = get_low_register(op.rn);
+
+        pc += 1;
         break;
     }
 
@@ -233,11 +261,15 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b1000'110:
     case 0b1000'111:
     {
-        todo("LDRH(imm)");
+        const arm::ImmediateMemoryOp op(first_word);
+        get_low_register(op.rn) = std::uint32_t(get_temporary_ref<std::uint16_t>(resolve_address(op, 2)));
+
+        pc += 1;
         break;
     }
 
-    // STR(imm,sprel):   10010xx
+    // not implemented: we do not support having the stack live in the emulated area
+    /*// STR(imm,sprel):   10010xx
     case 0b1001'000:
     case 0b1001'001:
     case 0b1001'010:
@@ -255,7 +287,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     {
         todo("LDR(imm,sprel)");
         break;
-    }
+    }*/
 
     // STM:              11000xx
     case 0b1100'000:
@@ -263,7 +295,20 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b1100'010:
     case 0b1100'011:
     {
-        todo("STM*");
+        const arm::MultipleMemoryOp op(first_word);
+
+        std::uintptr_t current_address = get_low_register(op.base_register);
+
+        for (int i = 0; i < 8; ++i)
+        {
+            if ((op.register_list >> i) & 0b1)
+            {
+                get_temporary_ref<std::uint32_t>(current_address) = get_low_register(i);
+                current_address += 4;
+            }
+        }
+
+        pc += 1;
         break;
     }
 
@@ -273,7 +318,20 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b1100'110:
     case 0b1100'111:
     {
-        todo("LDM*");
+        const arm::MultipleMemoryOp op(first_word);
+
+        std::uintptr_t current_address = get_low_register(op.base_register);
+
+        for (int i = 0; i < 8; ++i)
+        {
+            if ((op.register_list >> i) & 0b1)
+            {
+                get_low_register(i) = get_temporary_ref<std::uint32_t>(current_address);
+                current_address += 4;
+            }
+        }
+
+        pc += 1;
         break;
     }
 

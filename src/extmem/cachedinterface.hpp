@@ -1,9 +1,15 @@
+#pragma once
+
 #include <array>
 #include <cstdint>
 #include <cstdio>
 
 namespace extmem
 {
+
+// TODO: this should make use of multiple cache pages, because we can afford it
+//       this would make it possible to swap pages in the background (with some effort)
+//       and avoid requiring huge transfers during cache misses
 
 // START OF TWEAKABLES
 
@@ -66,8 +72,9 @@ inline std::uintptr_t resolve_address(std::uintptr_t address)
 }
 
 template<class T>
-T& get_temporary_access(std::uintptr_t address)
+T& get_temporary_ref(std::uintptr_t address)
 {
+    assert_address_within_bank(address);
     return reinterpret_cast<T&>(cache[load_cache_and_compute_address(address)]);
 }
 }
