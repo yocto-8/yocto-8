@@ -28,8 +28,10 @@ The project aims to make use of the following bare-minimum requirements:
 
 Probably not, this solution is barely cheaper but may have a few differences:
 - Power draw would _probably_ be better than what you would get with an SBC.
+- You should get something close to instant bootup! Being this specific-purpose, the bootup sequence should be significantly shorter and faster than starting up an entire Linux distro.
 - This will not be as stable as the real thing.
 - You won't get the full pico-8 experience.
+- This is a specific-purpose device, an SBC will allow you running emulators and such. This is really niche.
 - Getting those PSRAM modules is a pain in the ass in the EU. ESP-PSRAM64H on aliexpress was the only good option I found which is not really a good sign.
 - But hey, it's going to look cool. Hopefully. If I even have the motivation to do progress past the 3 first days. `"A" * 9999`
 
@@ -45,17 +47,40 @@ I can imagine a few:
 
 ## PSRAM handling
 
-It is currently unclear how to even use the external RAM. The most obvious solution is to rewrite the Lua VM to allow this, but this is of course complicated.
+*Note: most of this is implemented and working, except for the actual memory transfers with SPI RAM, and some of the caching details.*
 
-An extremely cursed idea I had was to handle faults caused by unmapped accesses within some dedicated memory region, because we do not have any form of address translation available on the RP2040 (apparently).  
-However, such faults do not seem to provide much if any information in related registers at all. Emulating the faulting instruction will likely require disassembling it and handling the memory transaction (through some cache for the PSRAM and swapping if needed).  
-This appears to be _really_ slow but I'm not sure how much can be done otherwise TBH. To my understanding the overhead would be:
-- Causing the fault itself (as it has to push regs onto the stack for the fault handler)
-- Checking whether the address is a hit in the PSRAM cache. If not then this overhead won't matter very much as we need to start a whole transfer for that (we could DMA writes for pages that should be swapped back too as an optimization but lol whatever at this point)
-- Dispatch depending on opcode
-- Perform memory transaction
-- Returning and restoring state
+The pico-8 VM allows allocating up to 2MB of "Lua memory", which apparently includes heap, stack and bytecode data.  
+Unfortunately, the RP2040 has a fraction of this available as SRAM, so we need a way to hook up more.
 
-Now, as to whether this way too garbage or not...
+A common way on other microcontrollers (like some STM32 chips) is to hook up external SPI RAM, and to use the microcontroller-provided external memory interface. This way, external RAM appears within the same address space, meaning your program can access that memory "naturally".
 
-The original idea was to use the MPU to cause the faults but that does not seem to be very required really?
+If you don't have an external memory interface, the most obvious option is to write a function for every kind of memory access and replace everything in your program to use those functions. This is very unpractical, and hopelessly hard for an entire codebase like Lua.
+
+The RP2040 does *not* have an external memory interface we can use.  
+However, it *does* have a QSPI Flash interface, which maps the Flash in memory. This makes use of a 4KiB cache to speed up accesses. Unfortunately, this is only useful for Flash and does not seem to allow mapping writes, which makes it rather useless for RAM (provided you had a way to move the program from Flash to SPI RAM in the first place).
+
+We are not screwed yet, however. On ARM Cortex-M0+ processors like the RP2040, performing a memory access outside of any mapped area causes a hard fault to be raised, and so we can gracefully handle obvious crashes, as this invokes an exception handler (or ISR).  
+On a microcontroller, this could be useful to perform some cleanup, reset some external signals, etc.  
+However, in our case, I figured out that you can return from the hard fault handler, and we happen to be able to manipulate the state of the program that caused the fault to occur entirely.
+
+The very cursed idea I had is to then use some unused, unmapped memory area, and to inspect the program state to emulate the memory operation it tried to do. This way, you could tell a memory allocator to use that memory area for allocations, tell Lua to use that memory allocator, and the hard fault handler would magically emulate memory accesses performed there.  
+I implemented it, and it worked.
+
+So, what happens when a memory access occurs within that memory area?
+
+First, a hard fault is raised. The "faulting instruction" is the instruction in our program that tried to perform a memory access in our reserved area.  
+This causes some registers to be pushed to the stack before invoking an exception handler. Those few registers pushed to the stack includes the instruction pointer at time of fault.  
+In other words, we can tell exactly which instruction in the program caused the crash. We can also read or write other registers the faulting instruction might have tried to manipulate.
+
+The Raspberry Pi Pico SDK "binds" the hard fault handler to the `isr_hardfault` function which we can redefine. I wrote it as a pure assembly stub function, which writes some remaining registers to the stack and passes a handy pointer to a C++ function to all that state, `hard_fault_handler_c`, and will deal with writing back the modified state when it returns.
+
+`hard_fault_handler_c` does most of the dirty job: It disassembles the faulting instruction to figure out what exactly it was trying to do: a memory read or a write? Of how many bytes? Reading/writing from which register? etc.  
+Then, it calls some functions that perform the actual memory operation with the SPI RAM.
+
+There is some caching going on, so the idea is to use some kilobytes of the internal RP2040 memory as cache so we do not need to actually read or write through SPI *every time* and instead preferring to move large chunks of memory at a time (which is faster, and which we can do in the background using DMA).
+
+Performance is bad, but not as bad as it could be. With very simple test caching, it could reach over 1MHz worth of emulated memory operations for something somewhat unoptimized. It is currently unknown whether this performance is practical enough.
+
+If it isn't as-is, I suspect that modifying the Lua VM in some hot spots to use the emulated memory accesses directly would help with performance a little, as there is significant overhead to the exception handler and to the instruction disassembly.
+
+Also, the lower the program footprint is in main RAM, the more allocations could go to an allocator living in SRAM rather than in the cursed emulated memory area. Hopefully it could be possible to stuff enough data in there to reduce the performance penalty of going through emulations, while providing enough RAM to allow larger programs to run at all.
