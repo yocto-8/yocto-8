@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstdio>
+#include "tinyalloc.h"
+#include <extmem/cachedinterface.hpp>
 
 int main() {
     set_sys_clock_khz(250000, true);
@@ -23,7 +25,7 @@ int main() {
     // TODO: test all (register) variants
 
     // STR(imm)
-    asm(
+    /*asm(
         "str %[value], [%[addr], #8]"
         :: [value]"r"(123456), [addr]"r"(0x2F000100-8)
     );
@@ -98,7 +100,38 @@ int main() {
             : [addr]"r"(addr)
         );
         printf("LDM(imm): %d %d %d (expect 123456, 654321, 696969)\n", a, b, c);
-    }
+    }*/
+    
+    // TODO: note that this does weird shit with too high block counts and low bank size
+    //       does this lib fail properly?
 
-    malloc(128);
+    ta_init(
+        reinterpret_cast<void*>(extmem::bank_base),
+        reinterpret_cast<void*>(extmem::bank_base + extmem::bank_size),
+        512,
+        16,
+        4
+    );
+
+    /*ta_init(
+        reinterpret_cast<void*>(extmem::cache.data()),
+        reinterpret_cast<void*>(extmem::cache.data() + extmem::cache_size),
+        128,
+        16,
+        4
+    );*/
+
+    printf("uwu %d %d %d\n", ta_num_used(), ta_num_free(), ta_num_fresh());
+
+    for (int i = 0; i < 16; ++i)
+    {
+        const auto* ptr = ta_alloc(4);
+        printf("malloc %p\n", ptr);
+
+        if (ptr == nullptr)
+        {
+            printf("malloc failed for %d\n", i);
+            break;
+        }
+    }
 }

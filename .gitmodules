@@ -4,3 +4,9 @@
 [submodule "lua"]
 	path = lua
 	url = git@github.com:yocto-8/lua.git
+[submodule "tinyalloc"]
+	path = tinyalloc
+	url = git@github.com:thi-ng/tinyalloc.git
+[submodule "GSL"]
+	path = GSL
+	url = git@github.com:microsoft/GSL.git

@@ -14,14 +14,14 @@ namespace extmem
 // START OF TWEAKABLES
 
 constexpr std::size_t
-    cache_size = 4096;
+    cache_size = 1024 * 4;
 
 constexpr std::uintptr_t
     bank_base = 0x2F000000,
     bank_size = 8 * 1024 * 1024; // 8MB
 
 constexpr bool
-    access_debug = false;
+    access_debug = true;
 
 // END OF TWEAKABLES
 
@@ -48,7 +48,7 @@ inline void swap_to_cache_page(std::uintptr_t cache_page_index)
 {
     if (cache_page_index != active_cache_page_index)
     {
-        //printf("faking swap to %d\n", cache_page_index);
+        printf("faking swap to %d\n", cache_page_index);
         active_cache_page_index = cache_page_index;
     }
 }

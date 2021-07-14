@@ -81,7 +81,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     };
 
     const auto resolve_address = [&](const arm::ImmediateMemoryOp& op, std::uint32_t offset_multiplier) -> std::uintptr_t {
-        return get_low_register(op.rt) + op.raw_memory_offset * offset_multiplier;
+        return get_low_register(op.rn) + op.raw_memory_offset * offset_multiplier;
     };
 
     const auto todo = [](const char* str) {
@@ -111,7 +111,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     }*/
 
     // STR(register):    0101000
-    case 0b0101'000:
+    /*case 0b0101'000:
     {
         const arm::RegisterMemoryOp op(first_word);
         get_temporary_ref<std::uint32_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
@@ -188,7 +188,7 @@ void hard_fault_handler_c(std::uint32_t* args)
 
         pc += 1;
         break;
-    }
+    }*/
 
     // STR(imm):         01100xx
     case 0b0110'000:
@@ -197,7 +197,8 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0110'011:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_temporary_ref<std::uint32_t>(resolve_address(op, 4)) = get_low_register(op.rn);
+        //printf("str r%d, [r%d, #%d]\n", op.rt, op.rn, op.raw_memory_offset * 4);
+        get_temporary_ref<std::uint32_t>(resolve_address(op, 4)) = get_low_register(op.rt);
 
         pc += 1;
         break;
@@ -210,20 +211,21 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0110'111:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_low_register(op.rn) = get_temporary_ref<std::uint32_t>(resolve_address(op, 4));
+        //printf("ldr r%d, [r%d, #%d]\n", op.rt, op.rn, op.raw_memory_offset * 4);
+        get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(resolve_address(op, 4));
 
         pc += 1;
         break;
     }
 
     // STRB(imm):        01110xx
-    case 0b0111'000:
+    /*case 0b0111'000:
     case 0b0111'001:
     case 0b0111'010:
     case 0b0111'011:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_temporary_ref<std::uint8_t>(resolve_address(op, 1)) = get_low_register(op.rn);
+        get_temporary_ref<std::uint8_t>(resolve_address(op, 1)) = get_low_register(op.rt);
 
         pc += 1;
         break;
@@ -236,20 +238,20 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0111'111:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_low_register(op.rn) = std::uint32_t(get_temporary_ref<std::uint8_t>(resolve_address(op, 1)));
+        get_low_register(op.rt) = std::uint32_t(get_temporary_ref<std::uint8_t>(resolve_address(op, 1)));
 
         pc += 1;
         break;
-    }
+    }*/
 
     // STRH(imm):        10000xx
-    case 0b1000'000:
+    /*case 0b1000'000:
     case 0b1000'001:
     case 0b1000'010:
     case 0b1000'011:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_temporary_ref<std::uint16_t>(resolve_address(op, 2)) = get_low_register(op.rn);
+        get_temporary_ref<std::uint16_t>(resolve_address(op, 2)) = get_low_register(op.rt);
 
         pc += 1;
         break;
@@ -262,11 +264,11 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b1000'111:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_low_register(op.rn) = std::uint32_t(get_temporary_ref<std::uint16_t>(resolve_address(op, 2)));
+        get_low_register(op.rt) = std::uint32_t(get_temporary_ref<std::uint16_t>(resolve_address(op, 2)));
 
         pc += 1;
         break;
-    }
+    }*/
 
     // not implemented: we do not support having the stack live in the emulated area
     /*// STR(imm,sprel):   10010xx
@@ -290,7 +292,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     }*/
 
     // STM:              11000xx
-    case 0b1100'000:
+    /*case 0b1100'000:
     case 0b1100'001:
     case 0b1100'010:
     case 0b1100'011:
@@ -333,7 +335,7 @@ void hard_fault_handler_c(std::uint32_t* args)
 
         pc += 1;
         break;
-    }
+    }*/
 
     // POP/PUSH: not implemented, we don't need this for now
 

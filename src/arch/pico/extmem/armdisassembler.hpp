@@ -18,8 +18,8 @@ struct ImmediateMemoryOp
     std::uint32_t raw_memory_offset;
 
     explicit ImmediateMemoryOp(std::uint16_t instruction) :
-        rt((instruction >> 3) & 0b111),
-        rn(instruction & 0b111),
+        rn((instruction >> 3) & 0b111),
+        rt(instruction & 0b111),
         raw_memory_offset((instruction >> 6) & 0b11111)
     {}
 };
