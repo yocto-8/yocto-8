@@ -8,13 +8,6 @@
 #include <cstdio>
 #include <video/ssd1351.hpp>
 #include <io/button.hpp>
-/*
-extern "C"
-{
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-}*/
 
 constexpr auto pico8_palette = video::driver::SSD1351::rgb_palette_to_native_format(std::array<std::uint32_t, 16>{
     0x000000, 0x1D2B53, 0x7E2553, 0x008751,
@@ -96,13 +89,4 @@ int main() {
 
         display.update_frame(pico8_palette);
     }
-
-    /*lua_State* lua = luaL_newstate();
-    luaL_openlibs(lua);
-
-    const char lua_script[] = "print('Hello, world (but cooler)!\n')";
-    int load_stat = luaL_loadbuffer(lua, lua_script, sizeof(lua_script) - 1, lua_script);
-    lua_pcall(lua, 0, 0, 0);*/
-    
-    //lua_close(lua);
 }

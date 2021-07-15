@@ -1,14 +1,15 @@
 # yocto-8
 
-A pico-8 console based on the Raspberry Pi Pico/RP2040 using a custom and optimized implementation.  
-This does not aim to be a replacement of pico-8 and will not include any editor tools (in current plans anyway).  
-This is currently in its very early stages.
+A physical, handheld pico-8 console based on the Raspberry Pi Pico/RP2040 using a custom reimplementation.
+
+[pico-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.  
+yocto-8 does not aim to be a perfect replacement: I only hope to make it a working *player* for most pico-8 cartridges, *eventually*. In other words, if I ever try to make this project usable for other people than me, the idea is to have a niche but cheap player for pico-8 enthusiasts to provide a fun on-the-go experience.
 
 yocto = pico².
 
 # Current progress
 
-**Pretty much nothing is done, both on the software and hardware side.**
+**This is currently in a very early stage!!** I only have an incomplete electronics prototype at the moment and development of the actual software has barely begun.
 
 # Why?
 
