@@ -14,23 +14,13 @@ void isr_hardfault()
     asm(
         "push {lr}\n"
 
-        // Push registers we want to be able to manipulate
-        /*"mov r0, r8\n"
-        "mov r1, r9\n"
-        "mov r2, r10\n"
-        "mov r3, r11\n"
-        "push {r0-r7}\n"*/
+        // Push registers we want to be able to manipulate (in additions to the one that can be found on the stack)
         "push {r4-r7}\n"
 
         "mrs r0, msp\n"
         "bl hard_fault_handler_c\n"
 
         // Restore registers that may have been edited by the memory access emulator
-        /*"pop {r0-r7}\n"
-        "mov r8, r0\n"
-        "mov r9, r1\n"
-        "mov r10, r2\n"
-        "mov r11, r3\n"*/
         "pop {r4-r7}\n"
 
         "pop {pc}\n"

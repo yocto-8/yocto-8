@@ -46,42 +46,6 @@ I can imagine a few:
 - Some level of optimization will probably be required to run the pico-8 at full speed. Looking at the pico-8 "CPU" timings it seems quite feasible. Regardless, squeezing as much performance as possible is interesting in the scope of this project as power draw scales with the CPU frequency somewhat, and a lower power draw is nice when running off a battery. I have _no idea_ how the battery lifetime would turn out for, say, the 3.7V 1800mAh battery I got, but it should hopefully be good.
 - I haven't thought or cared about mouse support for now.
 
-## PSRAM handling
+# Technical articles
 
-*Note: most of this is implemented and working, except for the actual memory transfers with SPI RAM, and some of the caching details.*
-
-The pico-8 VM allows allocating up to 2MB of "Lua memory", which apparently includes heap, stack and bytecode data.  
-Unfortunately, the RP2040 has a fraction of this available as SRAM, so we need a way to hook up more.
-
-A common way on other microcontrollers (like some STM32 chips) is to hook up external SPI RAM, and to use the microcontroller-provided external memory interface. This way, external RAM appears within the same address space, meaning your program can access that memory "naturally".
-
-If you don't have an external memory interface, the most obvious option is to write a function for every kind of memory access and replace everything in your program to use those functions. This is very unpractical, and hopelessly hard for an entire codebase like Lua.
-
-The RP2040 does *not* have an external memory interface we can use.  
-However, it *does* have a QSPI Flash interface, which maps the Flash in memory. This makes use of a 4KiB cache to speed up accesses. Unfortunately, this is only useful for Flash and does not seem to allow mapping writes, which makes it rather useless for RAM (provided you had a way to move the program from Flash to SPI RAM in the first place).
-
-We are not screwed yet, however. On ARM Cortex-M0+ processors like the RP2040, performing a memory access outside of any mapped area causes a hard fault to be raised, and so we can gracefully handle obvious crashes, as this invokes an exception handler (or ISR).  
-On a microcontroller, this could be useful to perform some cleanup, reset some external signals, etc.  
-However, in our case, I figured out that you can return from the hard fault handler, and we happen to be able to manipulate the state of the program that caused the fault to occur entirely.
-
-The very cursed idea I had is to then use some unused, unmapped memory area, and to inspect the program state to emulate the memory operation it tried to do. This way, you could tell a memory allocator to use that memory area for allocations, tell Lua to use that memory allocator, and the hard fault handler would magically emulate memory accesses performed there.  
-I implemented it, and it worked.
-
-So, what happens when a memory access occurs within that memory area?
-
-First, a hard fault is raised. The "faulting instruction" is the instruction in our program that tried to perform a memory access in our reserved area.  
-This causes some registers to be pushed to the stack before invoking an exception handler. Those few registers pushed to the stack includes the instruction pointer at time of fault.  
-In other words, we can tell exactly which instruction in the program caused the crash. We can also read or write other registers the faulting instruction might have tried to manipulate.
-
-The Raspberry Pi Pico SDK "binds" the hard fault handler to the `isr_hardfault` function which we can redefine. I wrote it as a pure assembly stub function, which writes some remaining registers to the stack and passes a handy pointer to a C++ function to all that state, `hard_fault_handler_c`, and will deal with writing back the modified state when it returns.
-
-`hard_fault_handler_c` does most of the dirty job: It disassembles the faulting instruction to figure out what exactly it was trying to do: a memory read or a write? Of how many bytes? Reading/writing from which register? etc.  
-Then, it calls some functions that perform the actual memory operation with the SPI RAM.
-
-There is some caching going on, so the idea is to use some kilobytes of the internal RP2040 memory as cache so we do not need to actually read or write through SPI *every time* and instead preferring to move large chunks of memory at a time (which is faster, and which we can do in the background using DMA).
-
-Performance is bad, but not as bad as it could be. With very simple test caching, it could reach over 1MHz worth of emulated memory operations for something somewhat unoptimized. It is currently unknown whether this performance is practical enough.
-
-If it isn't as-is, I suspect that modifying the Lua VM in some hot spots to use the emulated memory accesses directly would help with performance a little, as there is significant overhead to the exception handler and to the instruction disassembly.
-
-Also, the lower the program footprint is in main RAM, the more allocations could go to an allocator living in SRAM rather than in the cursed emulated memory area. Hopefully it could be possible to stuff enough data in there to reduce the performance penalty of going through emulations, while providing enough RAM to allow larger programs to run at all.
+- [How does yocto-8 use SPI RAM?](doc/extmem.md)
