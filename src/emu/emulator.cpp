@@ -12,12 +12,26 @@ extern "C"
 namespace emu
 {
 
-Emulator::Emulator()
+Emulator::Emulator() :
+    _lua(nullptr)
+{}
+
+Emulator::~Emulator()
 {
+    if (_lua != nullptr)
+    {
+        lua_close(_lua);
+    }
+}
+
+void Emulator::init(gsl::span<char> memory_buffer)
+{
+    _memory_buffer = memory_buffer;
+
     ta_init(
         _memory_buffer.data(),
         _memory_buffer.data() + _memory_buffer.size(),
-        8192,
+        1024,
         16,
         sizeof(std::uintptr_t)
     );
@@ -26,14 +40,11 @@ Emulator::Emulator()
     luaL_openlibs(_lua);
 }
 
-Emulator::~Emulator()
-{
-    lua_close(_lua);
-}
-
 void Emulator::load(gsl::span<const char> buf)
 {
-    const int load_status = luaL_loadbuffer(_lua, buf.data(), buf.size(), "main");
+    // FIXME: use buf.size() though its kinda fucked apparently for string literals
+    const int load_status = luaL_loadbuffer(_lua, buf.data(), strlen(buf.data()), "main");
+
     if (lua_pcall(_lua, 0, 0, 0) != 0)
     {
         printf("Script load failed: %s\n", lua_tostring(_lua, -1));

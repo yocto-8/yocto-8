@@ -3,6 +3,7 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include <cstdint>
+#include <video/framebuffer.hpp>
 #include <gsl/span>
 
 namespace video::driver
@@ -11,12 +12,6 @@ namespace video::driver
 class SSD1351
 {
     public:
-    static constexpr std::size_t
-        frame_width = 128,
-        frame_height = 128,
-        frame_pixels_per_byte = 2,
-        frame_bytes = (frame_width * frame_height) / frame_pixels_per_byte;
-
     enum class Command : std::uint8_t
     {
         SET_COLUMN = 0x15,
@@ -214,11 +209,11 @@ class SSD1351
         gpio_put(_pinout.dc, 1);
         gpio_put(_pinout.cs, 0);
 
-        for (std::size_t i = 0; i < frame_bytes; ++i)
+        for (std::size_t i = 0; i < Framebuffer::frame_bytes; ++i)
         {
             const auto pixel_pair = std::array{
-                palette[_frame_buffer[i] & 0x0F],
-                palette[_frame_buffer[i] >> 4]
+                palette[_frame_buffer.data[i] & 0x0F],
+                palette[_frame_buffer.data[i] >> 4]
             };
             
             spi_write_blocking(
@@ -236,9 +231,9 @@ class SSD1351
 
     void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
     {
-        std::size_t i = y + (x * frame_width);
+        std::size_t i = y + (x * Framebuffer::frame_width);
         
-        std::uint8_t& pixel_pair_byte = _frame_buffer[i / 2];
+        std::uint8_t& pixel_pair_byte = _frame_buffer.data[i / 2];
 
         if (i % 2 == 0) // lower pixel?
         {
@@ -252,7 +247,7 @@ class SSD1351
         }
     }
 
-    std::array<std::uint8_t, frame_bytes> _frame_buffer;
+    Framebuffer _frame_buffer;
 
     private:
     spi_inst_t* _spi;

@@ -15,9 +15,11 @@ namespace emu
 class Emulator
 {
 public:
-    // TODO: should be some singleton instead..
+    // TODO: should be some singleton instead.. and not require init()
     Emulator();
     ~Emulator();
+
+    void init(gsl::span<char> memory_buffer);
 
     void load(gsl::span<const char> buf);
 
@@ -27,7 +29,7 @@ public:
     Emulator& operator=(const Emulator&) = delete;
 
 private:
-    std::array<char, 1024 * 1024 * 8> _memory_buffer;
+    gsl::span<char> _memory_buffer;
     lua_State* _lua;
 };
 

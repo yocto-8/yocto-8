@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 
-set(Y8_DESKTOP_VM ON)
+#set(Y8_DESKTOP_VM ON)
 
 if(NOT Y8_DESKTOP_VM)
-    include(pico-sdk/pico_sdk_init.cmake)
+    include(vendor/pico-sdk/pico_sdk_init.cmake)
 endif()
 
 project(yocto-8)
@@ -16,7 +16,7 @@ add_library(yocto-8-core
 
 target_compile_options(yocto-8-core
     PUBLIC
-    $<$<COMPILE_LANGUAGE:CXX>:-std=c++17 -Wall -Wextra -Wpedantic>)
+    $<$<COMPILE_LANGUAGE:CXX>:-std=c++17 -Wall -Wextra -Wno-ignored-qualifiers>)
 
 target_include_directories(yocto-8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"

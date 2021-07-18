@@ -6,26 +6,71 @@
 #include <cstdio>
 #include "tinyalloc.h"
 #include <extmem/cachedinterface.hpp>
+#include <extmem/spiram.hpp>
+#include <emu/emulator.hpp>
 
 int main() {
     set_sys_clock_khz(250000, true);
 
     stdio_init_all();
 
-    printf("Now trying cortex-M Crimes\n");
-    
-    /*const auto time_start = get_absolute_time();
-    for (int i = 0; i < 10'000'000; ++i)
+    extmem::spiram::setup();
+
+    std::array<std::uint8_t, 1024> test;
+
+    int successes = 0, total = 0;
+
+    printf("Performing PSRAM test\n");
+
+    for (int i = 0; i < 100; ++i)
     {
-        *(volatile int*)(0x2F000000+i*4);
+        std::size_t bank_addr = (rand() % 8192) * 0x400;
+
+        for (std::size_t i = 0; i < test.size(); ++i)
+        {
+            test[i] = rand() % 256;
+        }
+
+        ++total;
+        //printf("Writing page.\n");
+        extmem::spiram::write_page(bank_addr, test);
+
+        //printf("Reading page back.\n");
+        std::array<std::uint8_t, 1024> test_target;
+        extmem::spiram::read_page((rand() % 8192) * 0x400, test_target); // read from random page
+        extmem::spiram::read_page(bank_addr, test_target); // and read back from page
+
+        if (test != test_target)
+        {
+            printf("\n\nFAIL\n");
+            for (std::size_t i = 0; i < test_target.size(); ++i)
+            {
+
+                if (i%(extmem::spiram::burst_size*2) == 0)
+                    printf("\n");
+                
+                if (test[i] == test_target[i]) printf("-- ");
+                else printf("%02x ", test_target[i]);
+            }
+        }
+        else {
+            ++successes;
+        }
+        if (total % 20 == 0) printf("Success rate %d/%d\n", successes, total);
     }
-    const auto time_end = get_absolute_time();
-    printf("10e6/%lldµs\n", absolute_time_diff_us(time_start, time_end));*/
+
+    if (successes != total)
+    {
+        printf("FAILED PSRAM test: %d/%d\n", successes, total);
+        return 1;
+    }
+
+    printf("Now trying cortex-M Crimes\n");
 
     // TODO: test all (register) variants
-
+/*
     // STR(imm)
-    /*asm(
+    asm(
         "str %[value], [%[addr], #8]"
         :: [value]"r"(123456), [addr]"r"(0x2F000100-8)
     );
@@ -101,37 +146,35 @@ int main() {
         );
         printf("LDM(imm): %d %d %d (expect 123456, 654321, 696969)\n", a, b, c);
     }*/
-    
-    // TODO: note that this does weird shit with too high block counts and low bank size
-    //       does this lib fail properly?
 
-    ta_init(
-        reinterpret_cast<void*>(extmem::bank_base),
-        reinterpret_cast<void*>(extmem::bank_base + extmem::bank_size),
-        512,
-        16,
-        4
-    );
+    emu::emulator.init(gsl::span<char, extmem::bank_size>(
+        reinterpret_cast<char*>(extmem::bank_base),
+        reinterpret_cast<char*>(extmem::bank_base + extmem::bank_size)
+    ));
 
-    /*ta_init(
-        reinterpret_cast<void*>(extmem::cache.data()),
-        reinterpret_cast<void*>(extmem::cache.data() + extmem::cache_size),
-        128,
-        16,
-        4
-    );*/
+    emu::emulator.load(R"(
+for key, value in pairs(_G) do
+    print('\t', key, value)
+end
+)");
 
-    printf("uwu %d %d %d\n", ta_num_used(), ta_num_free(), ta_num_fresh());
-
-    for (int i = 0; i < 16; ++i)
     {
-        const auto* ptr = ta_alloc(4);
-        printf("malloc %p\n", ptr);
-
-        if (ptr == nullptr)
+        const auto time_start = get_absolute_time();
+        for (int i = 0; i < 10'000'000; ++i)
         {
-            printf("malloc failed for %d\n", i);
-            break;
+            *(volatile int*)(0x20000000);
         }
+        const auto time_end = get_absolute_time();
+        printf("native 10e6/%lldµs\n", absolute_time_diff_us(time_start, time_end));
+    }
+
+    {
+        const auto time_start = get_absolute_time();
+        for (int i = 0; i < 10'000'000; ++i)
+        {
+            *(volatile int*)(0x2F000000);
+        }
+        const auto time_end = get_absolute_time();
+        printf("emulated 10e6/%lldµs\n", absolute_time_diff_us(time_start, time_end));
     }
 }

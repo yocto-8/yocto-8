@@ -2,14 +2,14 @@ GP0 - UART0 TX \__ UART
 GP1 - UART0 RX /
 GP2 - SPI0 SCK    \__ OLED
 GP3 - SPI0 TX     |
-GP4 - SPI0 RX     |
+GP4 - OLED RST    |
 GP5 - SPI0 CSn    |
-GP6 - OLED SPI DC |
-GP7 - OLED RST    /
-GP8 - [spare]
-GP9 - [spare]
-GP10 - [spare]
-GP11 - [spare]
+GP6 - OLED SPI DC /
+GP7 - [spare]
+GP8 - SPI1 RX     \__ SPI RAM
+GP9 - SPI1 CSn    |
+GP10 - SPI1 SCK   |
+GP11 - SPI1 TX    /
 GP12 - [spare]
 GP13 - [spare]
 GP14 - [spare]

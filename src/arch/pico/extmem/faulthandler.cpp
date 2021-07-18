@@ -84,34 +84,18 @@ void hard_fault_handler_c(std::uint32_t* args)
         return get_low_register(op.rn) + op.raw_memory_offset * offset_multiplier;
     };
 
-    const auto todo = [](const char* str) {
-        printf("Unimplemented memory op to emulate (%s)\n", str);
-        for (;;)
-            ;
-    };
-
     // TODO: implement tests for all this.
     //       debugging this is as bad as debugging random memory corruptions mind you.
     
-    // TODO: implement all todo() instructions here
-
     //printf("Opcode %d\n", int(opcode));
 
     switch (opcode)
     {
     // not implemented: we do not support executing code in RAM
-    /*// LDR(literal):     01001xx
-    case 0b0100'100:
-    case 0b0100'101:
-    case 0b0100'110:
-    case 0b0100'111:
-    {
-        todo("LDR(literal)");
-        break;
-    }*/
+    // LDR(literal):     01001xx
 
     // STR(register):    0101000
-    /*case 0b0101'000:
+    case 0b0101'000:
     {
         const arm::RegisterMemoryOp op(first_word);
         get_temporary_ref<std::uint32_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
@@ -188,7 +172,7 @@ void hard_fault_handler_c(std::uint32_t* args)
 
         pc += 1;
         break;
-    }*/
+    }
 
     // STR(imm):         01100xx
     case 0b0110'000:
@@ -197,7 +181,6 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0110'011:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        //printf("str r%d, [r%d, #%d]\n", op.rt, op.rn, op.raw_memory_offset * 4);
         get_temporary_ref<std::uint32_t>(resolve_address(op, 4)) = get_low_register(op.rt);
 
         pc += 1;
@@ -211,7 +194,6 @@ void hard_fault_handler_c(std::uint32_t* args)
     case 0b0110'111:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        //printf("ldr r%d, [r%d, #%d]\n", op.rt, op.rn, op.raw_memory_offset * 4);
         get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(resolve_address(op, 4));
 
         pc += 1;
@@ -219,7 +201,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     }
 
     // STRB(imm):        01110xx
-    /*case 0b0111'000:
+    case 0b0111'000:
     case 0b0111'001:
     case 0b0111'010:
     case 0b0111'011:
@@ -242,10 +224,10 @@ void hard_fault_handler_c(std::uint32_t* args)
 
         pc += 1;
         break;
-    }*/
+    }
 
     // STRH(imm):        10000xx
-    /*case 0b1000'000:
+    case 0b1000'000:
     case 0b1000'001:
     case 0b1000'010:
     case 0b1000'011:
@@ -268,31 +250,15 @@ void hard_fault_handler_c(std::uint32_t* args)
 
         pc += 1;
         break;
-    }*/
-
-    // not implemented: we do not support having the stack live in the emulated area
-    /*// STR(imm,sprel):   10010xx
-    case 0b1001'000:
-    case 0b1001'001:
-    case 0b1001'010:
-    case 0b1001'011:
-    {
-        todo("STR(imm,sprel)");
-        break;
     }
 
+    // not implemented: we do not support having the stack live in the emulated area
+    // STR(imm,sprel):   10010xx
     // LDR(imm,sprel):   10011xx
-    case 0b1001'100:
-    case 0b1001'101:
-    case 0b1001'110:
-    case 0b1001'111:
-    {
-        todo("LDR(imm,sprel)");
-        break;
-    }*/
+    // same for PUSH/POP
 
     // STM:              11000xx
-    /*case 0b1100'000:
+    case 0b1100'000:
     case 0b1100'001:
     case 0b1100'010:
     case 0b1100'011:
@@ -308,6 +274,12 @@ void hard_fault_handler_c(std::uint32_t* args)
                 get_temporary_ref<std::uint32_t>(current_address) = get_low_register(i);
                 current_address += 4;
             }
+        }
+
+        // writeback logic
+        if (((op.register_list >> op.base_register) & 0b1) == 0)
+        {
+            get_low_register(op.base_register) = current_address;
         }
 
         pc += 1;
@@ -333,15 +305,19 @@ void hard_fault_handler_c(std::uint32_t* args)
             }
         }
 
+        // writeback logic
+        if (((op.register_list >> op.base_register) & 0b1) == 0)
+        {
+            get_low_register(op.base_register) = current_address;
+        }
+
         pc += 1;
         break;
-    }*/
-
-    // POP/PUSH: not implemented, we don't need this for now
+    }
 
     default:
     {
-        printf("Hard fault handler failed to recover (opcode %d)\n", opcode);
+        printf("Hard fault handler failed to recover (opcode 0x%02x)\n", opcode);
         for (;;)
             ;
     }

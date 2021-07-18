@@ -1,19 +1,15 @@
 pico_sdk_init()
 
-add_library(yocto-8-pico-core
-    extmem/cachedinterface.cpp
-    extmem/faulthandler.cpp
-)
-
-target_link_libraries(yocto-8-pico-core yocto-8-core pico_stdlib hardware_spi)
-
-target_include_directories(yocto-8-pico-core PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
 function(add_rom NAME SOURCES)
-    add_executable(${NAME} ${SOURCES})
-    target_link_libraries(${NAME} yocto-8-pico-core)
+    add_executable(
+        ${NAME}
+        extmem/cachedinterface.cpp
+        extmem/faulthandler.cpp
+        extmem/spiram.cpp
+        ${SOURCES}
+    )
+    target_link_libraries(${NAME} yocto-8-core pico_stdlib hardware_spi)
+    target_include_directories(${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
     pico_add_extra_outputs(${NAME})
 endfunction()
 
