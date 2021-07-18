@@ -63,13 +63,15 @@ Here is what we need to be able to do in our handler:
 
 The idea here is that `isr_hardfault` is a simple pure assembly function which passes a pointer to the register state to the `hard_fault_handler_c` function.
 
-As the CPU enters the `isr_hardfault`, it automatically pushes some registers (and restores them as we return from the exception handler), some of which we really care about:
+As the CPU enters `isr_hardfault`, it automatically pushes some registers (and restores them as we return from the exception handler), some of which we really care about:
 - `r0`, `r1`, `r2` and `r3`: Those are some of the registers that may be manipulated by the faulting instruction.
 - `pc`: This is the address of the faulting *instruction*. We need this, because we need to be able to tell exactly what it was trying to do so we can emulate it.
 
 `isr_hardfault` also pushes `r4`, `r5`, `r6` and `r7`, because, luckily, in the 16-bit instruction set the RP2040 uses, all memory instructions we care about only interact with registers `r0` through `r7`.
 
 It then calls `hard_fault_handler_c` and passes a pointer to all that stuff on the stack as a parameter. This function disassembles the faulting instruction to figure out what memory operation it has tried to do, and *finally* calls some functions that perform the actual memory operation with the SPI RAM, reading and writing values through the pointer passed by `isr_hardfault`.
+
+There is some caching going on. It is currently very simple 1-way, 32KiB caching, but those details have not really been optimized yet.
 
 ## Performance
 
