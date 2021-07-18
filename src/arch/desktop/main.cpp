@@ -25,6 +25,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::array<char, 1024 * 1024 * 1> yolo_heap;
+    
+    emu::emulator.init(gsl::span<char, 1024 * 1024>(
+        reinterpret_cast<char*>(yolo_heap.data()),
+        reinterpret_cast<char*>(yolo_heap.data() + yolo_heap.size())
+    ));
+
     printf("Loading game from '%s'\n", argv[1]);
 
     std::ifstream cartridge(argv[1]);
