@@ -317,7 +317,7 @@ void hard_fault_handler_c(std::uint32_t* args)
 
     default_case:
     {
-        printf("Hard fault handler failed to recover (opcode 0x%02x)\n", opcode);
+        printf("Hard fault handler failed to recover (instr 0x%02x)\n", first_word);
         for (;;)
             ;
     }
