@@ -3,6 +3,7 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include <cstdint>
+#include <emu/emulator.hpp>
 #include <video/framebuffer.hpp>
 #include <gsl/span>
 
@@ -197,7 +198,7 @@ class SSD1351
 
     void update_frame(gsl::span<const std::uint16_t, 16> palette)
     {
-        const auto time_start = get_absolute_time();
+        //const auto time_start = get_absolute_time();
 
         // SRAM writes should cover all the framebuffer (0..127)
         write(Command::SET_COLUMN, DataBuffer<2>{0, 127});
@@ -209,11 +210,13 @@ class SSD1351
         gpio_put(_pinout.dc, 1);
         gpio_put(_pinout.cs, 0);
 
+        const auto& fb = emu::emulator.frame_buffer;
+
         for (std::size_t i = 0; i < Framebuffer::frame_bytes; ++i)
         {
             const auto pixel_pair = std::array{
-                palette[_frame_buffer.data[i] & 0x0F],
-                palette[_frame_buffer.data[i] >> 4]
+                palette[fb.data[i] & 0x0F],
+                palette[fb.data[i] >> 4]
             };
             
             spi_write_blocking(
@@ -225,29 +228,9 @@ class SSD1351
 
         gpio_put(_pinout.cs, 1);
 
-        const auto time_end = get_absolute_time();
-        printf("%fms\n", absolute_time_diff_us(time_start, time_end) / 1000.0f);
+        //const auto time_end = get_absolute_time();
+        //printf("%fms\n", absolute_time_diff_us(time_start, time_end) / 1000.0f);
     }
-
-    void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
-    {
-        std::size_t i = y + (x * Framebuffer::frame_width);
-        
-        std::uint8_t& pixel_pair_byte = _frame_buffer.data[i / 2];
-
-        if (i % 2 == 0) // lower pixel?
-        {
-            pixel_pair_byte &= 0xF0; // clear lower byte
-            pixel_pair_byte |= palette_entry; // set lower byte
-        }
-        else
-        {
-            pixel_pair_byte &= 0x0F; // clear upper byte
-            pixel_pair_byte |= palette_entry << 4; // set upper byte
-        }
-    }
-
-    Framebuffer _frame_buffer;
 
     private:
     spi_inst_t* _spi;

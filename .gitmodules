@@ -10,3 +10,6 @@
 [submodule "GSL"]
 	path = vendor/GSL
 	url = git@github.com:microsoft/GSL.git
+[submodule "vendor/libfixmath"]
+	path = vendor/libfixmath
+	url = git@github.com:PetteriAimonen/libfixmath.git

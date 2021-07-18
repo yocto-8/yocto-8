@@ -8,6 +8,7 @@ extern "C"
 #include <array>
 #include <gsl/gsl>
 #include <tinyalloc.h>
+#include <video/framebuffer.hpp>
 
 namespace emu
 {
@@ -28,7 +29,11 @@ public:
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
 
+    video::Framebuffer frame_buffer;
+
 private:
+    static int y8_pset(lua_State* state);
+
     gsl::span<char> _memory_buffer;
     lua_State* _lua;
 };
