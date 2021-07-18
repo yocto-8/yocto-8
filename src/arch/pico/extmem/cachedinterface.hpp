@@ -8,10 +8,6 @@
 namespace extmem
 {
 
-// TODO: this should make use of multiple cache pages, because we can afford it
-//       this would make it possible to swap pages in the background (with some effort)
-//       and avoid requiring huge transfers during cache misses
-
 constexpr std::size_t
     cache_size = spiram::page_size;
 
@@ -59,19 +55,6 @@ struct PageInfo
     std::uintptr_t base_address;
 };
 
-inline void assert_address_within_bank(std::uintptr_t address)
-{
-    if constexpr (access_debug)
-    {
-        if (!((address >= bank_base) && (address <= bank_last_byte)))
-        {
-            printf("Could not recover from memory access at %#06x as it is not within the emulated bank\n", address);
-            for (;;)
-                ;
-        }
-    }
-}
-
 inline void swap_out(PageInfo page)
 {
     spiram::write_page(page.base_address, cache.pages[page.cache_slot]);
@@ -92,8 +75,23 @@ inline char* get_raw_temporary_ref(std::uintptr_t address)
 
     const auto previous_page_in_slot = cache.active_page_indices[page.cache_slot];
 
-    if (page.index != previous_page_in_slot)
+    if (page.index != previous_page_in_slot) [[unlikely]]
     {
+        // perform the address bounds check inside of this cold path is faster
+        // this should be somewhat safe and cozy to do in here, as the slot should never match if the address is bad
+        //
+        // i'm actually not quite sure how true that is because index is a uint16_t,
+        // but this probably won't cause too much trouble anyway
+        if constexpr (access_debug)
+        {
+            if (!((address >= bank_base) && (address <= bank_last_byte))) [[unlikely]]
+            {
+                printf("Could not recover from memory access at %#06x as it is not within the emulated bank\n", address);
+                for (;;)
+                    ;
+            }
+        }
+
         if (previous_page_in_slot != invalid_bank)
         {
             swap_out(cache.active_page_indices[page.cache_slot]);
@@ -113,7 +111,6 @@ inline std::uintptr_t resolve_address(std::uintptr_t address)
 template<class T>
 T& get_temporary_ref(std::uintptr_t address)
 {
-    assert_address_within_bank(address);
     return *reinterpret_cast<T*>(get_raw_temporary_ref(address));
 }
 }

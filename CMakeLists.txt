@@ -16,7 +16,7 @@ add_library(yocto-8-core
 
 target_compile_options(yocto-8-core
     PUBLIC
-    $<$<COMPILE_LANGUAGE:CXX>:-std=c++17 -Wall -Wextra -Wno-ignored-qualifiers>)
+    $<$<COMPILE_LANGUAGE:CXX>:-std=c++17 -Wall -Wextra -Wno-ignored-qualifiers -fno-exceptions -fno-rtti>)
 
 target_include_directories(yocto-8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
