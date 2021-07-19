@@ -16,7 +16,7 @@
 
 constexpr auto pico8_palette = video::driver::SSD1351::rgb_palette_to_native_format(std::array<std::uint32_t, 16>{
     0x000000, 0x1D2B53, 0x7E2553, 0x008751,
-    0xAB5236, 0x5F574F, 0xC2C3C7, 0xFFF1E8,
+    0xAB5236, 0x5F574F/*0x6F675F*/, 0xC2C3C7, 0xFFF1E8,
     0xFF004D, 0xFFA300, 0xFFEC27, 0x00E436,
     0x29ADFF, 0x83769C, 0xFF77A8, 0xFFCCAA
 });
@@ -26,15 +26,14 @@ version 32
 __lua__
 i=0
 function _update()
-	c=i
-	for y=32,95 do
-		c=c+y/8
-		for x=32,95 do
-			c=c+x/8
-			pset(x,y,c/32)
+    c=i
+	for y=0,127 do
+		c=c+1
+        for x=0,127 do
+            pset(x,y,(c+x)/16)
 		end
 	end
-	i=i+8
+	i=i+1
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -82,7 +81,6 @@ int main() {
     while (parser.parse_line())
         ;
 
-    display.set_brightness(0x8);
     for (;;)
     {
         const auto time_start = get_absolute_time();

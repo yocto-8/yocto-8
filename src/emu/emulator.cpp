@@ -1,12 +1,8 @@
 #include "emulator.hpp"
 
-extern "C"
-{
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-}
-
 #include <cstdio>
 
 namespace emu
@@ -71,13 +67,13 @@ int Emulator::y8_pset(lua_State* state)
 {
     // FIXME: tonumberx checking
     //luaL_checknumber(state, 1);
-    const auto x = int(lua_tonumber(state, 1));
+    const auto x = lua_tointeger(state, 1);
 
     //luaL_checknumber(state, 2);
-    const auto y = int(lua_tonumber(state, 2));
+    const auto y = lua_tointeger(state, 2);
 
     //luaL_checknumber(state, 3);
-    const auto v = int(lua_tonumber(state, 3));
+    const auto v = lua_tointeger(state, 3);
 
     if (x < 0 || x >= 128 || y < 0 || y >= 128)
     {

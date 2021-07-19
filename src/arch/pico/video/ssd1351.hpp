@@ -3,6 +3,7 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include <cstdint>
+#include <cmath>
 #include <emu/emulator.hpp>
 #include <video/framebuffer.hpp>
 #include <gsl/span>
@@ -140,21 +141,28 @@ class SSD1351
         write(Command::SET_FUNCTION, DataBuffer<1>{0b00'1});
 
         // Timing tweaks
-        write(Command::SET_PRECHARGE_PERIOD, DataBuffer<1>{0b00110010});
+        write(Command::SET_PRECHARGE_PERIOD, DataBuffer<1>{0b0010'0010});
         write(Command::SET_PRECHARGE2_PERIOD, DataBuffer<1>{0b0001});
 
         // TODO: what is this useful for exactly
-        write(Command::SET_COM_DESELECT_VOLTAGE, DataBuffer<1>{0x05});
+        write(Command::SET_COM_DESELECT_VOLTAGE, DataBuffer<1>{0b111});
 
         // Display regular pixel data
         write(Command::NORMAL_DISPLAY);
 
         // Contrast settings
-        write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xE5, 0xC0, 0xFF});
-        set_brightness(0x8);
+        write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xC0, 0xBE, 0xFF});
+        set_brightness(0xA);
 
         // Set cryptic command from the datasheet that does fuck knows
         write(Command::SET_VSL, DataBuffer<3>{0xA0, 0xB5, 0x55});
+
+        DataBuffer<63> gamma_lut;
+        for (int i = 0; i < gamma_lut.size(); ++i)
+        {
+            gamma_lut[i] = round(180.0f * pow(i/63.0f, 1.25));
+        }
+        write(Command::SET_GRAYSCALE_LUT, gamma_lut);
 
         // Start display
         write(Command::DISPLAY_ON);

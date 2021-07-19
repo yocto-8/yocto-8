@@ -29,10 +29,7 @@ target_include_directories(yocto-8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(yocto-8-core
-    picolua
-#    libfixmath
-)
+target_link_libraries(yocto-8-core picolua libfixmath)
 
 if (Y8_DESKTOP_VM)
     add_subdirectory(src/arch/desktop)
@@ -44,5 +41,5 @@ endif()
 
 # Do not relocate if possible - this should be after the C/C++ flag changes
 # See https://stackoverflow.com/a/33834879/6261331 - add_subdirectory clones the current set of variables
-#add_subdirectory(vendor/libfixmath)
+add_subdirectory(vendor/libfixmath)
 add_subdirectory(vendor/lua)

@@ -1,9 +1,6 @@
 #pragma once
 
-extern "C"
-{
 #include <lua.h>
-}
 
 #include <array>
 #include <gsl/gsl>
