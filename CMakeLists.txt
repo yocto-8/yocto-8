@@ -22,6 +22,8 @@ target_compile_options(yocto-8-core
     $<$<COMPILE_LANGUAGE:CXX>:-std=c++17 -Wall -Wextra -Wno-ignored-qualifiers -fno-exceptions -fno-rtti>
 )
 
+set_property(TARGET yocto-8-core PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
+
 target_include_directories(yocto-8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tinyalloc"

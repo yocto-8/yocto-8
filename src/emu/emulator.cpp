@@ -65,24 +65,18 @@ void Emulator::hook_update()
 
 int Emulator::y8_pset(lua_State* state)
 {
-    // FIXME: tonumberx checking
-    //luaL_checknumber(state, 1);
-    const auto x = lua_tointeger(state, 1);
+    const auto x = luaL_checkunsigned(state, 1);
+    const auto y = luaL_checkunsigned(state, 2);
+    const auto v = luaL_checkunsigned(state, 3);
 
-    //luaL_checknumber(state, 2);
-    const auto y = lua_tointeger(state, 2);
-
-    //luaL_checknumber(state, 3);
-    const auto v = lua_tointeger(state, 3);
-
-    if (x < 0 || x >= 128 || y < 0 || y >= 128)
+    if (x >= 128 || y >= 128)
     {
         // Out of bounds
         // TODO: is this the proper behavior?
         return 0;
     }
 
-    emulator.frame_buffer.set_pixel(std::uint8_t(x), std::uint8_t(y), std::uint8_t(v % 16));
+    emulator.frame_buffer.set_pixel(x, y, v % 16);
 
     return 0;
 }
