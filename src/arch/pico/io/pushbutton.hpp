@@ -2,12 +2,15 @@
 
 #include "hardware/gpio.h"
 
-class Button
+namespace arch::pico::io
+{
+
+class PushButton
 {
     public:
-    Button(int pin) :
-        _pin(pin)
+    void init(int pin)
     {
+        _pin = pin;
         gpio_init(_pin);
         gpio_set_dir(_pin, false);
         gpio_set_pulls(_pin, true, false);
@@ -21,3 +24,5 @@ class Button
     private:
     int _pin;
 };
+
+}

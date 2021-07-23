@@ -6,10 +6,33 @@
 #include <cmath>
 #include <emu/emulator.hpp>
 #include <video/framebuffer.hpp>
+#include <video/palette.hpp>
 #include <gsl/span>
 
-namespace video::driver
+namespace arch::pico::video
 {
+
+static constexpr std::array<std::uint16_t, 32> rgb_palette_to_ssd1351_format(gsl::span<const std::uint32_t, 32> palette)
+{
+    std::array<std::uint16_t, 32> ret{};
+
+    for (std::size_t i = 0; i < 32; ++i)
+    {
+        const std::uint32_t rgb8 = palette[i];
+
+        std::uint8_t
+            r5 = ((rgb8 >> 16) & 0xFF) >> (8 - 5),
+            g6 = ((rgb8 >>  8) & 0xFF) >> (8 - 6),
+            b5 = ((rgb8 >>  0) & 0xFF) >> (8 - 5);
+            
+        ret[i] = (r5 << (5 + 6)) | (g6 << 5) | b5;
+
+        // Swap LSB/MSB
+        ret[i] = ((ret[i] & 0xFF) << 8) | (ret[i] >> 8);
+    }
+
+    return ret;
+}
 
 class SSD1351
 {
@@ -72,10 +95,11 @@ class SSD1351
         Pinout pinout;
     };
 
-    SSD1351(Config config):
-        _spi(config.spi),
-        _pinout(config.pinout)
+    void init(Config config)
     {
+        _spi = config.spi;
+        _pinout = config.pinout;
+
         gpio_set_function(_pinout.sclk, GPIO_FUNC_SPI);
         gpio_set_function(_pinout.tx, GPIO_FUNC_SPI);
 
@@ -144,23 +168,29 @@ class SSD1351
         write(Command::SET_PRECHARGE_PERIOD, DataBuffer<1>{0b0010'0010});
         write(Command::SET_PRECHARGE2_PERIOD, DataBuffer<1>{0b0001});
 
-        // TODO: what is this useful for exactly
+        // Voltage tweaks
+        write(Command::SET_PRECHARGE_VOLTAGE, DataBuffer<1>{0b11111});
         write(Command::SET_COM_DESELECT_VOLTAGE, DataBuffer<1>{0b111});
+
+        // Seems to be useless?
+        //write(Command::MAGIC_ENHANCE_DISPLAY, DataBuffer<3>{0xA4, 0x00, 0x00});
 
         // Display regular pixel data
         write(Command::NORMAL_DISPLAY);
 
         // Contrast settings
-        write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xC0, 0xBE, 0xFF});
-        set_brightness(0xA);
+        write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xB9, 0xC2, 0xFF});
+        //set_brightness(0xA); const float gamma = 1.25;
+        set_brightness(0x7); const float gamma = 1.1;
+        //set_brightness(0x2); const float gamma = 0.6;
 
         // Set cryptic command from the datasheet that does fuck knows
         write(Command::SET_VSL, DataBuffer<3>{0xA0, 0xB5, 0x55});
 
         DataBuffer<63> gamma_lut;
-        for (int i = 0; i < gamma_lut.size(); ++i)
+        for (std::size_t i = 0; i < gamma_lut.size(); ++i)
         {
-            gamma_lut[i] = round(180.0f * pow(i/63.0f, 1.25));
+            gamma_lut[i] = round(180.0f * pow(i/63.0f, gamma));
         }
         write(Command::SET_GRAYSCALE_LUT, gamma_lut);
 
@@ -182,29 +212,7 @@ class SSD1351
         gpio_put(_pinout.cs, 1);
     }
 
-    static constexpr std::array<std::uint16_t, 16> rgb_palette_to_native_format(gsl::span<const std::uint32_t, 16> palette)
-    {
-        std::array<std::uint16_t, 16> ret{};
-
-        for (std::size_t i = 0; i < 16; ++i)
-        {
-            const std::uint32_t rgb8 = palette[i];
-
-            std::uint8_t
-                r5 = ((rgb8 >> 16) & 0xFF) >> (8 - 5),
-                g6 = ((rgb8 >>  8) & 0xFF) >> (8 - 6),
-                b5 = ((rgb8 >>  0) & 0xFF) >> (8 - 5);
-            
-            ret[i] = (r5 << (5 + 6)) | (g6 << 5) | b5;
-
-            // Swap LSB/MSB
-            ret[i] = ((ret[i] & 0xFF) << 8) | (ret[i] >> 8);
-        }
-
-        return ret;
-    }
-
-    void update_frame(gsl::span<const std::uint16_t, 16> palette)
+    void update_frame(::video::Framebuffer::View view)
     {
         //const auto time_start = get_absolute_time();
 
@@ -218,13 +226,11 @@ class SSD1351
         gpio_put(_pinout.dc, 1);
         gpio_put(_pinout.cs, 0);
 
-        const auto& fb = emu::emulator.frame_buffer;
-
-        for (std::size_t i = 0; i < Framebuffer::frame_bytes; ++i)
+        for (std::size_t i = 0; i < ::video::Framebuffer::frame_bytes; ++i)
         {
             const auto pixel_pair = std::array{
-                palette[fb.data[i] & 0x0F],
-                palette[fb.data[i] >> 4]
+                palette[view[i] & 0x0F],
+                palette[view[i] >> 4]
             };
             
             spi_write_blocking(
@@ -239,6 +245,8 @@ class SSD1351
         //const auto time_end = get_absolute_time();
         //printf("%fms\n", absolute_time_diff_us(time_start, time_end) / 1000.0f);
     }
+
+    static constexpr auto palette = rgb_palette_to_ssd1351_format(::video::pico8_palette_rgb8);
 
     private:
     spi_inst_t* _spi;

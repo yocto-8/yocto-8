@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <gsl/gsl>
 
 namespace video
 {
@@ -15,7 +16,8 @@ class Framebuffer
         frame_height = 128,
         frame_pixels_per_byte = 2,
         frame_bytes = (frame_width * frame_height) / frame_pixels_per_byte;
-
+    
+    using View = gsl::span<std::uint8_t, frame_bytes>;
 
     void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
     {

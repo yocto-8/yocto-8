@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <gsl/gsl>
 
-namespace extmem::spiram
+namespace arch::pico::extmem::spiram
 {
 
 static constexpr int pin_rx = 8, pin_cs = 9, pin_sck = 10, pin_tx = 11;

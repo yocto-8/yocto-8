@@ -9,6 +9,8 @@
 #include <extmem/spiram.hpp>
 #include <emu/emulator.hpp>
 
+using namespace arch::pico;
+
 int main() {
     set_sys_clock_khz(250000, true);
 

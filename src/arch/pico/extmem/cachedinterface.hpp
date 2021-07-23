@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <extmem/spiram.hpp>
 
-namespace extmem
+namespace arch::pico::extmem
 {
 
 constexpr std::size_t

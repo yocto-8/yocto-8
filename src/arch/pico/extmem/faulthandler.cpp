@@ -5,7 +5,7 @@
 #include "armdisassembler.hpp"
 #include "cachedinterface.hpp"
 
-namespace extmem
+namespace arch::pico::extmem
 {
 extern "C"
 {

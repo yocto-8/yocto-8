@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace extmem::arm
+namespace arch::pico::extmem::arm
 {
 
 struct ImmediateMemoryOp

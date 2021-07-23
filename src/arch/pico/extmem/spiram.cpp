@@ -4,7 +4,7 @@
 #include "hardware/gpio.h"
 #include <array>
 
-namespace extmem::spiram
+namespace arch::pico::extmem::spiram
 {
 
 static spi_inst_t *const psram_spi = spi1;

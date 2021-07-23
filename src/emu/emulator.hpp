@@ -21,6 +21,8 @@ public:
 
     void load(gsl::span<const char> buf);
 
+    void run();
+
     void hook_update();
 
     Emulator(const Emulator&) = delete;
@@ -31,7 +33,10 @@ public:
 private:
     static int y8_pset(lua_State* state);
 
+    static int y8_btn(lua_State* state);
+
     gsl::span<char> _memory_buffer;
+    std::uint16_t _button_state;
     lua_State* _lua;
 };
 

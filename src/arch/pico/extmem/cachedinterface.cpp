@@ -1,6 +1,6 @@
 #include "cachedinterface.hpp"
 
-namespace extmem
+namespace arch::pico::extmem
 {
 
 Cache cache;

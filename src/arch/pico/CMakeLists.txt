@@ -6,10 +6,18 @@ function(add_rom NAME SOURCES)
         extmem/cachedinterface.cpp
         extmem/faulthandler.cpp
         extmem/spiram.cpp
+        hal/hal.cpp
+        hardwarestate.cpp
         ${SOURCES}
     )
     target_link_libraries(${NAME} yocto-8-core pico_stdlib hardware_spi)
     target_include_directories(${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    # message(WARNING "AAA${PICO_DEFAULT_BOOT_STAGE2_FILE}AAA")
+    # pico_define_boot_stage2(${NAME} ${PICO_DEFAULT_BOOT_STAGE2_FILE})
+    # target_compile_definitions(${NAME} PRIVATE PICO_FLASH_SPI_CLKDIV=4)
+    # pico_set_boot_stage2(TARGET ${NAME})    
+
     pico_add_extra_outputs(${NAME})
 endfunction()
 

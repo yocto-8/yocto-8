@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace extmem
+namespace arch::pico::extmem
 {
 extern "C"
 {
