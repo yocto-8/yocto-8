@@ -8,7 +8,7 @@
 namespace video
 {
 
-class Framebuffer
+class FramebufferView
 {
     public:
     static constexpr std::size_t
@@ -16,12 +16,16 @@ class Framebuffer
         frame_height = 128,
         frame_pixels_per_byte = 2,
         frame_bytes = (frame_width * frame_height) / frame_pixels_per_byte;
-    
+
     using View = gsl::span<std::uint8_t, frame_bytes>;
+
+    constexpr FramebufferView(View data) :
+        data(data)
+    {}
 
     void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
     {
-        std::size_t i = y + (x * Framebuffer::frame_width);
+        std::size_t i = y + (x * FramebufferView::frame_width);
         
         std::uint8_t& pixel_pair_byte = data[i / 2];
 
@@ -37,7 +41,7 @@ class Framebuffer
         }
     }
 
-    std::array<std::uint8_t, frame_bytes> data;
+    View data;
 };
 
 }

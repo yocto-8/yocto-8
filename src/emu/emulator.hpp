@@ -5,7 +5,7 @@
 #include <array>
 #include <gsl/gsl>
 #include <tinyalloc.h>
-#include <video/framebuffer.hpp>
+#include <video/framebufferview.hpp>
 
 namespace emu
 {
@@ -14,7 +14,12 @@ class Emulator
 {
 public:
     // TODO: should be some singleton instead.. and not require init()
-    Emulator();
+    constexpr Emulator() :
+        _memory{},
+        _button_state(0),
+        _lua(nullptr)
+    {}
+
     ~Emulator();
 
     void init(gsl::span<char> memory_buffer);
@@ -28,7 +33,10 @@ public:
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
 
-    video::Framebuffer frame_buffer;
+    video::FramebufferView frame_buffer()
+    {
+        return {gsl::span(_memory).subspan<0x6000, 8192>()};
+    }
 
 private:
     static int y8_pset(lua_State* state);
@@ -36,6 +44,7 @@ private:
     static int y8_btn(lua_State* state);
 
     gsl::span<char> _memory_buffer;
+    std::array<std::uint8_t, 65536> _memory;
     std::uint16_t _button_state;
     lua_State* _lua;
 };

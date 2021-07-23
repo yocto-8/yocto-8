@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cmath>
 #include <emu/emulator.hpp>
-#include <video/framebuffer.hpp>
+#include <video/framebufferview.hpp>
 #include <video/palette.hpp>
 #include <gsl/span>
 
@@ -212,7 +212,7 @@ class SSD1351
         gpio_put(_pinout.cs, 1);
     }
 
-    void update_frame(::video::Framebuffer::View view)
+    void update_frame(::video::FramebufferView::View view)
     {
         //const auto time_start = get_absolute_time();
 
@@ -226,7 +226,7 @@ class SSD1351
         gpio_put(_pinout.dc, 1);
         gpio_put(_pinout.cs, 0);
 
-        for (std::size_t i = 0; i < ::video::Framebuffer::frame_bytes; ++i)
+        for (std::size_t i = 0; i < ::video::FramebufferView::frame_bytes; ++i)
         {
             const auto pixel_pair = std::array{
                 palette[view[i] & 0x0F],

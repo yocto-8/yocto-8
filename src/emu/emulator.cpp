@@ -9,11 +9,6 @@
 namespace emu
 {
 
-Emulator::Emulator() :
-    _button_state(0),
-    _lua(nullptr)
-{}
-
 Emulator::~Emulator()
 {
     if (_lua != nullptr)
@@ -25,6 +20,8 @@ Emulator::~Emulator()
 void Emulator::init(gsl::span<char> memory_buffer)
 {
     _memory_buffer = memory_buffer;
+
+    _memory.fill(0);
 
     ta_init(
         _memory_buffer.data(),
@@ -67,7 +64,7 @@ void Emulator::run()
     {
         _button_state = hal::update_button_state();
         hook_update();
-        hal::present_frame(frame_buffer.data);
+        hal::present_frame(frame_buffer());
     }
 }
 
@@ -93,7 +90,7 @@ int Emulator::y8_pset(lua_State* state)
         return 0;
     }
 
-    emulator.frame_buffer.set_pixel(x, y, v % 16);
+    emulator.frame_buffer().set_pixel(x, y, v % 16);
 
     return 0;
 }

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <gsl/gsl>
 
-#include <video/framebuffer.hpp>
+#include <video/framebufferview.hpp>
 
 namespace hal
 {
@@ -14,6 +14,6 @@ namespace hal
 [[nodiscard]] std::uint16_t update_button_state();
 
 /// @brief Presents a new frame. May or may not perform double-buffering internally.
-void present_frame(video::Framebuffer::View view);
+void present_frame(video::FramebufferView view);
 
 }

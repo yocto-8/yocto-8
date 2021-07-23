@@ -17,10 +17,10 @@ std::uint16_t update_button_state()
     return ret;
 }
 
-void present_frame(video::Framebuffer::View view)
+void present_frame(video::FramebufferView view)
 {
     // TODO: double-buffering
-    arch::pico::hw.ssd1351.update_frame(view);
+    arch::pico::hw.ssd1351.update_frame(view.data);
 }
 
 }
