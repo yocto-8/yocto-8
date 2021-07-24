@@ -1,6 +1,7 @@
 #include <hal/hal.hpp>
 
 #include <hardwarestate.hpp>
+#include <cmdthread.hpp>
 
 namespace hal
 {
@@ -20,7 +21,8 @@ std::uint16_t update_button_state()
 void present_frame(video::FramebufferView view)
 {
     // TODO: double-buffering
-    arch::pico::hw.ssd1351.update_frame(view.data);
+    arch::pico::run_blocking_command(arch::pico::IoThreadCommand::PUSH_FRAME);
+    //arch::pico::hw.ssd1351.update_frame(view.data);
 }
 
 }

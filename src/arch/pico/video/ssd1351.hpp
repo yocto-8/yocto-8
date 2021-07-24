@@ -1,7 +1,8 @@
 #pragma once
 
-#include "hardware/gpio.h"
-#include "hardware/spi.h"
+#include <hardware/gpio.h>
+#include <hardware/spi.h>
+#include <hardware/dma.h>
 #include <cstdint>
 #include <cmath>
 #include <emu/emulator.hpp>
@@ -117,6 +118,11 @@ class SSD1351
 
         reset_blocking();
         submit_init_sequence();
+
+        /*_dma_channel = dma_claim_unused_channel(true);
+        dma_channel_config dma_cfg = dma_channel_get_default_config(_dma_channel);
+        channel_config_set_transfer_data_size(&dma_cfg, DMA_SIZE_32);
+        channel_config_set_dreq(&dma_cfg, spi_get_index(spi_default) ? DREQ_SPI1_TX : DREQ_SPI0_TX);*/
     }
 
     void reset_blocking()
@@ -225,6 +231,13 @@ class SSD1351
 
         gpio_put(_pinout.dc, 1);
         gpio_put(_pinout.cs, 0);
+        /*dma_channel_configure(
+            _dma_channel,
+            &dma_cfg,
+            &spi_get_hw(_spi)->dr,
+            emu::emulator.frame_buffer().data.data(),
+            8192 / 4,
+            false);*/
 
         for (std::size_t i = 0; i < ::video::FramebufferView::frame_bytes; ++i)
         {
@@ -249,6 +262,7 @@ class SSD1351
     static constexpr auto palette = rgb_palette_to_ssd1351_format(::video::pico8_palette_rgb8);
 
     private:
+    //unsigned _dma_channel;
     spi_inst_t* _spi;
     Pinout _pinout;
 };

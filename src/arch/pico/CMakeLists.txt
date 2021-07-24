@@ -8,9 +8,10 @@ function(add_rom NAME SOURCES)
         extmem/spiram.cpp
         hal/hal.cpp
         hardwarestate.cpp
+        cmdthread.cpp
         ${SOURCES}
     )
-    target_link_libraries(${NAME} yocto-8-core pico_stdlib hardware_spi)
+    target_link_libraries(${NAME} yocto-8-core pico_stdlib pico_multicore hardware_spi hardware_dma)
     target_include_directories(${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
     # message(WARNING "AAA${PICO_DEFAULT_BOOT_STAGE2_FILE}AAA")

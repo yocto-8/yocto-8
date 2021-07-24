@@ -19,6 +19,8 @@
 
 namespace pico = arch::pico;
 
+// FIXME: __lua__ fucks up if a later chunk is not present
+/*
 static constexpr std::string_view cartridge = R"(pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
@@ -35,13 +37,73 @@ function _update()
 	end
 	i=i+1
 end
+__gfx__)";
+*/
+
+static constexpr std::string_view cartridge = R"(pico-8 cartridge // http://www.pico-8.com
+version 32
+__lua__
+-- 1-d cellular automata demo
+-- by zep
+-- ref: wikipedia.org/wiki/cellular_automaton
+
+cls()
+l=0 -- line count
+
+--uncomment for kaleidoscope
+--poke(0x5f2c,7)
+
+-- starting rule set
+r={[0]=0,1,0,1,1,0,0,1}
+
+bitch = {1,2,4}
+
+function _update()
+
+	l=l+1
+	-- change rule every 16 lines
+	-- (or when ❎ is pressed)
+	--if (l%16==0 or btn(❎)) then
+    if (l%16==0 or btn(0)) then
+		for i=1,7 do
+			--r[i]=(r[i]+1)%3
+			r[i]=flr(rnd(2.3))
+			print(r[i])
+		end
+	end
+	
+	
+	-- if the line is blank, add
+	-- something to get it started
+	found = false
+	for x=0,127 do
+		--if (pget(x,127)>0) found=true
+        if (pget(x,127)>0) then found=true end
+	end
+	
+	if (not found) then
+		pset(63,127,7)
+	end
+
+--end
+
+--function _draw()
+	-- scroll
+	memcpy(0x6000,0x6040,0x1fc0)
+	
+	for x=0,127
+	 do n=0 
+	 for b=0,2 do
+	  if (pget(x-1+b,126)>0)
+	  then
+      -- FIXME: 2^n borked
+	   n = n + bitch[b+1] -- 1,2,4
+	  end
+	 end
+	 pset(x,127,r[n]*7)
+	end
+end
 __gfx__
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
 )";
 
 int main()
@@ -70,61 +132,5 @@ int main()
             const auto time_end = get_absolute_time();
             printf("update_frame() took %fms\n", absolute_time_diff_us(time_start, time_end) / 1000.0f);
         }
-    }*/
-
-/*
-    const Button left(16), up(17), right(18), down(19), button_o(20), button_x(21);
-
-    int off = 0, zoom = 1;
-    std::uint8_t brightness = 0x8;
-
-    for(;;)
-    {
-        display.set_brightness(brightness);
-
-        ++off;
-
-        if (left)
-        {
-            --off;
-        }
-
-        if (up)
-        {
-            ++brightness;
-        }
-
-        if (right)
-        {
-            ++off;
-        }
-
-        if (down)
-        {
-            --brightness;
-        }
-
-        if (button_o)
-        {
-            zoom += 1;
-        }
-
-        if (button_x)
-        {
-            zoom -= 1;
-        }
-
-        if (zoom < 1) { zoom = 1; }
-        if (zoom > 16) { zoom = 16; }
-
-        for (int y = 0; y < 128; ++y)
-        {
-            for (int x = 0; x < 128; ++x)
-            {
-                display.set_pixel(x, y, int((x + y + off) / (256*zoom / 16)) % 16);
-            }
-        }
-
-        display.update_frame(pico8_palette);
     }*/
 }

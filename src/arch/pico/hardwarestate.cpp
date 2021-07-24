@@ -1,10 +1,12 @@
 #include "hardwarestate.hpp"
 
 #include <pico/stdlib.h>
+#include <pico/multicore.h>
 #include <hardware/vreg.h>
 
 #include <emu/emulator.hpp>
 #include <extmem/cachedinterface.hpp>
+#include <cmdthread.hpp>
 
 namespace arch::pico
 {
@@ -66,6 +68,11 @@ void initialize_ssd1351(spi_inst_t* spi_instance)
     });
 }
 
+void initialize_cmd_thread()
+{
+    multicore_launch_core1(core1_entry);
+}
+
 void initialize_hardware()
 {
     initialize_default_frequency();
@@ -83,6 +90,8 @@ void initialize_hardware()
     spi_inst_t& video_spi = *spi0;
     spi_init(&video_spi, 25 * 1000 * 1000);
     initialize_ssd1351(&video_spi);
+
+    initialize_cmd_thread();
 }
 
 HardwareState hw;

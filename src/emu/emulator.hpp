@@ -10,10 +10,13 @@
 namespace emu
 {
 
+// This is a class, but we really need one instance, and the singleton pattern may not be ideal for perf reasons
+// If most things are static and only access the `emulator` instance then stuff *should* be able to be translated
+// into an address - e.g. for frame_buffer() - rather than an indirect lookup
+
 class Emulator
 {
 public:
-    // TODO: should be some singleton instead.. and not require init()
     constexpr Emulator() :
         _memory{},
         _button_state(0),
@@ -38,14 +41,32 @@ public:
         return {gsl::span(_memory).subspan<0x6000, 8192>()};
     }
 
-private:
-    static int y8_pset(lua_State* state);
+    gsl::span<std::uint8_t, 8> random_state()
+    {
+        return {gsl::span(_memory).subspan<0x5f44, 8>()};
+    }
 
+private:
+    // video
+    static int y8_pset(lua_State* state);
+    static int y8_pget(lua_State* state);
+    static int y8_cls(lua_State* state);
+
+    // input
     static int y8_btn(lua_State* state);
+
+    // mmio
+    static int y8_memcpy(lua_State* state);
+
+    // math
+    static int y8_flr(lua_State* state);
+
+    // rng
+    static int y8_rnd(lua_State* state);
 
     gsl::span<char> _memory_buffer;
     std::array<std::uint8_t, 65536> _memory;
-    std::uint16_t _button_state;
+    std::uint16_t _button_state; // FIXME: this should be in _memory
     lua_State* _lua;
 };
 
