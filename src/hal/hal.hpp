@@ -16,4 +16,11 @@ namespace hal
 /// @brief Presents a new frame. May or may not perform double-buffering internally.
 void present_frame(video::FramebufferView view);
 
+/// @brief Reset the time measurement timer use in measure_time_us()
+void reset_timer();
+
+/// @brief Measure and return the current time in microseconds.
+/// @warning This may overflow after around 584542 years. I won't be the maintainer by then, so not my problem.
+std::uint64_t measure_time_us();
+
 }

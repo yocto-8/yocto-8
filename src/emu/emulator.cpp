@@ -1,4 +1,5 @@
 #include "emulator.hpp"
+#include "fix16.h"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -48,8 +49,13 @@ void Emulator::init(gsl::span<char> memory_buffer)
     bind("memcpy", y8_memcpy);
 
     bind("flr", y8_flr);
+    bind("cos", y8_cos);
+    bind("sqrt", y8_sqrt);
 
     bind("rnd", y8_rnd);
+
+    bind("t", y8_time);
+    bind("time", y8_time);
 }
 
 void Emulator::load(gsl::span<const char> buf)
@@ -74,6 +80,8 @@ void Emulator::load(gsl::span<const char> buf)
 
 void Emulator::run()
 {
+    hal::reset_timer();
+    
     for (;;)
     {
         _button_state = hal::update_button_state();
@@ -196,6 +204,20 @@ int Emulator::y8_flr(lua_State* state)
     return 1;
 }
 
+int Emulator::y8_cos(lua_State* state)
+{
+    const auto x = luaL_checknumber(state, 1);
+    lua_pushnumber(state, (x * (LuaFix16::from_fix16(fix16_pi) * 2)).cos());
+    return 1;
+}
+
+int Emulator::y8_sqrt(lua_State* state)
+{
+    const auto x = luaL_checknumber(state, 1);
+    lua_pushnumber(state, x.sqrt());
+    return 1;
+}
+
 int Emulator::y8_rnd(lua_State* state)
 {
     // FIXME: this does not handle passing a table as a parameter yet
@@ -204,6 +226,19 @@ int Emulator::y8_rnd(lua_State* state)
     // FIXME: this does not update random_state() in MMIO, nor does it follow the p8 algorithm.
     lua_pushnumber(state, LuaFix16::from_fix16(rand() % max.value));
 
+    return 1;
+}
+
+
+int Emulator::y8_time(lua_State* state)
+{
+    const auto time_us = hal::measure_time_us();
+
+    // TODO: this could be done more efficiently and accurately(?) than through the double conversion
+
+    const LuaFix16 time_s(double(time_us) / 1.0e6);
+    
+    lua_pushnumber(state, time_s);
     return 1;
 }
 

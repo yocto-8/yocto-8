@@ -46,6 +46,11 @@ public:
         return {gsl::span(_memory).subspan<0x5f44, 8>()};
     }
 
+    std::uint8_t& button_state(std::uint8_t player_id = 0)
+    {
+        return static_cast<std::uint8_t&>(_memory[0x5F4C + player_id]);
+    }
+
 private:
     // video
     static int y8_pset(lua_State* state);
@@ -60,9 +65,14 @@ private:
 
     // math
     static int y8_flr(lua_State* state);
+    static int y8_cos(lua_State* state);
+    static int y8_sqrt(lua_State* state);
 
     // rng
     static int y8_rnd(lua_State* state);
+
+    // time
+    static int y8_time(lua_State* state);
 
     gsl::span<char> _memory_buffer;
     std::array<std::uint8_t, 65536> _memory;
