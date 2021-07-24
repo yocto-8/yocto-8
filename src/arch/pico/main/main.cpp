@@ -112,15 +112,15 @@ r=64
 
 function _update()
 	cls()
+	s=t()
 		for y=-r,r,3 do
 			for x=-r,r,2 do
 				local dist=sqrt(x*x+y*y)
-				z=cos(dist/40-t())*6
-				pset(r+x,r+y-z,6)
+				z=cos(dist/40-s)*6
+				pset(r+x,r+y-z,7)
 		end
 	end
 end
-
 __gfx__
 )";
 
