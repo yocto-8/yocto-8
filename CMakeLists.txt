@@ -2,11 +2,16 @@ cmake_minimum_required(VERSION 3.13)
 
 #set(Y8_DESKTOP_VM ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -ffast-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -ffast-math -std=c++17 -fno-rtti")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffast-math")
 
 if(NOT Y8_DESKTOP_VM)
     include(vendor/pico-sdk/pico_sdk_init.cmake)
+
+    # FIXME: this is a horrible workaround for clangd in vscode
+    set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/11.1.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/11.1.0/ -isystem /usr/arm-none-eabi/include/")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
 endif()
 
 project(yocto-8)
@@ -19,7 +24,7 @@ add_library(yocto-8-core
 
 target_compile_options(yocto-8-core
     PUBLIC
-    $<$<COMPILE_LANGUAGE:CXX>:-std=c++17 -Wall -Wextra -Wno-ignored-qualifiers -fno-exceptions -fno-rtti>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wno-ignored-qualifiers>
 )
 
 set_property(TARGET yocto-8-core PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
