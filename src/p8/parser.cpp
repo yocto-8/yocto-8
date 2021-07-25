@@ -37,7 +37,7 @@ bool Parser::parse_line()
         {
         case State::PARSING_LUA:
         {
-            emu::emulator.load({&_source[_current_block_offset], &_source[last_line_offset]});
+            emu::emulator.load(_source.substr(_current_block_offset, last_line_offset - _current_block_offset));
             break;
         }
 

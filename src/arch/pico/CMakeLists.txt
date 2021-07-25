@@ -1,8 +1,7 @@
 pico_sdk_init()
 
 function(add_rom NAME SOURCES)
-    add_executable(
-        ${NAME}
+    set(ALL_SOURCES
         extmem/cachedinterface.cpp
         extmem/faulthandler.cpp
         extmem/spiram.cpp
@@ -11,6 +10,8 @@ function(add_rom NAME SOURCES)
         cmdthread.cpp
         ${SOURCES}
     )
+    add_executable(${NAME} ${ALL_SOURCES})
+    set_source_files_properties(${ALL_SOURCES} PROPERTIES COMPILE_FLAGS "-flto")
     target_link_libraries(${NAME} yocto-8-core pico_stdlib pico_multicore hardware_spi hardware_dma)
     target_include_directories(${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 

@@ -21,7 +21,7 @@ std::uint16_t update_button_state()
     return ret;
 }
 
-void present_frame(video::FramebufferView view)
+void present_frame()
 {
     // TODO: double-buffering
     pico::run_blocking_command(arch::pico::IoThreadCommand::PUSH_FRAME);

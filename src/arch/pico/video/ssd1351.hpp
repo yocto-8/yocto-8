@@ -204,6 +204,7 @@ class SSD1351
         write(Command::DISPLAY_ON);
     }
 
+    [[gnu::noinline]]
     void write(Command command, gsl::span<const std::uint8_t> data = {})
     {
         gpio_put(_pinout.dc, 0);

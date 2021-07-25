@@ -1,10 +1,17 @@
 #include "emulator.hpp"
-#include "fix16.h"
 
+#include <cstdio>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-#include <cstdio>
+#include <tinyalloc.h>
+
+#include <emu/bindings/input.hpp>
+#include <emu/bindings/math.hpp>
+#include <emu/bindings/mmio.hpp>
+#include <emu/bindings/video.hpp>
+#include <emu/bindings/rng.hpp>
+#include <emu/bindings/time.hpp>
 #include <hal/hal.hpp>
 
 namespace emu
@@ -40,25 +47,25 @@ void Emulator::init(gsl::span<char> memory_buffer)
         lua_setglobal(_lua, name);
     };
 
-    bind("pset", y8_pset);
-    bind("pget", y8_pget);
-    bind("cls", y8_cls);
+    bind("pset", bindings::y8_pset);
+    bind("pget", bindings::y8_pget);
+    bind("cls", bindings::y8_cls);
 
-    bind("btn", y8_btn);
+    bind("btn", bindings::y8_btn);
 
-    bind("memcpy", y8_memcpy);
+    bind("memcpy", bindings::y8_memcpy);
 
-    bind("flr", y8_flr);
-    bind("cos", y8_cos);
-    bind("sqrt", y8_sqrt);
+    bind("flr", bindings::y8_flr);
+    bind("cos", bindings::y8_cos);
+    bind("sqrt", bindings::y8_sqrt);
 
-    bind("rnd", y8_rnd);
+    bind("rnd", bindings::y8_rnd);
 
-    bind("t", y8_time);
-    bind("time", y8_time);
+    bind("t", bindings::y8_time);
+    bind("time", bindings::y8_time);
 }
 
-void Emulator::load(gsl::span<const char> buf)
+void Emulator::load(std::string_view buf)
 {
     // FIXME: buf.size() causes sad for literal strings because of \0: strip it?
     const int load_status = luaL_loadbuffer(_lua, buf.data(), buf.size(), "main");
@@ -84,9 +91,9 @@ void Emulator::run()
     
     for (;;)
     {
-        _button_state = hal::update_button_state();
+        mmio().button_state() = hal::update_button_state();
         hook_update();
-        hal::present_frame(frame_buffer());
+        hal::present_frame();
     }
 }
 
@@ -97,149 +104,6 @@ void Emulator::hook_update()
     {
         printf("_update failed: %s\n", lua_tostring(_lua, -1));
     }
-}
-
-int Emulator::y8_pset(lua_State* state)
-{
-    const auto x = luaL_checkunsigned(state, 1);
-    const auto y = luaL_checkunsigned(state, 2);
-    const auto v = luaL_checkunsigned(state, 3);
-    
-    if (x >= 128 || y >= 128)
-    {
-        // Out of bounds
-        // TODO: is this the proper behavior?
-        return 0;
-    }
-
-    emulator.frame_buffer().set_pixel(x, y, v % 16);
-
-    return 0;
-}
-
-int Emulator::y8_pget(lua_State* state)
-{
-    const auto x = luaL_checkunsigned(state, 1);
-    const auto y = luaL_checkunsigned(state, 2);
-
-    if (x >= 128 || y >= 128)
-    {
-        lua_pushunsigned(state, 0);
-        return 1;
-    }
-
-    lua_pushunsigned(state, emulator.frame_buffer().get_pixel(x, y));
-    return 1;
-}
-
-int Emulator::y8_cls(lua_State* state)
-{
-    std::uint8_t palette_entry = 0;
-
-    // FIXME: should reset text cursor pos to (0, 0)
-
-    const auto argument_count = lua_gettop(state);
-
-    if (argument_count >= 1)
-    {
-        palette_entry = luaL_checkunsigned(state, 1);
-    }
-
-    emulator.frame_buffer().clear(palette_entry);
-
-    return 0;
-}
-
-int Emulator::y8_btn(lua_State* state)
-{
-    const auto argument_count = lua_gettop(state);
-
-    if (argument_count >= 1)
-    {
-        const auto button = luaL_checkunsigned(state, 1);
-
-        if (argument_count >= 2)
-        {
-            const auto player = luaL_checkunsigned(state, 2);
-            
-            // We can only handle one player at the moment
-            if (player != 0)
-            {
-                lua_pushboolean(state, false);
-                return 1;
-            }
-        }
-
-        // Return whether the nth button is pressed as a boolean
-        lua_pushboolean(state, ((emulator._button_state >> button) & 0b1) != 0);
-        return 1;
-    }
-
-    // Return the entire bitset when no argument is provided
-    lua_pushunsigned(state, emulator._button_state);
-    return 1;
-}
-
-int Emulator::y8_memcpy(lua_State* state)
-{
-    const auto dst = luaL_checkunsigned(state, 1);
-    const auto src = luaL_checkunsigned(state, 2);
-    const auto len = luaL_checkunsigned(state, 3);
-
-    // FIXME: this should properly fix src/dst/len values
-
-    std::memmove(
-        emulator._memory.data() + dst,
-        emulator._memory.data() + src,
-        len
-    );
-
-    return 0;
-}
-
-int Emulator::y8_flr(lua_State* state)
-{
-    const auto x = luaL_checknumber(state, 1);
-    lua_pushnumber(state, floor(x));
-    return 1;
-}
-
-int Emulator::y8_cos(lua_State* state)
-{
-    const auto x = luaL_checknumber(state, 1);
-    lua_pushnumber(state, (x * (LuaFix16::from_fix16(fix16_pi) * 2)).cos());
-    return 1;
-}
-
-int Emulator::y8_sqrt(lua_State* state)
-{
-    const auto x = luaL_checknumber(state, 1);
-    lua_pushnumber(state, x.sqrt());
-    return 1;
-}
-
-int Emulator::y8_rnd(lua_State* state)
-{
-    // FIXME: this does not handle passing a table as a parameter yet
-    const auto max = luaL_checknumber(state, 1);
-
-    // FIXME: this does not update random_state() in MMIO, nor does it follow the p8 algorithm.
-    lua_pushnumber(state, LuaFix16::from_fix16(rand() % max.value));
-
-    return 1;
-}
-
-
-int Emulator::y8_time(lua_State* state)
-{
-    const auto time_us = hal::measure_time_us();
-
-    // TODO: this could be done more efficiently and accurately(?) than through the double conversion
-
-    const LuaFix16 time_s(double(time_us) / 1.0e6);
-    
-    lua_pushnumber(state, time_s);
-    return 1;
 }
 
 void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)

@@ -17,7 +17,7 @@ void core1_entry()
         {
         case IoThreadCommand::PUSH_FRAME:
         {
-            const auto fb_view = emu::emulator.frame_buffer().data;
+            const auto fb_view = emu::emulator.mmio().frame_buffer().data;
 
             std::array<std::uint8_t, 8192> fb_copy;
             // for whatever reason, memcpy is way faster than std::move/copy here

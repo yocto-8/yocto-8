@@ -18,6 +18,12 @@ project(yocto-8)
 
 add_library(yocto-8-core
     src/emu/emulator.cpp
+    src/emu/bindings/input.cpp
+    src/emu/bindings/math.cpp
+    src/emu/bindings/mmio.cpp
+    src/emu/bindings/rng.cpp
+    src/emu/bindings/time.cpp
+    src/emu/bindings/video.cpp
     src/p8/parser.cpp
     vendor/tinyalloc/tinyalloc.c
 )
