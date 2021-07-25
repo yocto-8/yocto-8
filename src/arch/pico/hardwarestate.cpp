@@ -40,8 +40,8 @@ void initialize_stdio()
 void initialize_buttons()
 {
     hw.buttons[0].init(16);
-    hw.buttons[1].init(17);
-    hw.buttons[2].init(18);
+    hw.buttons[1].init(18);
+    hw.buttons[2].init(17);
     hw.buttons[3].init(19);
     hw.buttons[4].init(20);
     hw.buttons[5].init(21);
