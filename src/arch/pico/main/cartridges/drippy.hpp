@@ -7,7 +7,7 @@ __lua__
 -- by zep
 
 --rectfill(0,0,127,127,1)
-cls(0)
+cls(1)
 x=64 y=64 c=8
 
 function _update()
@@ -37,5 +37,4 @@ function _update()
 	end
 	
 end
-__gfx__
 )";

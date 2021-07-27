@@ -29,10 +29,8 @@ class FramebufferView
         std::fill(data.begin(), data.end(), pixel_pair_byte);
     }
 
-    void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
+    void set_nibble(std::size_t i, std::uint8_t palette_entry)
     {
-        std::size_t i = x + (y * FramebufferView::frame_width);
-        
         std::uint8_t& pixel_pair_byte = data[i / 2];
 
         if (i % 2 == 0) // lower pixel?
@@ -47,10 +45,13 @@ class FramebufferView
         }
     }
 
-    std::uint8_t get_pixel(std::uint8_t x, std::uint8_t y)
+    void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
     {
-        std::size_t i = x + (y * FramebufferView::frame_width);
+        set_nibble(x + (y * FramebufferView::frame_width), palette_entry);
+    }
 
+    std::uint8_t get_nibble(std::size_t i)
+    {
         std::uint8_t pixel_pair_byte = data[i / 2];
 
         if (i % 2 == 0) // lower pixel?
@@ -59,6 +60,11 @@ class FramebufferView
         }
 
         return pixel_pair_byte >> 4;
+    }
+
+    std::uint8_t get_pixel(std::uint8_t x, std::uint8_t y)
+    {
+        return get_nibble(x + (y * FramebufferView::frame_width));
     }
 
     View data;

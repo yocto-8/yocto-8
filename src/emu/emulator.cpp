@@ -47,9 +47,19 @@ void Emulator::init(gsl::span<char> memory_buffer)
         lua_setglobal(_lua, name);
     };
 
+    {
+        const auto draw_palette = mmio().draw_palette();
+        for (std::size_t i = 0; i < draw_palette.size(); ++i)
+        {
+            draw_palette[i] = i;
+        }
+        draw_palette[0] |= 0xF0;
+    }
+
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
     bind("cls", bindings::y8_cls);
+    bind("spr", bindings::y8_spr);
 
     bind("btn", bindings::y8_btn);
 
@@ -139,7 +149,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         {
             free(ptr);
             malloc_pool_used -= osize;
-            printf("free fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
+            //printf("free fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
         }
     };
 
@@ -154,7 +164,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         
         // we've got spare space in the malloc pool, allocate there
         malloc_pool_used = new_malloc_pool_size;
-        printf("alloc fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
+        //printf("alloc fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
         return malloc(nsize);
     };
 

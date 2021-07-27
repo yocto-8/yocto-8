@@ -16,9 +16,22 @@ class MMIO
         view(view)
     {}
 
+    constexpr gsl::span<std::uint8_t, 16> draw_palette()
+    {
+        return {view.subspan<0x5F00, 16>()};
+    }
+
     constexpr video::FramebufferView frame_buffer()
     {
         return {view.subspan<0x6000, 8192>()};
+    }
+
+    /// @brief Returns a FramebufferView for the 128x128 spritesheet
+    /// @details FramebufferView is reused as the framebuffer and the spritesheet have the same behavior.
+    /// The lower row of the spritesheet overlaps with the lower half of the map.
+    constexpr video::FramebufferView sprite_sheet()
+    {
+        return {view.subspan<0x0000, 8192>()};
     }
 
     constexpr gsl::span<std::uint8_t, 8> random_state()

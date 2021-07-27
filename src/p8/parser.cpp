@@ -5,22 +5,62 @@
 namespace p8
 {
 
+std::uint8_t hex_digit(char c)
+{
+    switch (c)
+    {
+    case '0': return 0;
+    case '1': return 1;
+    case '2': return 2;
+    case '3': return 3;
+    case '4': return 4;
+    case '5': return 5;
+    case '6': return 6;
+    case '7': return 7;
+    case '8': return 8;
+    case '9': return 9;
+    case 'a': case 'A': return 0xA;
+    case 'b': case 'B': return 0xB;
+    case 'c': case 'C': return 0xC;
+    case 'd': case 'D': return 0xD;
+    case 'e': case 'E': return 0xE;
+    case 'f': case 'F': return 0xF;
+    }
+
+    return -1;
+}
+
+// FIXME: the lua chunk should be initialized after loading everything
+
 Parser::Parser(std::string_view source) :
     _source(source),
     _current_block_offset(0),
     _current_offset(0),
-    _current_state(State::EXPECT_HEADER)
+    _current_state(State::EXPECT_HEADER),
+    _current_gfx_nibble(0)
 {}
 
 bool Parser::parse_line()
 {
-    std::string_view current_line;
-
-    std::string_view left_to_parse = _source.substr(_current_offset);
-
+    const std::string_view left_to_parse = _source.substr(_current_offset);
     const auto line_end = left_to_parse.find('\n');
 
-    std::size_t last_line_offset = _current_offset - 1;
+    const std::size_t last_line_offset = _current_offset - 1;
+
+    const auto end_block = [&] {
+        switch (_current_state)
+        {
+        case State::PARSING_LUA:
+        {
+            _lua_block = _source.substr(_current_block_offset, last_line_offset - _current_block_offset);
+            break;
+        }
+
+        default: break;
+        }
+    };
+
+    std::string_view current_line;
     if (line_end != std::string_view::npos)
     {
         current_line = std::string_view(left_to_parse.data(), line_end);
@@ -28,22 +68,16 @@ bool Parser::parse_line()
     }
     else
     {
-        _current_state = State::DONE;
-        return false;
+        current_line = left_to_parse;
+        _current_offset += current_line.size();
     }
 
-    const auto end_block = [&] {
-        switch (_current_state)
-        {
-        case State::PARSING_LUA:
-        {
-            emu::emulator.load(_source.substr(_current_block_offset, last_line_offset - _current_block_offset));
-            break;
-        }
-
-        default: break;
-        }
-    };
+    if (left_to_parse.empty())
+    {
+        end_block();
+        finalize();
+        return false;
+    }
 
     const auto match_block = [&](const auto magic, State associated_state) {
         if (current_line == magic)
@@ -89,10 +123,26 @@ bool Parser::parse_line()
         break;
     }
 
+    case State::PARSING_GFX:
+    {
+        auto sprite_sheet = emu::emulator.mmio().sprite_sheet();
+        for (const char c: current_line)
+        {
+            sprite_sheet.set_nibble(_current_gfx_nibble, hex_digit(c));
+            ++_current_gfx_nibble;
+        }
+        break;
+    }
+
     default: break;
     }
 
     return true;
+}
+
+void Parser::finalize()
+{
+    emu::emulator.load(_lua_block);
 }
 
 }

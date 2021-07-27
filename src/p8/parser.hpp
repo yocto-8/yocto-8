@@ -36,13 +36,14 @@ class Parser
     }
 
     private:
+    void finalize();
+
     std::string_view _source;
     std::size_t _current_block_offset, _current_offset;
     State _current_state;
 
-    union {
-    } _state_data;
-
+    std::string_view _lua_block;
+    std::size_t _current_gfx_nibble;
 };
 
 }

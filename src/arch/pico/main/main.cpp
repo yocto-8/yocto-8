@@ -21,7 +21,7 @@ namespace pico = arch::pico;
 
 // FIXME: __lua__ fucks up if a later chunk is not present
 
-#include "cartridges/drippy.hpp"
+#include "cartridges/sprtest.hpp"
 
 int main()
 {
