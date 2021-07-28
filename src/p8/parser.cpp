@@ -1,6 +1,7 @@
 #include "parser.hpp"
 
 #include <emu/emulator.hpp>
+#include <devices/image.hpp>
 
 namespace p8
 {
@@ -125,7 +126,7 @@ bool Parser::parse_line()
 
     case State::PARSING_GFX:
     {
-        auto sprite_sheet = emu::emulator.mmio().sprite_sheet();
+        auto sprite_sheet = emu::device<devices::Spritesheet>;
         for (const char c: current_line)
         {
             sprite_sheet.set_nibble(_current_gfx_nibble, hex_digit(c));

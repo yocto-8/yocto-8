@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <gsl/gsl>
 
-#include <video/framebufferview.hpp>
+#include <devices/image.hpp>
 
 namespace hal
 {

@@ -12,6 +12,10 @@
 #include <emu/bindings/video.hpp>
 #include <emu/bindings/rng.hpp>
 #include <emu/bindings/time.hpp>
+#include <devices/buttonstate.hpp>
+#include <devices/drawpalette.hpp>
+#include <devices/screenpalette.hpp>
+#include <devices/clippingrectangle.hpp>
 #include <hal/hal.hpp>
 
 namespace emu
@@ -47,19 +51,16 @@ void Emulator::init(gsl::span<char> memory_buffer)
         lua_setglobal(_lua, name);
     };
 
-    {
-        const auto draw_palette = mmio().draw_palette();
-        for (std::size_t i = 0; i < draw_palette.size(); ++i)
-        {
-            draw_palette[i] = i;
-        }
-        draw_palette[0] |= 0xF0;
-    }
+    device<devices::DrawPalette>.reset();
+    device<devices::ScreenPalette>.reset();
+    device<devices::ClippingRectangle>.reset();
 
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
     bind("cls", bindings::y8_cls);
     bind("spr", bindings::y8_spr);
+    bind("pal", bindings::y8_pal);
+    bind("clip", bindings::y8_clip);
 
     bind("btn", bindings::y8_btn);
 
@@ -101,7 +102,7 @@ void Emulator::run()
     
     for (;;)
     {
-        mmio().button_state() = hal::update_button_state();
+        device<devices::ButtonState>.for_player(0) = hal::update_button_state();
         hook_update();
         hal::present_frame();
     }

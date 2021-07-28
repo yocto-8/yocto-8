@@ -1,50 +1,35 @@
 #pragma once
 
+#include <array>
 #include <gsl/gsl>
-
-#include <video/framebufferview.hpp>
 
 namespace emu
 {
 
-class MMIO
+template<std::size_t MapLength>
+struct MMIODevice
 {
-    public:
-    using View = gsl::span<std::uint8_t, 65536>;
+    static constexpr auto map_length = MapLength;
+    using View = gsl::span<std::uint8_t, map_length>;
 
-    constexpr MMIO(View view) :
-        view(view)
+    explicit constexpr MMIODevice(View data) :
+        data(data)
     {}
 
-    constexpr gsl::span<std::uint8_t, 16> draw_palette()
+    constexpr std::array<std::uint8_t, map_length> clone() const
     {
-        return {view.subspan<0x5F00, 16>()};
+        std::array<std::uint8_t, map_length> ret{};
+        std::memcpy(ret.data(), data.data(), data.size());
+        return ret;
     }
 
-    constexpr video::FramebufferView frame_buffer()
-    {
-        return {view.subspan<0x6000, 8192>()};
-    }
+    View data;
+};
 
-    /// @brief Returns a FramebufferView for the 128x128 spritesheet
-    /// @details FramebufferView is reused as the framebuffer and the spritesheet have the same behavior.
-    /// The lower row of the spritesheet overlaps with the lower half of the map.
-    constexpr video::FramebufferView sprite_sheet()
-    {
-        return {view.subspan<0x0000, 8192>()};
-    }
-
-    constexpr gsl::span<std::uint8_t, 8> random_state()
-    {
-        return {view.subspan<0x5f44, 8>()};
-    }
-
-    constexpr std::uint8_t& button_state(std::uint8_t player_id = 0)
-    {
-        return static_cast<std::uint8_t&>(view[0x5F4C + player_id]);
-    }
-
-    View view;
+struct Memory : MMIODevice<65536>
+{
+    using MMIODevice::MMIODevice;
+    static constexpr std::uint16_t map_address = 0;
 };
 
 }

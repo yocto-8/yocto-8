@@ -3,6 +3,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <emu/emulator.hpp>
+#include <devices/buttonstate.hpp>
 
 namespace emu::bindings
 {
@@ -27,13 +28,12 @@ int y8_btn(lua_State* state)
             }
         }
 
-        // Return whether the nth button is pressed as a boolean
-        lua_pushboolean(state, ((emulator.mmio().button_state() >> button) & 0b1) != 0);
+        lua_pushboolean(state, device<devices::ButtonState>.is_pressed(button, 0));
         return 1;
     }
 
     // Return the entire bitset when no argument is provided
-    lua_pushunsigned(state, emulator.mmio().button_state());
+    lua_pushunsigned(state, device<devices::ButtonState>.for_player(0));
     return 1;
 }
 

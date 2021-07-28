@@ -3,6 +3,8 @@
 
 #include <emu/emulator.hpp>
 #include <hardwarestate.hpp>
+#include <devices/image.hpp>
+#include <devices/screenpalette.hpp>
 
 namespace arch::pico
 {
@@ -17,16 +19,16 @@ void core1_entry()
         {
         case IoThreadCommand::PUSH_FRAME:
         {
-            const auto fb_view = emu::emulator.mmio().frame_buffer().data;
+            auto fb_copy = emu::device<devices::Framebuffer>.clone();
+            auto palette_copy = emu::device<devices::ScreenPalette>.clone();
 
-            std::array<std::uint8_t, 8192> fb_copy;
-            // for whatever reason, memcpy is way faster than std::move/copy here
-            //std::move(fb_view.begin(), fb_view.end(), fb_copy.begin());
-            memcpy(fb_copy.data(), fb_view.data(), fb_view.size());
+            multicore_fifo_push_blocking(0); // copy done - we can update in background now
 
-            multicore_fifo_push_blocking(0); // memcpy done - we can update in background now
-
-            hw.ssd1351.update_frame(fb_copy);
+            hw.ssd1351.update_frame(
+                devices::Framebuffer{gsl::span(fb_copy)},
+                devices::ScreenPalette{gsl::span(palette_copy)}
+            );
+            
             break;
         }
         }

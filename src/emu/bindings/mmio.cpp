@@ -16,8 +16,8 @@ int y8_memcpy(lua_State* state)
     // FIXME: this should properly fix src/dst/len values
 
     std::memmove(
-        emulator.mmio().view.data() + dst,
-        emulator.mmio().view.data() + src,
+        emulator.memory().data.data() + dst,
+        emulator.memory().data.data() + src,
         len
     );
 

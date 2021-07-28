@@ -17,6 +17,7 @@ endif()
 project(yocto-8)
 
 add_library(yocto-8-core
+    src/devices/image.cpp
     src/emu/emulator.cpp
     src/emu/bindings/input.cpp
     src/emu/bindings/math.cpp
