@@ -23,9 +23,7 @@ std::uint16_t update_button_state()
 
 void present_frame()
 {
-    // TODO: double-buffering
     pico::run_blocking_command(arch::pico::IoThreadCommand::PUSH_FRAME);
-    //arch::pico::hw.ssd1351.update_frame(view.data);
 }
 
 void reset_timer()
@@ -37,6 +35,12 @@ std::uint64_t measure_time_us()
 {
     const auto current_time = get_absolute_time();
     return absolute_time_diff_us(pico::hw.timer_start, current_time);
+}
+
+
+void delay_time_us(std::uint64_t time)
+{
+    sleep_us(time);
 }
 
 }

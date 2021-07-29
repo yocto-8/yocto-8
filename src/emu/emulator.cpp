@@ -1,4 +1,5 @@
 #include "emulator.hpp"
+#include "lgc.h"
 
 #include <cstdio>
 #include <lua.h>
@@ -64,6 +65,12 @@ void Emulator::init(gsl::span<char> memory_buffer)
 
     bind("btn", bindings::y8_btn);
 
+    bind("peek", bindings::y8_peek);
+    bind("peek2", bindings::y8_peek2);
+    bind("peek4", bindings::y8_peek4);
+    bind("poke", bindings::y8_poke);
+    bind("poke2", bindings::y8_poke2);
+    bind("poke4", bindings::y8_poke4);
     bind("memcpy", bindings::y8_memcpy);
 
     bind("flr", bindings::y8_flr);
@@ -102,19 +109,54 @@ void Emulator::run()
     
     for (;;)
     {
+        const auto frame_start_time = hal::measure_time_us();
+        auto target_time = 1'000'000u / 60;
+
         device<devices::ButtonState>.for_player(0) = hal::update_button_state();
-        hook_update();
+        
+        // this _update behavior matches pico-8's: if _update60 is defined, _update is ignored
+        // when both are unspecified, flipping will occur at 30Hz regardless
+        //
+        // FIXME: this is not something we really guarantee here atm:
+        // we should clip to 30fps if between 30 and 60, to 15 if between 30 and 60
+        // also, what about infinite loops (e.g. one drawing stuff constantly?) - does it still flip? (doubt it)
+
+        if (run_hook("_update60") == HookResult::UNDEFINED)
+        {
+            target_time = 1'000'000u / 30;
+            run_hook("_update");
+        }
+
+        run_hook("_draw");
         hal::present_frame();
+
+        const auto taken_time = hal::measure_time_us() - frame_start_time;
+
+        if (taken_time < target_time)
+        {
+            hal::delay_time_us(target_time - taken_time);
+        }
     }
 }
 
-void Emulator::hook_update()
+Emulator::HookResult Emulator::run_hook(const char* name)
 {
-    lua_getglobal(_lua, "_update");
+    lua_getglobal(_lua, name);
+
+    if (!lua_isfunction(_lua, -1))
+    {
+        lua_pop(_lua, 1);
+        return HookResult::UNDEFINED;
+    }
+
     if (lua_pcall(_lua, 0, 0, 0) != 0)
     {
-        printf("_update failed: %s\n", lua_tostring(_lua, -1));
+        printf("hook '%s' execution failed: %s\n", name, lua_tostring(_lua, -1));
+        lua_pop(_lua, 1);
+        return HookResult::LUA_ERROR;
     }
+
+    return HookResult::SUCCESS;
 }
 
 void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
@@ -130,6 +172,8 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // - fragmentation
     // - overhead of the allocator
     const std::size_t malloc_pool_limit = 96 * 1024;
+
+    //printf("malloc stats before alloc/free %d/%d\n", malloc_pool_used, malloc_pool_limit);
 
     const auto is_slow_heap = [&] {
         // FIXME: this is very naughty

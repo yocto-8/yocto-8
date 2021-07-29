@@ -4,7 +4,7 @@ static constexpr std::string_view cartridge = R"(pico-8 cartridge // http://www.
 version 32
 __lua__
 k={8,9,11,12}
-function _update()
+function _update60()
     cls()
     clip(24,24,80,80)
     s=t()

@@ -26,7 +26,14 @@ public:
 
     void run();
 
-    void hook_update();
+    enum class HookResult
+    {
+        SUCCESS,
+        UNDEFINED,
+        LUA_ERROR
+    };
+    
+    HookResult run_hook(const char* name);
 
     constexpr Memory memory()
     {

@@ -2,7 +2,7 @@
 
 namespace devices
 {
-
+    
 void Image::clear(std::uint8_t palette_entry)
 {
     std::uint8_t pixel_pair_byte = palette_entry | (palette_entry << 4);

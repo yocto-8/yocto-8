@@ -23,4 +23,7 @@ void reset_timer();
 /// @warning This may overflow after around 584542 years. I won't be the maintainer by then, so not my problem.
 std::uint64_t measure_time_us();
 
+/// @brief Wait for approximately @p time microseconds.
+void delay_time_us(std::uint64_t time);
+
 }
