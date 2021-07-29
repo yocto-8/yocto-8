@@ -1,25 +1,9 @@
-#include "emu/emulator.hpp"
-#include "hardware/gpio.h"
-#include "hardware/vreg.h"
-#include "pico/stdlib.h"
-#include "pico/time.h"
-#include "hardware/spi.h"
-#include <array>
-#include <cstdlib>
-#include <cstdint>
-#include <cstdio>
-#include <string_view>
-#include <extmem/spiram.hpp>
-#include <extmem/cachedinterface.hpp>
-#include <video/ssd1351.hpp>
-#include <io/button.hpp>
+#include <emu/emulator.hpp>
 #include <p8/parser.hpp>
 
 #include "hardwarestate.hpp"
 
 namespace pico = arch::pico;
-
-// FIXME: __lua__ fucks up if a later chunk is not present
 
 #include "cartridges/sprtest.hpp"
 
