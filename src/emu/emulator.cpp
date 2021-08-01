@@ -86,7 +86,6 @@ void Emulator::init(gsl::span<char> memory_buffer)
 
 void Emulator::load(std::string_view buf)
 {
-    // FIXME: buf.size() causes sad for literal strings because of \0: strip it?
     const int load_status = luaL_loadbuffer(_lua, buf.data(), buf.size(), "main");
 
     if (load_status != 0)
