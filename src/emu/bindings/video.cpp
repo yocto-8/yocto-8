@@ -5,11 +5,48 @@
 #include <emu/emulator.hpp>
 #include <devices/clippingrectangle.hpp>
 #include <devices/drawpalette.hpp>
+#include <devices/drawstatemisc.hpp>
 #include <devices/screenpalette.hpp>
 #include <devices/image.hpp>
 
 namespace emu::bindings
 {
+
+namespace detail
+{
+
+// TODO: the raw_color naming is confusing:
+// - one refers to having the fill pattern color in the upper nibble (set_pixel_with_pattern)
+// - one refers to having the transparency info (set_pixel_with_alpha)
+// it is currently past 1am and my brain infodumps better than it chooses names
+
+void set_pixel_with_pattern(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
+{
+    auto fb = device<devices::Framebuffer>;
+    auto draw_state = device<devices::DrawStateMisc>;
+
+    if (draw_state.fill_pattern_at(x, y))
+    {
+        fb.set_pixel(x, y, raw_color >> 4);
+    }
+    else if (!draw_state.fill_zero_is_transparent())
+    {
+        fb.set_pixel(x, y, raw_color & 0b1111);
+    }
+}
+
+void set_pixel_with_alpha(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
+{
+    const auto color = raw_color & 0x0F;
+    const bool transparent = (raw_color >> 4) != 0;
+
+    if (!transparent)
+    {
+        device<devices::Framebuffer>.set_pixel(x, y, color & 0x0F);
+    }
+}
+
+}
 
 int y8_pset(lua_State* state)
 {
@@ -59,7 +96,6 @@ int y8_cls(lua_State* state)
     return 0;
 }
 
-
 int y8_rectfill(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
@@ -69,16 +105,14 @@ int y8_rectfill(lua_State* state)
     unsigned x1 = lua_tounsigned(state, 3) % 128;
     unsigned y1 = lua_tounsigned(state, 4) % 128;
 
-    // FIXME: default color
-    unsigned color = 10;
+    auto clip = device<devices::ClippingRectangle>;
+
+    unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
     
     if (argument_count >= 5)
     {
-        color = lua_tounsigned(state, 5);
+        raw_color = lua_tounsigned(state, 5);
     }
-
-    auto fb = device<devices::Framebuffer>;
-    auto clip = device<devices::ClippingRectangle>;
 
     x0 = std::max(x0, unsigned(clip.x_begin()));
     y0 = std::max(y0, unsigned(clip.y_begin()));
@@ -89,8 +123,7 @@ int y8_rectfill(lua_State* state)
     {
         for (unsigned x = x0; x <= x1; ++x)
         {
-            // FIXME: fillp
-            fb.set_pixel(x, y, color);
+            detail::set_pixel_with_pattern(x, y, raw_color);
         }
     }
 
@@ -130,7 +163,6 @@ int y8_spr(lua_State* state)
     }
 
     auto sprite = device<devices::Spritesheet>;
-    auto fb = device<devices::Framebuffer>;
     auto palette = device<devices::DrawPalette>;
     auto clip = device<devices::ClippingRectangle>;
 
@@ -148,20 +180,13 @@ int y8_spr(lua_State* state)
     {
         for (std::uint8_t x = orig_x; x < target_x; ++x)
         {
-            // TODO: resolve palette color
             // TODO: flip_x and flip_y
             const auto sprite_x = (x - orig_x) + sprite_orig_x;
             const auto sprite_y = (y - orig_y) + sprite_orig_y;
 
             const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
 
-            const auto color = palette_entry & 0x0F;
-            const bool transparent = (palette_entry >> 4) != 0;
-
-            if (!transparent && clip.contains(x, y))
-            {
-                fb.set_pixel(x, y, color & 0x0F);
-            }
+            detail::set_pixel_with_alpha(x, y, palette_entry);
         }
     }
 
