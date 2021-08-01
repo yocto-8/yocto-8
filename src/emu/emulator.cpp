@@ -59,6 +59,7 @@ void Emulator::init(gsl::span<char> memory_buffer)
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
     bind("cls", bindings::y8_cls);
+    bind("rectfill", bindings::y8_rectfill);
     bind("spr", bindings::y8_spr);
     bind("pal", bindings::y8_pal);
     bind("clip", bindings::y8_clip);

@@ -5,7 +5,7 @@
 
 namespace pico = arch::pico;
 
-#include "cartridges/sprtest.hpp"
+#include "cartridges/sort.hpp"
 
 int main()
 {

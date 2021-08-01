@@ -59,6 +59,44 @@ int y8_cls(lua_State* state)
     return 0;
 }
 
+
+int y8_rectfill(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    unsigned x0 = lua_tounsigned(state, 1) % 128;
+    unsigned y0 = lua_tounsigned(state, 2) % 128;
+    unsigned x1 = lua_tounsigned(state, 3) % 128;
+    unsigned y1 = lua_tounsigned(state, 4) % 128;
+
+    // FIXME: default color
+    unsigned color = 10;
+    
+    if (argument_count >= 5)
+    {
+        color = lua_tounsigned(state, 5);
+    }
+
+    auto fb = device<devices::Framebuffer>;
+    auto clip = device<devices::ClippingRectangle>;
+
+    x0 = std::max(x0, unsigned(clip.x_begin()));
+    y0 = std::max(y0, unsigned(clip.y_begin()));
+    x1 = std::min(x1, unsigned(clip.x_end() + 1));
+    y1 = std::min(y1, unsigned(clip.y_end() + 1));
+
+    for (unsigned y = y0; y <= y1; ++y)
+    {
+        for (unsigned x = x0; x <= x1; ++x)
+        {
+            // FIXME: fillp
+            fb.set_pixel(x, y, color);
+        }
+    }
+
+    return 0;
+}
+
 int y8_spr(lua_State* state)
 {
     // negative width does not flip the sprite, it just draws nothing
