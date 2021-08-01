@@ -18,13 +18,13 @@ struct Image : emu::MMIODevice<8192>
         frame_pixels_per_byte = 2,
         frame_bytes = (frame_width * frame_height) / frame_pixels_per_byte;
 
-    void clear(std::uint8_t palette_entry);
+    void clear(std::uint8_t palette_entry) const;
 
-    void set_nibble(std::size_t i, std::uint8_t palette_entry);
-    void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry);
+    void set_nibble(std::size_t i, std::uint8_t palette_entry) const;
+    void set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry) const;
 
-    std::uint8_t get_nibble(std::size_t i);
-    std::uint8_t get_pixel(std::uint8_t x, std::uint8_t y);
+    std::uint8_t get_nibble(std::size_t i) const;
+    std::uint8_t get_pixel(std::uint8_t x, std::uint8_t y) const;
 };
 
 struct Framebuffer : Image

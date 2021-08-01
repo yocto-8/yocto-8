@@ -13,7 +13,7 @@ struct ClippingRectangle : emu::MMIODevice<4>
 
     static constexpr std::uint16_t default_map_address = 0x5F20;
 
-    void reset()
+    void reset() const
     {
         x_begin() = 0;
         y_begin() = 0;

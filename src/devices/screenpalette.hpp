@@ -12,7 +12,7 @@ struct ScreenPalette : emu::MMIODevice<16>
 
     static constexpr std::uint16_t default_map_address = 0x5F10;
 
-    void reset()
+    void reset() const
     {
         for (std::size_t i = 0; i < data.size(); ++i)
         {
@@ -20,17 +20,17 @@ struct ScreenPalette : emu::MMIODevice<16>
         }
     }
 
-    void set_raw_color(std::uint8_t palette_index, std::uint8_t resolved_index)
+    void set_raw_color(std::uint8_t palette_index, std::uint8_t resolved_index) const
     {
         data[palette_index] = resolved_index;
     }
 
-    std::uint8_t get_raw_color(std::uint8_t palette_index)
+    std::uint8_t get_raw_color(std::uint8_t palette_index) const
     {
         return data[palette_index];
     }
 
-    std::uint8_t get_color(std::uint8_t palette_index)
+    std::uint8_t get_color(std::uint8_t palette_index) const
     {
         const auto raw = get_raw_color(palette_index);
 

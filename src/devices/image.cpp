@@ -3,13 +3,13 @@
 namespace devices
 {
     
-void Image::clear(std::uint8_t palette_entry)
+void Image::clear(std::uint8_t palette_entry) const
 {
     std::uint8_t pixel_pair_byte = palette_entry | (palette_entry << 4);
     std::fill(data.begin(), data.end(), pixel_pair_byte);
 }
 
-void Image::set_nibble(std::size_t i, std::uint8_t palette_entry)
+void Image::set_nibble(std::size_t i, std::uint8_t palette_entry) const
 {
     std::uint8_t& pixel_pair_byte = data[i / 2];
 
@@ -25,12 +25,12 @@ void Image::set_nibble(std::size_t i, std::uint8_t palette_entry)
     }
 }
 
-void Image::set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry)
+void Image::set_pixel(std::uint8_t x, std::uint8_t y, std::uint8_t palette_entry) const
 {
     set_nibble(x + (y * frame_width), palette_entry);
 }
 
-std::uint8_t Image::get_nibble(std::size_t i)
+std::uint8_t Image::get_nibble(std::size_t i) const
 {
     std::uint8_t pixel_pair_byte = data[i / 2];
 
@@ -42,7 +42,7 @@ std::uint8_t Image::get_nibble(std::size_t i)
     return pixel_pair_byte >> 4;
 }
 
-std::uint8_t Image::get_pixel(std::uint8_t x, std::uint8_t y)
+std::uint8_t Image::get_pixel(std::uint8_t x, std::uint8_t y) const
 {
     return get_nibble(x + (y * frame_width));
 }

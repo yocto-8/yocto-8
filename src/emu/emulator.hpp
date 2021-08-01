@@ -54,6 +54,6 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize);
 extern Emulator emulator;
 
 template<class Device, std::uint16_t map_address = Device::default_map_address>
-inline auto device = Device(emulator.memory().data.subspan<map_address, Device::map_length>());
+inline constexpr auto device = Device(emulator.memory().data.subspan<map_address, Device::map_length>());
 
 }
