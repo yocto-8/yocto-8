@@ -11,7 +11,7 @@ function(add_rom NAME SOURCES)
         ${SOURCES}
     )
     add_executable(${NAME} ${ALL_SOURCES})
-    set_source_files_properties(${ALL_SOURCES} PROPERTIES COMPILE_FLAGS "-flto")
+    set_property(TARGET ${NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
     target_link_libraries(${NAME} yocto-8-core pico_stdlib pico_multicore hardware_spi hardware_dma)
     target_include_directories(${NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -25,3 +25,9 @@ endfunction()
 
 add_rom(yocto-8 main/main.cpp)
 add_rom(psram-test main/extmem.cpp)
+
+set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../vendor/pico-sdk/")
+set_source_files_properties(
+    "${SDK_ROOT}/src/rp2_common/hardware_irq/irq.c"
+    PROPERTIES COMPILE_FLAGS -fno-lto
+)
