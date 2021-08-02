@@ -59,6 +59,7 @@ void Emulator::init(gsl::span<char> memory_buffer)
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
     bind("cls", bindings::y8_cls);
+    bind("line", bindings::y8_line);
     bind("rectfill", bindings::y8_rectfill);
     bind("spr", bindings::y8_spr);
     bind("pal", bindings::y8_pal);
@@ -75,6 +76,8 @@ void Emulator::init(gsl::span<char> memory_buffer)
     bind("memcpy", bindings::y8_memcpy);
 
     bind("flr", bindings::y8_flr);
+    bind("mid", bindings::y8_mid);
+    bind("sin", bindings::y8_sin);
     bind("cos", bindings::y8_cos);
     bind("sqrt", bindings::y8_sqrt);
 
@@ -82,6 +85,34 @@ void Emulator::init(gsl::span<char> memory_buffer)
 
     bind("t", bindings::y8_time);
     bind("time", bindings::y8_time);
+
+    load(R"(
+print("Setting up yocto-8 Lua routines")
+
+function all(t)
+    if t == nil or #t == 0 then
+        return function() end
+    end
+
+    local i = 1
+    local prev = nil
+
+    return function()
+        if t[i] == prev then
+            i += 1
+            return prev
+        end
+
+        while t[i] == nil and i <= #t do
+            i += 1
+        end
+
+        prev = t[i]
+
+        return prev
+    end
+end
+)");
 }
 
 void Emulator::load(std::string_view buf)
@@ -99,7 +130,7 @@ void Emulator::load(std::string_view buf)
     }
     else
     {
-        printf("Loaded main segment successfully (%d bytes)\n", int(buf.size()));
+        printf("Loaded segment successfully (%d bytes)\n", int(buf.size()));
     }
 }
 

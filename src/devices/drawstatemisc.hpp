@@ -7,6 +7,8 @@
 namespace devices
 {
 
+// TODO: the amount of manual bit logic is terrifying, pls fix
+
 struct DrawStateMisc : emu::MMIODevice<64>
 {
     using MMIODevice::MMIODevice;
@@ -31,7 +33,46 @@ struct DrawStateMisc : emu::MMIODevice<64>
 
     bool fill_zero_is_transparent() const
     {
-        return (data[0x33] & 0b1) == 0;
+        return (data[0x33] & 0b1) != 0;
+    }
+
+    bool is_line_endpoint_valid() const
+    {
+        return data[0x35] == 0;
+    }
+
+    void set_line_endpoint_valid(bool valid) const
+    {
+        data[0x35] = !valid;
+    }
+
+    std::int16_t line_endpoint_x() const
+    {
+        return data[0x3c] | (data[0x3d] << 8);
+    }
+
+    void set_line_endpoint_x(std::int16_t x) const
+    {
+        data[0x3c] = x & 0xFF;
+        data[0x3d] = x >> 8;
+    }
+
+    std::int16_t line_endpoint_y() const
+    {
+        return data[0x3e] | (data[0x3f] << 8);
+    }
+
+    void set_line_endpoint_y(std::int16_t y) const
+    {
+        data[0x3e] = y & 0xFF;
+        data[0x3f] = y >> 8;
+    }
+
+    void set_line_endpoint(std::int16_t x, std::int16_t y) const
+    {
+        set_line_endpoint_valid(true);
+        set_line_endpoint_x(x);
+        set_line_endpoint_y(y);
     }
 };
 

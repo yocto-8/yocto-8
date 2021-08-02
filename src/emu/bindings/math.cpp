@@ -14,6 +14,24 @@ int y8_flr(lua_State* state)
     return 1;
 }
 
+int y8_mid(lua_State* state)
+{
+    const auto a = lua_tonumber(state, 1);
+    const auto b = lua_tonumber(state, 2);
+    const auto c = lua_tonumber(state, 3);
+
+    lua_pushnumber(state, std::max(std::min(a, b), std::min(std::max(a, b), c)));
+
+    return 1;
+}
+
+int y8_sin(lua_State* state)
+{
+    const auto x = luaL_checknumber(state, 1);
+    lua_pushnumber(state, -(x * (LuaFix16::from_fix16(fix16_pi) * 2)).sin());
+    return 1;
+}
+
 int y8_cos(lua_State* state)
 {
     const auto x = luaL_checknumber(state, 1);

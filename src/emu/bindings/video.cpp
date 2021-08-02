@@ -46,6 +46,57 @@ void set_pixel_with_alpha(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color
     }
 }
 
+void draw_line(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y1, std::uint8_t raw_color)
+{
+    const auto clip = device<devices::ClippingRectangle>;
+
+    const bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
+
+    if (steep)
+    {
+        std::swap(x0, y0);
+        std::swap(x1, y1);
+    }
+
+    if (x0 > x1)
+    {
+        std::swap(x0, x1);
+        std::swap(y0, y1);
+    }
+
+    const auto dx = x1 - x0;
+    const auto dy = std::abs(y1 - y0);
+
+    auto error = dx / 2;
+    const auto y_step = (y0 < y1) ? 1 : -1;
+
+    std::int16_t y = y0;
+    for (std::int16_t x = x0; x <= x1; ++x)
+    {
+        auto plot_x = x, plot_y = y;
+        if (steep)
+        {
+            plot_x = y;
+            plot_y = x;
+        }
+
+        if (clip.contains_integer(plot_x, plot_y))
+        {
+            detail::set_pixel_with_pattern(plot_x, plot_y, raw_color);
+        }
+
+        error -= dy;
+
+        if (error < 0)
+        {
+            y += y_step;
+            error += dx;
+        }
+    }
+
+    //detail::set_pixel_with_alpha(x, y, color);
+}
+
 }
 
 int y8_pset(lua_State* state)
@@ -92,6 +143,69 @@ int y8_cls(lua_State* state)
     }
 
     device<devices::Framebuffer>.clear(palette_entry);
+
+    return 0;
+}
+
+int y8_line(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const auto draw_misc = device<devices::DrawStateMisc>;
+
+    std::int16_t x0, y0;
+    std::int16_t x1 = draw_misc.line_endpoint_x();
+    std::int16_t y1 = draw_misc.line_endpoint_y();
+
+    unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
+
+    if (argument_count >= 5)
+    {
+        raw_color = lua_tounsigned(state, 5);
+    }
+
+    if (argument_count >= 4)
+    {
+        x0 = lua_tointegerx(state, 1, nullptr);
+        y0 = lua_tointegerx(state, 2, nullptr);
+        x1 = lua_tointegerx(state, 3, nullptr);
+        y1 = lua_tointegerx(state, 4, nullptr);
+
+        detail::draw_line(x0, y0, x1, y1, raw_color);
+
+        draw_misc.set_line_endpoint(x1, y1);
+
+        return 0;
+    }
+
+    if (argument_count >= 3)
+    {
+        raw_color = lua_tounsigned(state, 3);
+    }
+
+    if (argument_count >= 2)
+    {
+        x0 = lua_tointegerx(state, 1, nullptr);
+        y0 = lua_tointegerx(state, 2, nullptr);
+
+        detail::draw_line(x0, y0, x1, y1, raw_color);
+
+        draw_misc.set_line_endpoint(x0, y0);
+
+        return 0;
+    }
+
+    if (argument_count >= 1)
+    {
+        // FIXME: everywhere raw_color is used should WRITE BACK TO MEMORY
+        raw_color = lua_tounsigned(state, 1);
+    }
+
+    if (argument_count >= 0)
+    {
+        draw_misc.set_line_endpoint_valid(false);
+        return 0;
+    }
 
     return 0;
 }

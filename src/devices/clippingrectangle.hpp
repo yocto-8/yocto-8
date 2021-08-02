@@ -66,6 +66,13 @@ struct ClippingRectangle : emu::MMIODevice<4>
         return x >= x_begin() && x < x_end()
             && y >= y_begin() && y < y_end();
     }
+
+    bool contains_integer(int x, int y) const
+    {
+        return x >= 0 && y >= 0
+            && x <= 127 && y <= 127
+            && contains(std::uint8_t(x), std::uint8_t(y));
+    }
 };
 
 }
