@@ -93,8 +93,6 @@ void draw_line(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y
             error += dx;
         }
     }
-
-    //detail::set_pixel_with_alpha(x, y, color);
 }
 
 }
