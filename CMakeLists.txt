@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.13)
 
 #set(Y8_DESKTOP_VM ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++17 -fno-rtti")
-
 if(NOT Y8_DESKTOP_VM)
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 
@@ -16,6 +14,7 @@ endif()
 project(yocto-8)
 
 add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti")
 
 add_library(yocto-8-core
     src/devices/image.cpp
