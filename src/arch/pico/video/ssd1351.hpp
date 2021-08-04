@@ -188,7 +188,7 @@ class SSD1351
         // Contrast settings
         write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xC0, 0xC0, 0xC0});
         //set_brightness(0xA); const float gamma = 1.25;
-        set_brightness(0x7); const float gamma = 2.2;
+        set_brightness(0x7); const float gamma = 1.1;
         //set_brightness(0x3); const float gamma = 0.7;
         //set_brightness(0x2); const float gamma = 0.6;
 

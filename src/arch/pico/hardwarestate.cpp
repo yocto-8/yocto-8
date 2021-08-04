@@ -22,7 +22,7 @@ void initialize_default_frequency()
     /*vreg_set_voltage(VREG_VOLTAGE_0_90);
     set_sys_clock_khz(120000, false);*/
 
-    vreg_set_voltage(VREG_VOLTAGE_1_05);
+    vreg_set_voltage(VREG_VOLTAGE_1_10);
     set_sys_clock_khz(250000, false);
     
     /*vreg_set_voltage(VREG_VOLTAGE_1_15);
@@ -47,9 +47,63 @@ void initialize_buttons()
     hw.buttons[5].init(21);
 }
 
+#include <extmem/spiram.hpp>
+
+void test_ram()
+{
+    using namespace arch::pico;
+    std::array<std::uint8_t, 1024> test;
+    int successes = 0, total = 0;
+
+    printf("Performing PSRAM test\n");
+
+    for (int i = 0; i < 100; ++i)
+    {
+        std::size_t bank_addr = (rand() % 8192) * 0x400;
+
+        for (std::size_t i = 0; i < test.size(); ++i)
+        {
+            test[i] = rand() % 256;
+        }
+
+        ++total;
+        //printf("Writing page.\n");
+        extmem::spiram::write_page(bank_addr, test);
+
+        //printf("Reading page back.\n");
+        std::array<std::uint8_t, 1024> test_target;
+        extmem::spiram::read_page((rand() % 8192) * 0x400, test_target); // read from random page
+        extmem::spiram::read_page(bank_addr, test_target); // and read back from page
+
+        if (test != test_target)
+        {
+            printf("\n\nFAIL %d\n", int(bank_addr));
+            for (std::size_t i = 0; i < test_target.size(); ++i)
+            {
+
+                if (i%(extmem::spiram::burst_size*2) == 0)
+                    printf("\n");
+                
+                if (test[i] == test_target[i]) printf("-- ");
+                else printf("%02x ", test_target[i]);
+            }
+        }
+        else {
+            ++successes;
+        }
+        if (total % 20 == 0) printf("Success rate %d/%d\n", successes, total);
+    }
+
+    if (successes != total)
+    {
+        printf("FAILED PSRAM test: %d/%d\n", successes, total);
+    }
+}
+
 void initialize_spi_ram()
 {
     pico::extmem::spiram::setup();
+    test_ram();
 }
 
 void initialize_emulator()

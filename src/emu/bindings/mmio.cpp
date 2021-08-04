@@ -86,4 +86,15 @@ int y8_memcpy(lua_State* state)
     return 0;
 }
 
+int y8_memset(lua_State* state)
+{
+    const auto dst = luaL_checkunsigned(state, 1);
+    const std::uint8_t val = luaL_checkunsigned(state, 2);
+    const auto len = luaL_checkunsigned(state, 3);
+
+    emulator.memory().memset(dst, val, len);
+
+    return 0;
+}
+
 }

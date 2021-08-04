@@ -40,6 +40,11 @@ public:
         return Memory{gsl::span(_memory)};
     }
 
+    auto get_memory_alloc_buffer() const
+    {
+        return _memory_buffer;
+    }
+
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
 

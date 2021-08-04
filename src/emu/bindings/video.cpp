@@ -8,6 +8,7 @@
 #include <devices/drawstatemisc.hpp>
 #include <devices/screenpalette.hpp>
 #include <devices/image.hpp>
+#include <devices/map.hpp>
 
 namespace emu::bindings
 {
@@ -91,6 +92,37 @@ void draw_line(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y
         {
             y += y_step;
             error += dx;
+        }
+    }
+}
+
+void draw_sprite(int sprite_index, int raw_orig_x, int raw_orig_y, int width = 8, int height = 8)
+{
+    auto sprite = device<devices::Spritesheet>;
+    auto palette = device<devices::DrawPalette>;
+    auto clip = device<devices::ClippingRectangle>;
+
+    const auto orig_x = std::max(raw_orig_x, int(clip.x_begin()));
+    const auto orig_y = std::max(raw_orig_y, int(clip.y_begin()));
+
+    const auto target_x = std::min(raw_orig_x + width, int(clip.x_end()));
+    const auto target_y = std::min(raw_orig_y + height, int(clip.y_end()));
+
+    constexpr std::size_t sprites_per_row = 128 / 8;
+    const auto sprite_orig_x = (sprite_index % sprites_per_row) * 8;
+    const auto sprite_orig_y = (sprite_index / sprites_per_row) * 8;
+
+    for (std::uint8_t y = orig_y; y < target_y; ++y)
+    {
+        for (std::uint8_t x = orig_x; x < target_x; ++x)
+        {
+            // TODO: flip_x and flip_y
+            const auto sprite_x = (x - orig_x) + sprite_orig_x;
+            const auto sprite_y = (y - orig_y) + sprite_orig_y;
+
+            const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
+
+            detail::set_pixel_with_alpha(x, y, palette_entry);
         }
     }
 }
@@ -212,10 +244,10 @@ int y8_rectfill(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
 
-    unsigned x0 = lua_tounsigned(state, 1) % 128;
-    unsigned y0 = lua_tounsigned(state, 2) % 128;
-    unsigned x1 = lua_tounsigned(state, 3) % 128;
-    unsigned y1 = lua_tounsigned(state, 4) % 128;
+    auto x0 = lua_tointeger(state, 1);
+    auto y0 = lua_tointeger(state, 2);
+    auto x1 = lua_tointeger(state, 3);
+    auto y1 = lua_tointeger(state, 4);
 
     auto clip = device<devices::ClippingRectangle>;
 
@@ -226,14 +258,14 @@ int y8_rectfill(lua_State* state)
         raw_color = lua_tounsigned(state, 5);
     }
 
-    x0 = std::max(x0, unsigned(clip.x_begin()));
-    y0 = std::max(y0, unsigned(clip.y_begin()));
-    x1 = std::min(x1, unsigned(clip.x_end() + 1));
-    y1 = std::min(y1, unsigned(clip.y_end() + 1));
+    x0 = std::max(x0, int(clip.x_begin()));
+    y0 = std::max(y0, int(clip.y_begin()));
+    x1 = std::min(x1, int(clip.x_end() + 1));
+    y1 = std::min(y1, int(clip.y_end() + 1));
 
-    for (unsigned y = y0; y <= y1; ++y)
+    for (int y = y0; y <= y1; ++y)
     {
-        for (unsigned x = x0; x <= x1; ++x)
+        for (int x = x0; x <= x1; ++x)
         {
             detail::set_pixel_with_pattern(x, y, raw_color);
         }
@@ -248,7 +280,7 @@ int y8_spr(lua_State* state)
 
     const auto argument_count = lua_gettop(state);
 
-    const auto n = luaL_checkunsigned(state, 1);
+    const auto sprite_index = luaL_checkunsigned(state, 1);
     const auto raw_orig_x = luaL_checkinteger(state, 2);
     const auto raw_orig_y = luaL_checkinteger(state, 3);
 
@@ -274,33 +306,7 @@ int y8_spr(lua_State* state)
         y_flip = lua_toboolean(state, 7);
     }
 
-    auto sprite = device<devices::Spritesheet>;
-    auto palette = device<devices::DrawPalette>;
-    auto clip = device<devices::ClippingRectangle>;
-
-    const auto orig_x = std::max(raw_orig_x, int(clip.x_begin()));
-    const auto orig_y = std::max(raw_orig_y, int(clip.y_begin()));
-
-    const auto target_x = std::min(raw_orig_x + width, int(clip.x_end()));
-    const auto target_y = std::min(raw_orig_y + height, int(clip.y_end()));
-
-    constexpr std::size_t sprites_per_row = 128 / 8;
-    const auto sprite_orig_x = (n % sprites_per_row) * 8;
-    const auto sprite_orig_y = (n / sprites_per_row) * 8;
-
-    for (std::uint8_t y = orig_y; y < target_y; ++y)
-    {
-        for (std::uint8_t x = orig_x; x < target_x; ++x)
-        {
-            // TODO: flip_x and flip_y
-            const auto sprite_x = (x - orig_x) + sprite_orig_x;
-            const auto sprite_y = (y - orig_y) + sprite_orig_y;
-
-            const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
-
-            detail::set_pixel_with_alpha(x, y, palette_entry);
-        }
-    }
+    detail::draw_sprite(sprite_index, raw_orig_x, raw_orig_y, width, height);
 
     return 0;
 }
@@ -365,6 +371,73 @@ int y8_clip(lua_State* state)
     clip.y_end() = y + height;
 
     return 4;
+}
+
+int y8_mset(lua_State* state)
+{
+    const auto x = lua_tointeger(state, 1);
+    const auto y = lua_tointeger(state, 2);
+    const std::uint8_t tile = lua_tounsigned(state, 3) % 256;
+
+    const auto map = device<devices::Map>;
+
+    if (x >= int(map.width) || y >= int(map.height))
+    {
+        return 0;
+    }
+
+    map.tile(x, y) = tile;
+
+    return 0;
+}
+
+int y8_map(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const auto tile_x_raw_origin = lua_tointeger(state, 1);
+    const auto tile_y_raw_origin = lua_tointeger(state, 2);
+    const auto screen_x_origin = lua_tointeger(state, 3);
+    const auto screen_y_origin = lua_tointeger(state, 4);
+    int tile_width = 128;
+    int tile_height = 128;
+
+    // FIXME: implement layers
+
+    if (argument_count >= 5)
+    {
+        tile_width = lua_tointeger(state, 5);
+        tile_height = lua_tointeger(state, 6);
+
+        if (tile_width < 0 || tile_height < 0)
+        {
+            return 0;
+        }
+    }
+
+    const auto tile_x_origin = std::max(tile_x_raw_origin, 0);
+    const auto tile_y_origin = std::max(tile_y_raw_origin, 0);
+    const auto tile_x_end = std::min(tile_x_raw_origin + tile_width, 127);
+    const auto tile_y_end = std::min(tile_y_raw_origin + tile_height, 127);
+
+    const auto map = device<devices::Map>;
+
+    for (int tile_y = tile_y_origin; tile_y < tile_y_end; ++tile_y)
+    {
+        for (int tile_x = tile_x_origin; tile_x < tile_x_end; ++tile_x)
+        {
+            const auto screen_x_offset = screen_x_origin + (tile_x - tile_x_raw_origin) * 8;
+            const auto screen_y_offset = screen_y_origin + (tile_y - tile_y_raw_origin) * 8;
+
+            detail::draw_sprite(
+                map.tile(tile_x, tile_y),
+                screen_x_offset,
+                screen_y_offset
+            );
+        }
+    }
+
+    return 0;
 }
 
 }

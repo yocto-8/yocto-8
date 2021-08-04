@@ -46,4 +46,28 @@ int y8_sqrt(lua_State* state)
     return 1;
 }
 
+int y8_shl(lua_State* state)
+{
+    const auto x = lua_tonumber(state, 1);
+    const auto bits = lua_tounsigned(state, 2);
+    lua_pushnumber(state, LuaFix16::from_fix16(x.value << bits));
+    return 1;
+}
+
+int y8_shr(lua_State* state)
+{
+    const auto x = lua_tonumber(state, 1);
+    const auto bits = lua_tounsigned(state, 2);
+    lua_pushnumber(state, LuaFix16::from_fix16(x.value >> bits));
+    return 1;
+}
+
+int y8_band(lua_State* state)
+{
+    const auto x = lua_tonumber(state, 1);
+    const auto y = lua_tonumber(state, 2);
+    lua_pushnumber(state, LuaFix16::from_fix16(x.value & y.value));
+    return 1;
+}
+
 }

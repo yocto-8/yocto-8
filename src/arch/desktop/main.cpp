@@ -17,6 +17,8 @@ std::string string_from_file(std::ifstream& file)
     return ret;
 }
 
+std::array<char, 1024 * 1024 * 8> yolo_heap;
+
 int main(int argc, char** argv)
 {
     if (argc != 2)
@@ -24,10 +26,8 @@ int main(int argc, char** argv)
         printf("Syntax: y8vm [game.p8]\n");
         return 1;
     }
-
-    std::array<char, 1024 * 1024 * 1> yolo_heap;
     
-    emu::emulator.init(gsl::span<char, 1024 * 1024>(
+    emu::emulator.init(gsl::span<char, yolo_heap.size()>(
         reinterpret_cast<char*>(yolo_heap.data()),
         reinterpret_cast<char*>(yolo_heap.data() + yolo_heap.size())
     ));
@@ -53,5 +53,5 @@ int main(int argc, char** argv)
     while (parser.parse_line())
         ;
     
-    emu::emulator.hook_update();
+    emu::emulator.run();
 }

@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.13)
 
 #set(Y8_DESKTOP_VM ON)
 
-if(NOT Y8_DESKTOP_VM)
+if (Y8_DESKTOP_VM)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+else()
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 
     # FIXME: this is a horrible workaround for clangd in vscode

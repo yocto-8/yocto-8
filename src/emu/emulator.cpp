@@ -2,6 +2,8 @@
 #include "lgc.h"
 
 #include <cstdio>
+#include <cstdlib>
+#include <limits>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -39,7 +41,7 @@ void Emulator::init(gsl::span<char> memory_buffer)
     ta_init(
         _memory_buffer.data(),
         _memory_buffer.data() + _memory_buffer.size(),
-        1024,
+        1024, // TODO: what value..?
         16,
         sizeof(std::uintptr_t)
     );
@@ -64,6 +66,8 @@ void Emulator::init(gsl::span<char> memory_buffer)
     bind("spr", bindings::y8_spr);
     bind("pal", bindings::y8_pal);
     bind("clip", bindings::y8_clip);
+    bind("mset", bindings::y8_mset);
+    bind("map", bindings::y8_map);
 
     bind("btn", bindings::y8_btn);
 
@@ -74,12 +78,16 @@ void Emulator::init(gsl::span<char> memory_buffer)
     bind("poke2", bindings::y8_poke2);
     bind("poke4", bindings::y8_poke4);
     bind("memcpy", bindings::y8_memcpy);
+    bind("memset", bindings::y8_memset);
 
     bind("flr", bindings::y8_flr);
     bind("mid", bindings::y8_mid);
     bind("sin", bindings::y8_sin);
     bind("cos", bindings::y8_cos);
     bind("sqrt", bindings::y8_sqrt);
+    bind("shl", bindings::y8_shl);
+    bind("shr", bindings::y8_shr);
+    bind("band", bindings::y8_band);
 
     bind("rnd", bindings::y8_rnd);
 
@@ -122,11 +130,13 @@ void Emulator::load(std::string_view buf)
     if (load_status != 0)
     {
         printf("Script load failed: %s", lua_tostring(_lua, -1));
+        lua_pop(_lua, 1);
     }
 
     if (lua_pcall(_lua, 0, 0, 0) != 0)
     {
         printf("Script exec at load time failed: %s\n", lua_tostring(_lua, -1));
+        lua_pop(_lua, 1);
     }
     else
     {
@@ -194,9 +204,10 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 {
     (void)ud;
 
-    //printf("blk usage %d used/%d free/%d fresh\n", ta_num_used(), ta_num_free(), ta_num_fresh());
-
     static std::uint32_t malloc_pool_used = 0;
+
+    static bool can_try_emergency = true;
+    static std::uint32_t retry_emergency_when_below = 0;
 
     // max bytes allocated through malloc. the larger this is, the faster Lua will be, by a lot.
     // note that the real heap usage may be significantly higher, because of:
@@ -204,11 +215,16 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // - overhead of the allocator
     const std::size_t malloc_pool_limit = 96 * 1024;
 
-    //printf("malloc stats before alloc/free %d/%d\n", malloc_pool_used, malloc_pool_limit);
+    /*printf("%ld;%d;%i;%i;%i\n",
+        malloc_pool_used, malloc_pool_limit,
+        ta_num_used(), ta_num_free(), ta_num_fresh()
+    );*/
 
     const auto is_slow_heap = [&] {
         // FIXME: this is very naughty
-        return std::uintptr_t(ptr) >= 0x2F000000;
+        const auto alloc_buffer = emulator.get_memory_alloc_buffer();
+        return ptr >= alloc_buffer.data()
+            && ptr < alloc_buffer.data() + alloc_buffer.size();
     };
 
     const auto auto_free = [&] {
@@ -226,14 +242,27 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             free(ptr);
             malloc_pool_used -= osize;
             //printf("free fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
+
+            // if we freed up enough memory, maybe we can try to fit in the malloc pool again
+            if (malloc_pool_used <= retry_emergency_when_below)
+            {
+                can_try_emergency = true;
+            }
         }
     };
 
-    const auto auto_malloc = [&] {
+    const auto auto_malloc = [&]() -> void* {
         std::uint32_t new_malloc_pool_size = malloc_pool_used + nsize;
 
         if (new_malloc_pool_size > malloc_pool_limit)
         {
+            if (can_try_emergency)
+            {
+                can_try_emergency = false;
+                retry_emergency_when_below = malloc_pool_limit - nsize;
+                return nullptr;
+            }
+
             // allocate on slow pool
             return ta_alloc(nsize);
         }
@@ -262,6 +291,12 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     else
     {
         const auto new_ptr = auto_malloc();
+
+        if (new_ptr == nullptr)
+        {
+            return nullptr;
+        }
+
         std::memcpy(new_ptr, ptr, osize);
         auto_free();
         return new_ptr;

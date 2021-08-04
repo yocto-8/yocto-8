@@ -14,5 +14,6 @@ int y8_poke2(lua_State* state);
 int y8_poke4(lua_State* state);
 
 int y8_memcpy(lua_State* state);
+int y8_memset(lua_State* state);
 
 }

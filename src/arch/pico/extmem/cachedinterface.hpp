@@ -31,7 +31,7 @@ struct Cache
 {
     using CachePage = std::array<std::uint8_t, cache_size>;
 
-    std::array<CachePage, cache_page_count> pages;
+    alignas(4) std::array<CachePage, cache_page_count> pages;
     std::array<std::uint16_t, cache_page_count> active_page_indices;
 
     Cache()
