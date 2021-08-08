@@ -8,7 +8,7 @@ else()
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 
     # FIXME: this is a horrible workaround for clangd in vscode
-    set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/11.1.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/11.1.0/ -isystem /usr/arm-none-eabi/include/")
+    set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/11.2.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/11.2.0/ -isystem /usr/arm-none-eabi/include/")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
 endif()
