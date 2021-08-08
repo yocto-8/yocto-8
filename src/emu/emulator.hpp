@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <gsl/gsl>
+#include <span>
 #include <string_view>
 #include <lua.h>
 
@@ -20,7 +20,7 @@ public:
 
     ~Emulator();
 
-    void init(gsl::span<char> memory_buffer);
+    void init(std::span<std::byte> memory_buffer);
 
     void load(std::string_view buf);
 
@@ -37,7 +37,7 @@ public:
 
     constexpr Memory memory()
     {
-        return Memory{gsl::span(_memory)};
+        return Memory{std::span(_memory)};
     }
 
     auto get_memory_alloc_buffer() const
@@ -49,7 +49,7 @@ public:
     Emulator& operator=(const Emulator&) = delete;
 
 private:
-    gsl::span<char> _memory_buffer;
+    std::span<std::byte> _memory_buffer;
     std::array<std::uint8_t, 65536> _memory;
     lua_State* _lua;
 };

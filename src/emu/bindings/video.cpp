@@ -1,7 +1,9 @@
 #include "video.hpp"
 
+#include <cmath>
 #include <lua.h>
 #include <lauxlib.h>
+
 #include <emu/emulator.hpp>
 #include <devices/clippingrectangle.hpp>
 #include <devices/drawpalette.hpp>

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gsl/gsl>
 #include <emu/mmio.hpp>
 
 namespace devices

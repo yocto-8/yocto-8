@@ -1,7 +1,8 @@
 #pragma once
 
 #include <cstddef>
-#include <gsl/gsl>
+#include <cstdint>
+#include <span>
 
 namespace arch::pico::extmem::spiram
 {
@@ -15,7 +16,7 @@ void select(bool chip_selected);
 
 void validate_address(std::uint32_t page_aligned_address);
 
-void read_page(std::uint32_t page_address, gsl::span<std::uint8_t, page_size> buf);
-void write_page(std::uint32_t page_address, gsl::span<const std::uint8_t, page_size> buf);
+void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf);
+void write_page(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf);
 
 }

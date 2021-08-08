@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <gsl/gsl>
 #include <emu/mmio.hpp>
 
 namespace devices

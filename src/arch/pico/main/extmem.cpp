@@ -149,9 +149,9 @@ int main() {
         printf("LDM(imm): %d %d %d (expect 123456, 654321, 696969)\n", a, b, c);
     }*/
 
-    emu::emulator.init(gsl::span<char, extmem::bank_size>(
-        reinterpret_cast<char*>(extmem::bank_base),
-        reinterpret_cast<char*>(extmem::bank_base + extmem::bank_size)
+    emu::emulator.init(std::span<std::byte, extmem::bank_size>(
+        reinterpret_cast<std::byte*>(extmem::bank_base),
+        reinterpret_cast<std::byte*>(extmem::bank_base + extmem::bank_size)
     ));
 
     emu::emulator.load(R"(

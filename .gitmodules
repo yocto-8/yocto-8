@@ -7,9 +7,6 @@
 [submodule "tinyalloc"]
 	path = vendor/tinyalloc
 	url = git@github.com:thi-ng/tinyalloc.git
-[submodule "GSL"]
-	path = vendor/GSL
-	url = git@github.com:microsoft/GSL.git
 [submodule "vendor/libfixmath"]
 	path = vendor/libfixmath
 	url = git@github.com:PetteriAimonen/libfixmath.git

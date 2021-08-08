@@ -52,7 +52,7 @@ void validate_address(std::uint32_t page_aligned_address)
     assert(page_aligned_address < ram_size);
 }
 
-void read_page(std::uint32_t page_address, gsl::span<std::uint8_t, page_size> buf)
+void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
 
@@ -76,7 +76,7 @@ void read_page(std::uint32_t page_address, gsl::span<std::uint8_t, page_size> bu
     //sleep_ms(1);
 }
 
-void write_page(std::uint32_t page_address, gsl::span<const std::uint8_t, page_size> buf)
+void write_page(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
 

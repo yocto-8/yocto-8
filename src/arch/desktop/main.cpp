@@ -27,7 +27,7 @@ int main(int argc, char** argv)
         return 1;
     }
     
-    emu::emulator.init(gsl::span<char, yolo_heap.size()>(
+    emu::emulator.init(std::span<std::byte, yolo_heap.size()>(
         reinterpret_cast<char*>(yolo_heap.data()),
         reinterpret_cast<char*>(yolo_heap.data() + yolo_heap.size())
     ));

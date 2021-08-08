@@ -1,5 +1,6 @@
 #include "rng.hpp"
 
+#include <cstdlib>
 #include <lua.h>
 #include <lauxlib.h>
 #include <emu/emulator.hpp>

@@ -1,12 +1,14 @@
 #include "image.hpp"
 
+#include <algorithm>
+
 namespace devices
 {
     
 void Image::clear(std::uint8_t palette_entry) const
 {
     std::uint8_t pixel_pair_byte = palette_entry | (palette_entry << 4);
-    std::fill(data.begin(), data.end(), pixel_pair_byte);
+    std::ranges::fill(data, pixel_pair_byte);
 }
 
 void Image::set_nibble(std::size_t i, std::uint8_t palette_entry) const

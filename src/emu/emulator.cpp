@@ -1,5 +1,4 @@
 #include "emulator.hpp"
-#include "lgc.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -32,7 +31,7 @@ Emulator::~Emulator()
     }
 }
 
-void Emulator::init(gsl::span<char> memory_buffer)
+void Emulator::init(std::span<std::byte> memory_buffer)
 {
     _memory_buffer = memory_buffer;
 
@@ -172,6 +171,8 @@ void Emulator::run()
         hal::present_frame();
 
         const auto taken_time = hal::measure_time_us() - frame_start_time;
+
+        printf("%fms\n", double(taken_time) / 1000.0);
 
         if (taken_time < target_time)
         {

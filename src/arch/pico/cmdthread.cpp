@@ -25,8 +25,8 @@ void core1_entry()
             multicore_fifo_push_blocking(0); // copy done - we can update in background now
 
             hw.ssd1351.update_frame(
-                devices::Framebuffer{gsl::span(fb_copy)},
-                devices::ScreenPalette{gsl::span(palette_copy)}
+                devices::Framebuffer{std::span(fb_copy)},
+                devices::ScreenPalette{std::span(palette_copy)}
             );
             
             break;

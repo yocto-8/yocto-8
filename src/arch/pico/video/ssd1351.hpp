@@ -3,18 +3,20 @@
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <hardware/dma.h>
+#include <array>
 #include <cstdint>
 #include <cmath>
+#include <span>
+
 #include <emu/emulator.hpp>
 #include <devices/image.hpp>
 #include <devices/screenpalette.hpp>
 #include <video/palette.hpp>
-#include <gsl/span>
 
 namespace arch::pico::video
 {
 
-static constexpr std::array<std::uint16_t, 32> rgb_palette_to_ssd1351_format(gsl::span<const std::uint32_t, 32> palette)
+static constexpr std::array<std::uint16_t, 32> rgb_palette_to_ssd1351_format(std::span<const std::uint32_t, 32> palette)
 {
     std::array<std::uint16_t, 32> ret{};
 
@@ -207,7 +209,7 @@ class SSD1351
     }
 
     [[gnu::noinline]]
-    void write(Command command, gsl::span<const std::uint8_t> data = {})
+    void write(Command command, std::span<const std::uint8_t> data = {})
     {
         gpio_put(_pinout.dc, 0);
         gpio_put(_pinout.cs, 0);

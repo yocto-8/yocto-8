@@ -16,7 +16,7 @@ endif()
 project(yocto-8)
 
 add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
 add_library(yocto-8-core
     src/devices/image.cpp
@@ -41,7 +41,6 @@ set_property(TARGET yocto-8-core PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
 target_include_directories(yocto-8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tinyalloc"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/GSL/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
