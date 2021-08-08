@@ -20,7 +20,7 @@ struct MMIODevice
 
     constexpr std::array<std::uint8_t, map_length> clone() const
     {
-        std::array<std::uint8_t, map_length> ret{};
+        std::array<std::uint8_t, map_length> ret;
         std::memcpy(ret.data(), data.data(), data.size());
         return ret;
     }
