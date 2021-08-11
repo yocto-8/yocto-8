@@ -1,5 +1,7 @@
 #include "cmdthread.hpp"
-#include "pico/multicore.h"
+
+#include <pico/multicore.h>
+#include <pico/platform.h>
 
 #include <emu/emulator.hpp>
 #include <hardwarestate.hpp>
@@ -9,7 +11,8 @@
 namespace arch::pico
 {
 
-void core1_entry()
+[[gnu::flatten, gnu::optimize("Os")]]
+void __not_in_flash_func(core1_entry)()
 {
     for (;;)
     {
