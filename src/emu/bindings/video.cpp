@@ -10,6 +10,7 @@
 #include <devices/drawstatemisc.hpp>
 #include <devices/screenpalette.hpp>
 #include <devices/image.hpp>
+#include <devices/spriteflags.hpp>
 #include <devices/map.hpp>
 
 namespace emu::bindings
@@ -158,6 +159,28 @@ int y8_pget(lua_State* state)
 
     lua_pushunsigned(state, pixel);
     
+    return 1;
+}
+
+int y8_fget(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const auto sprite_flags = device<devices::SpriteFlags>;
+
+    // FIXME: how does this value wrap, too?
+    const auto sprite_id = lua_tounsigned(state, 1);
+
+    if (argument_count >= 2)
+    {
+        // FIXME: is this value wrapping %16 in pico-8?
+        const auto flag_index = lua_tounsigned(state, 2);
+
+        lua_pushboolean(state, sprite_flags.get_flag(sprite_id, flag_index));
+        return 1;
+    }
+
+    lua_pushunsigned(state, sprite_flags.flags_for(sprite_id));
     return 1;
 }
 
@@ -391,19 +414,38 @@ int y8_mset(lua_State* state)
 
     const auto map = device<devices::Map>;
 
-    if (x >= int(map.width) || y >= int(map.height))
+    if (map.in_bounds(x, y))
     {
-        return 0;
+        map.tile(x, y) = tile;
     }
 
-    map.tile(x, y) = tile;
-
     return 0;
+}
+
+int y8_mget(lua_State* state)
+{
+    const auto x = lua_tointeger(state, 1);
+    const auto y = lua_tointeger(state, 2);
+
+    const auto map = device<devices::Map>;
+
+    if (map.in_bounds(x, y))
+    {
+        lua_pushunsigned(state, map.tile(x, y));
+    }
+    else
+    {
+        lua_pushunsigned(state, 0);
+    }
+
+    return 1;
 }
 
 int y8_map(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
+
+    const auto sprite_flags = device<devices::SpriteFlags>;
 
     const auto tile_x_raw_origin = lua_tointeger(state, 1);
     const auto tile_y_raw_origin = lua_tointeger(state, 2);
@@ -412,7 +454,12 @@ int y8_map(lua_State* state)
     int tile_width = 128;
     int tile_height = 128;
 
-    // FIXME: implement layers
+    unsigned layer_mask = 0;
+
+    if (argument_count >= 7)
+    {
+        layer_mask = lua_tounsigned(state, 7);
+    }
 
     if (argument_count >= 5)
     {
@@ -439,8 +486,16 @@ int y8_map(lua_State* state)
             const auto screen_x_offset = screen_x_origin + (tile_x - tile_x_raw_origin) * 8;
             const auto screen_y_offset = screen_y_origin + (tile_y - tile_y_raw_origin) * 8;
 
+            const auto tile = map.tile(tile_x, tile_y);
+
+            // is it the layer we want to render?
+            if ((sprite_flags.flags_for(tile) & layer_mask) != layer_mask)
+            {
+                continue;
+            }
+
             detail::draw_sprite(
-                map.tile(tile_x, tile_y),
+                tile,
                 screen_x_offset,
                 screen_y_offset
             );

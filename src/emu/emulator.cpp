@@ -48,6 +48,10 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     _lua = lua_newstate(lua_alloc, nullptr);
     luaL_openlibs(_lua);
 
+    device<devices::DrawPalette>.reset();
+    device<devices::ScreenPalette>.reset();
+    device<devices::ClippingRectangle>.reset();
+
     const auto bind = [&](const char* name, const auto& func) {
         lua_pushcfunction(_lua, func);
         lua_setglobal(_lua, name);
@@ -60,19 +64,19 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         });
     };
 
-    device<devices::DrawPalette>.reset();
-    device<devices::ScreenPalette>.reset();
-    device<devices::ClippingRectangle>.reset();
-
+    stub("camera");
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
+    bind("fget", bindings::y8_fget);
     bind("cls", bindings::y8_cls);
     bind("line", bindings::y8_line);
+    stub("circfill");
     bind("rectfill", bindings::y8_rectfill);
     bind("spr", bindings::y8_spr);
     bind("pal", bindings::y8_pal);
     bind("clip", bindings::y8_clip);
     bind("mset", bindings::y8_mset);
+    bind("mget", bindings::y8_mget);
     bind("map", bindings::y8_map);
 
     bind("btn", bindings::y8_btn);
@@ -86,8 +90,11 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("memcpy", bindings::y8_memcpy);
     bind("memset", bindings::y8_memset);
 
+    bind("abs", bindings::y8_abs);
     bind("flr", bindings::y8_flr);
     bind("mid", bindings::y8_mid);
+    bind("min", bindings::y8_min);
+    bind("max", bindings::y8_max);
     bind("sin", bindings::y8_sin);
     bind("cos", bindings::y8_cos);
     bind("sqrt", bindings::y8_sqrt);
@@ -117,7 +124,6 @@ function all(t)
     return function()
         if t[i] == prev then
             i += 1
-            return prev
         end
 
         while t[i] == nil and i <= #t do
@@ -143,6 +149,44 @@ function add(t, v)
 
     t[#t+1] = v
     return v
+end
+
+function del(t, v)
+    if t == nil then
+        return
+    end
+
+    local n=#t
+
+    local i
+    for i=1,n do
+        if t[i] == v then
+            for j = i,n-1 do
+                t[j] = t[j + 1]
+            end
+
+            t[n] = nil
+            return v
+        end
+    end
+end
+
+function count(t, v)
+    local n = 0
+    if v == nil then
+        for i = 1,#t do
+            if t[i] ~= nil then
+                n += 1
+            end
+        end
+    else
+        for i = 1,#t do
+            if t[i] == v then
+                n += 1
+            end
+        end
+    end
+    return n
 end
 )");
 }
@@ -241,9 +285,9 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // note that the real heap usage may be significantly higher, because of:
     // - fragmentation
     // - overhead of the allocator
-    const std::size_t malloc_pool_limit = 96 * 1024;
+    const std::size_t malloc_pool_limit = 128 * 1024;
 
-    /*printf("%ld;%d;%i;%i;%i\n",
+    /*printf("%u;%u;%i;%i;%i\n",
         malloc_pool_used, malloc_pool_limit,
         ta_num_used(), ta_num_free(), ta_num_fresh()
     );*/
@@ -331,6 +375,6 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     }
 }
 
-Emulator emulator;
+constinit Emulator emulator;
 
 }

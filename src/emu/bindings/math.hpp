@@ -5,8 +5,11 @@
 namespace emu::bindings
 {
 
+int y8_abs(lua_State* state);
 int y8_flr(lua_State* state);
 int y8_mid(lua_State* state);
+int y8_min(lua_State* state);
+int y8_max(lua_State* state);
 int y8_sin(lua_State* state);
 int y8_cos(lua_State* state);
 int y8_sqrt(lua_State* state);

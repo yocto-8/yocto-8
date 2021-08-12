@@ -43,7 +43,7 @@ class Parser
     State _current_state;
 
     std::string_view _lua_block;
-    std::size_t _current_gfx_nibble;
+    std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble;
 };
 
 }

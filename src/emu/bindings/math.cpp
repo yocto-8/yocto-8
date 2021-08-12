@@ -1,11 +1,19 @@
 #include "math.hpp"
 
+#include <cmath>
 #include <lua.h>
 #include <lauxlib.h>
 #include <emu/emulator.hpp>
 
 namespace emu::bindings
 {
+
+int y8_abs(lua_State* state)
+{
+    const auto x = lua_tonumber(state, 1);
+    lua_pushnumber(state, LuaFix16::from_fix16(fix16_abs(x.value)));
+    return 1;
+}
 
 int y8_flr(lua_State* state)
 {
@@ -21,6 +29,26 @@ int y8_mid(lua_State* state)
     const auto c = lua_tonumber(state, 3);
 
     lua_pushnumber(state, std::max(std::min(a, b), std::min(std::max(a, b), c)));
+
+    return 1;
+}
+
+int y8_min(lua_State* state)
+{
+    const auto a = lua_tonumber(state, 1);
+    const auto b = lua_tonumber(state, 2);
+
+    lua_pushnumber(state, std::min(a, b));
+
+    return 1;
+}
+
+int y8_max(lua_State* state)
+{
+    const auto a = lua_tonumber(state, 1);
+    const auto b = lua_tonumber(state, 2);
+
+    lua_pushnumber(state, std::max(a, b));
 
     return 1;
 }

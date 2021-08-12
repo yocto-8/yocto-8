@@ -2,6 +2,8 @@
 
 #include <emu/emulator.hpp>
 #include <devices/image.hpp>
+#include <devices/map.hpp>
+#include <devices/spriteflags.hpp>
 
 namespace p8
 {
@@ -38,7 +40,9 @@ Parser::Parser(std::string_view source) :
     _current_block_offset(0),
     _current_offset(0),
     _current_state(State::EXPECT_HEADER),
-    _current_gfx_nibble(0)
+    _current_gfx_nibble(0),
+    _current_tile_nibble(2 * 128 * 32), // we start on the bottom 32 rows
+    _current_gff_nibble(0)
 {}
 
 bool Parser::parse_line()
@@ -131,6 +135,44 @@ bool Parser::parse_line()
         {
             sprite_sheet.set_nibble(_current_gfx_nibble, hex_digit(c));
             ++_current_gfx_nibble;
+        }
+        break;
+    }
+
+    case State::PARSING_MAP:
+    {
+        auto map = emu::device<devices::Map>;
+        // TODO: less stupid nibble logic
+        for (const char c: current_line)
+        {
+            if (_current_tile_nibble % 2 == 0)
+            {
+                map.data[_current_tile_nibble / 2] |= hex_digit(c) << 4;
+            }
+            else
+            {
+                map.data[_current_tile_nibble / 2] |= hex_digit(c);
+            }
+            ++_current_tile_nibble;
+        }
+        break;
+    }
+
+    case State::PARSING_GFF:
+    {
+        // TODO: dedup logic with map
+        auto sprite_flags = emu::device<devices::SpriteFlags>;
+        for (const char c: current_line)
+        {
+            if (_current_gff_nibble % 2 == 0)
+            {
+                sprite_flags.flags_for(_current_gff_nibble / 2) |= hex_digit(c) << 4;
+            }
+            else
+            {
+                sprite_flags.flags_for(_current_gff_nibble / 2) |= hex_digit(c);
+            }
+            ++_current_gff_nibble;
         }
         break;
     }
