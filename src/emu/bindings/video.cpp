@@ -317,6 +317,14 @@ int y8_pal(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
 
+    // TODO: double check that no args reset both palettes
+    if (argument_count == 0)
+    {
+        device<devices::DrawPalette>.reset();
+        device<devices::ScreenPalette>.reset();
+        return 0;
+    }
+
     // c0 seems to be %16 on pico-8
     
     // c1 can have the higher nibble non-zero for
