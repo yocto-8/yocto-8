@@ -22,14 +22,14 @@ void initialize_default_frequency()
     /*vreg_set_voltage(VREG_VOLTAGE_0_90);
     set_sys_clock_khz(120000, false);*/
 
-    vreg_set_voltage(VREG_VOLTAGE_1_10);
-    set_sys_clock_khz(250000, false);
+    /*vreg_set_voltage(VREG_VOLTAGE_1_10);
+    set_sys_clock_khz(250000, false);*/
     
-    /*vreg_set_voltage(VREG_VOLTAGE_1_15);
-    set_sys_clock_khz(300000, false);*/
+    vreg_set_voltage(VREG_VOLTAGE_1_15);
+    set_sys_clock_khz(300000, false);
 
-    /*vreg_set_voltage(VREG_VOLTAGE_1_30);
-    set_sys_clock_khz(400000, false);*/
+    /*vreg_set_voltage(VREG_VOLTAGE_1_25);
+    set_sys_clock_khz(351000, false);*/
 }
 
 void initialize_stdio()

@@ -16,6 +16,7 @@ endif()
 project(yocto-8)
 
 add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
+add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
 add_library(yocto-8-core
