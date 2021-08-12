@@ -53,6 +53,13 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         lua_setglobal(_lua, name);
     };
 
+    const auto stub = [&](const char* name) {
+        bind(name, [](lua_State*) {
+            //printf("unimplemented blahblah\n");
+            return 0;
+        });
+    };
+
     device<devices::DrawPalette>.reset();
     device<devices::ScreenPalette>.reset();
     device<devices::ClippingRectangle>.reset();
@@ -92,6 +99,9 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     bind("t", bindings::y8_time);
     bind("time", bindings::y8_time);
+
+    stub("music");
+    stub("sfx");
 
     load(R"(
 print("Setting up yocto-8 Lua routines")
