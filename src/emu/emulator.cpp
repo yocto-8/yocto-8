@@ -119,6 +119,21 @@ function all(t)
         return prev
     end
 end
+
+function foreach(t, f)
+    for e in all(t) do
+        f(e)
+    end
+end
+
+function add(t, v)
+    if t == nil then
+        return nil
+    end
+
+    t[#t+1] = v
+    return v
+end
 )");
 }
 
