@@ -171,6 +171,8 @@ void Emulator::load(std::string_view buf)
 void Emulator::run()
 {
     hal::reset_timer();
+
+    run_hook("_init");
     
     for (;;)
     {
