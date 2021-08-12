@@ -128,7 +128,7 @@ void Emulator::load(std::string_view buf)
 
     if (load_status != 0)
     {
-        printf("Script load failed: %s", lua_tostring(_lua, -1));
+        printf("Script load failed: %s\n", lua_tostring(_lua, -1));
         lua_pop(_lua, 1);
     }
 
