@@ -34,7 +34,7 @@ struct Cache
     alignas(4) std::array<CachePage, cache_page_count> pages;
     std::array<std::uint16_t, cache_page_count> active_page_indices;
 
-    Cache()
+    constexpr Cache()
     {
         active_page_indices.fill(invalid_bank);
     }

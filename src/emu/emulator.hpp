@@ -13,11 +13,7 @@ namespace emu
 class Emulator
 {
 public:
-    constexpr Emulator() :
-        _memory{},
-        _lua(nullptr)
-    {}
-
+    constexpr Emulator() = default;
     ~Emulator();
 
     void init(std::span<std::byte> memory_buffer);
@@ -50,13 +46,13 @@ public:
 
 private:
     std::span<std::byte> _memory_buffer;
-    std::array<std::uint8_t, 65536> _memory;
-    lua_State* _lua;
+    std::array<std::uint8_t, 65536> _memory = {};
+    lua_State* _lua = nullptr;
 };
 
 void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize);
 
-extern Emulator emulator;
+extern constinit Emulator emulator;
 
 template<class Device, std::uint16_t map_address = Device::default_map_address>
 inline constexpr auto device = Device(emulator.memory().data.subspan<map_address, Device::map_length>());

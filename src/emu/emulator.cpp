@@ -172,7 +172,7 @@ void Emulator::run()
 
         const auto taken_time = hal::measure_time_us() - frame_start_time;
 
-        printf("%fms\n", double(taken_time) / 1000.0);
+        printf("%f\n", double(taken_time) / 1000.0);
 
         if (taken_time < target_time)
         {
