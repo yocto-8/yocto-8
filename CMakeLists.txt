@@ -17,6 +17,11 @@ project(yocto-8)
 
 add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
 add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
+
+# NOTE: YOCTO8_YOLO_RELEASE enables VERY aggressive optimizations that turn error conditions into undefined behavior
+#       It also currently renders OOM situations UB which really should not be the case, bc the emergency GC exists
+#add_compile_definitions(YOCTO8_YOLO_RELEASE)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
 add_library(yocto-8-core
