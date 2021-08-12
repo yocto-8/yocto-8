@@ -1,0 +1,5 @@
+Checks: 'bugprone-*,
+         clang-analyzer-*,
+         modernize-*,
+         performance-*,
+         -modernize-use-trailing-return-type'
