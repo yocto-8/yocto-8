@@ -3,6 +3,7 @@
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 #include <array>
+#include <cstdio>
 
 namespace arch::pico::extmem::spiram
 {
@@ -11,7 +12,14 @@ static spi_inst_t *const psram_spi = spi1;
 
 void setup()
 {
-    spi_init(psram_spi, 100 * 1000 * 1000);
+    // FIXME: higher freqs seem to be borked
+    // possibilities:
+    // - dupont cables over 50MHz is not a good idea (emhargged)
+    // - fast reads are not actually used and we're running out of spec at high freqs
+    // never noticed this before because the freq calculation made it so it ran at 25MHz when running at 250MHz...
+    // so it was broken at the default 125MHz and 350MHz somehow
+    spi_init(psram_spi, 25 * 1000 * 1000);
+    printf("SPI baudrate: %d\n", spi_get_baudrate(psram_spi));
     gpio_set_function(pin_rx, GPIO_FUNC_SPI);
     gpio_set_function(pin_sck, GPIO_FUNC_SPI);
     gpio_set_function(pin_tx, GPIO_FUNC_SPI);
