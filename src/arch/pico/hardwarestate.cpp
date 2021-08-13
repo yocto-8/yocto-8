@@ -103,7 +103,7 @@ void test_ram()
 void initialize_spi_ram()
 {
     pico::extmem::spiram::setup();
-    //test_ram();
+    test_ram();
 }
 
 void initialize_emulator()
