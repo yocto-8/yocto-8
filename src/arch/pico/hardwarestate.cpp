@@ -17,7 +17,7 @@ void initialize_default_frequency()
     // In any case, those settings run the RP2040 out-of-spec and increases power draw.
     // Most settings beyond 250MHz will fail if you do not edit the flash SPI frequency multiplier to 4 (default 2).
 
-    // The bootup settings are 120MHz@1.10V.
+    // The bootup settings are 125MHz@1.10V.
 
     /*vreg_set_voltage(VREG_VOLTAGE_0_90);
     set_sys_clock_khz(120000, false);*/
