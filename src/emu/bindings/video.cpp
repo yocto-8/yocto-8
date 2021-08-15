@@ -106,8 +106,8 @@ inline void transform_screenspace(int& worldspace_x, int& worldspace_y)
 {
     const auto draw_misc = device<devices::DrawStateMisc>;
 
-    worldspace_x -= draw_misc.get_camera_x();
-    worldspace_y -= draw_misc.get_camera_y();
+    worldspace_x -= draw_misc.camera_x();
+    worldspace_y -= draw_misc.camera_y();
 }
 
 [[gnu::always_inline]]
@@ -388,7 +388,7 @@ int y8_spr(lua_State* state)
     const auto argument_count = lua_gettop(state);
 
     const auto sprite_index = luaL_checkunsigned(state, 1);
-    
+
     int raw_orig_x = lua_tointeger(state, 2);
     int raw_orig_y = lua_tointeger(state, 3);
     detail::transform_screenspace(raw_orig_x, raw_orig_y);

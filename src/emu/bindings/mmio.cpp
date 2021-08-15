@@ -21,7 +21,7 @@ int y8_peek(lua_State* state)
 
     for (std::size_t i = 0; i < n; ++i)
     {
-        lua_pushunsigned(state, emu::emulator.memory().peek_le<std::uint8_t>(address + i));
+        lua_pushunsigned(state, emu::emulator.memory().get<std::uint8_t>(address + i));
     }
 
     return n;
@@ -30,14 +30,14 @@ int y8_peek(lua_State* state)
 int y8_peek2(lua_State* state)
 {
     const auto address = luaL_checkunsigned(state, 1);
-    lua_pushunsigned(state, emu::emulator.memory().peek_le<std::uint16_t>(address));
+    lua_pushunsigned(state, emu::emulator.memory().get<std::uint16_t>(address));
     return 1;
 }
 
 int y8_peek4(lua_State* state)
 {
     const auto address = luaL_checkunsigned(state, 1);
-    lua_pushunsigned(state, emu::emulator.memory().peek_le<std::uint32_t>(address));
+    lua_pushunsigned(state, emu::emulator.memory().get<std::uint32_t>(address));
     return 1;
 }
 
@@ -51,7 +51,7 @@ int y8_poke(lua_State* state)
     {
         // first parameter is arg 1, first value is arg 2
         const auto value = luaL_checkunsigned(state, i + 2);
-        emu::emulator.memory().poke_le<std::uint8_t>(address + i, value);
+        emu::emulator.memory().get<std::uint8_t>(address + i) = value;
     }
 
     return 0;
@@ -61,7 +61,7 @@ int y8_poke2(lua_State* state)
 {
     const auto address = luaL_checkunsigned(state, 1);
     const auto value = luaL_checkunsigned(state, 2);
-    emu::emulator.memory().poke_le<std::uint16_t>(address, value);
+    emu::emulator.memory().get<std::uint16_t>(address) = value;
     return 0;
 }
 
@@ -69,7 +69,7 @@ int y8_poke4(lua_State* state)
 {
     const auto address = luaL_checkunsigned(state, 1);
     const auto value = luaL_checkunsigned(state, 2);
-    emu::emulator.memory().poke_le<std::uint32_t>(address, value);
+    emu::emulator.memory().get<std::uint32_t>(address) = value;
     return 0;
 }
 

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <span>
+#include <util/endian.hpp>
 
 namespace emu
 {
@@ -25,6 +26,19 @@ struct MMIODevice
         return ret;
     }
 
+    template<std::size_t Size>
+    std::span<std::uint8_t, Size> sized_subspan(std::size_t from_offset) const
+    {
+        return std::span<std::uint8_t, Size>(data.subspan(from_offset, Size));
+    }
+
+    template<class T>
+    util::UnalignedLEWrapper<T> get(std::uint16_t addr) const
+    {
+        return {sized_subspan<sizeof(T)>(addr)};
+    }
+
+
     View data;
 };
 
@@ -33,32 +47,12 @@ struct Memory : MMIODevice<65536>
     using MMIODevice::MMIODevice;
     static constexpr std::uint16_t map_address = 0;
 
-    template<class T>
-    T peek_le(std::uint16_t addr)
-    {
-        T ret = 0;
-        for (std::size_t i = 0; i < sizeof(addr); ++i)
-        {
-            ret |= data[addr + i] << (i * 8);
-        }
-        return ret;
-    }
-
-    template<class T>
-    void poke_le(std::uint16_t addr, T value)
-    {
-        for (std::size_t i = 0; i < sizeof(addr); ++i)
-        {
-            data[addr + i] = (value >> (i * 8)) & 0xFF;
-        }
-    }
-
-    void memcpy(std::uint16_t dst, std::uint16_t src, std::size_t bytes)
+    void memcpy(std::uint16_t dst, std::uint16_t src, std::size_t bytes) const
     {
         std::memmove(&data[dst], &data[src], bytes);
     }
 
-    void memset(std::uint16_t dst, std::uint16_t val, std::size_t bytes)
+    void memset(std::uint16_t dst, std::uint16_t val, std::size_t bytes) const
     {
         std::memset(&data[dst], val, bytes);
     }
