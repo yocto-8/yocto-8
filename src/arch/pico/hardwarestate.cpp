@@ -19,9 +19,6 @@ void initialize_default_frequency()
 
     // The bootup settings are 125MHz@1.10V.
 
-    /*vreg_set_voltage(VREG_VOLTAGE_0_90);
-    set_sys_clock_khz(120000, false);*/
-
     /*vreg_set_voltage(VREG_VOLTAGE_1_10);
     set_sys_clock_khz(250000, false);*/
     
