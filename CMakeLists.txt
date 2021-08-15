@@ -11,12 +11,13 @@ else()
     set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/11.2.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/11.2.0/ -isystem /usr/arm-none-eabi/include/")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
+
+    add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
 endif()
 
 project(yocto-8)
 
 add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
-add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
 
 # NOTE: YOCTO8_YOLO_RELEASE enables VERY aggressive optimizations that turn error conditions into undefined behavior
 #       It also currently renders OOM situations UB which really should not be the case, bc the emergency GC exists
@@ -24,43 +25,117 @@ add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
-add_library(yocto-8-core
-    src/devices/image.cpp
-    src/emu/emulator.cpp
-    src/emu/bindings/input.cpp
-    src/emu/bindings/math.cpp
-    src/emu/bindings/mmio.cpp
-    src/emu/bindings/rng.cpp
-    src/emu/bindings/time.cpp
-    src/emu/bindings/video.cpp
-    src/p8/parser.cpp
-    vendor/tinyalloc/tinyalloc.c
-)
+add_executable(y8)
 
-target_compile_options(yocto-8-core
-    PUBLIC
+set(CORE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/")
+set(CORE_SOURCES
+    ${CORE_ROOT}/devices/image.cpp
+    ${CORE_ROOT}/emu/emulator.cpp
+    ${CORE_ROOT}/emu/bindings/input.cpp
+    ${CORE_ROOT}/emu/bindings/math.cpp
+    ${CORE_ROOT}/emu/bindings/mmio.cpp
+    ${CORE_ROOT}/emu/bindings/rng.cpp
+    ${CORE_ROOT}/emu/bindings/time.cpp
+    ${CORE_ROOT}/emu/bindings/video.cpp
+    ${CORE_ROOT}/p8/parser.cpp
+)
+target_sources(y8 PRIVATE ${CORE_SOURCES})
+
+set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/")
+set(LUA_SOURCES
+    ${LUA_ROOT}/lapi.c
+    ${LUA_ROOT}/lauxlib.c
+    ${LUA_ROOT}/lbaselib.c
+    ${LUA_ROOT}/lbitlib.c
+    ${LUA_ROOT}/lcode.c
+    ${LUA_ROOT}/lcorolib.c
+    ${LUA_ROOT}/lctype.c
+    ${LUA_ROOT}/ldblib.c
+    ${LUA_ROOT}/ldebug.c
+    ${LUA_ROOT}/ldo.c
+    ${LUA_ROOT}/ldump.c
+    ${LUA_ROOT}/lfunc.c
+    ${LUA_ROOT}/lgc.c
+    ${LUA_ROOT}/linit.c
+    ${LUA_ROOT}/liolib.c
+    ${LUA_ROOT}/llex.c
+    #${LUA_ROOT}/lmathlib.c
+    ${LUA_ROOT}/lmem.c
+    ${LUA_ROOT}/loadlib.c
+    ${LUA_ROOT}/lobject.c
+    ${LUA_ROOT}/lopcodes.c
+    ${LUA_ROOT}/loslib.c
+    ${LUA_ROOT}/lparser.c
+    ${LUA_ROOT}/lstate.c
+    ${LUA_ROOT}/lstring.c
+    ${LUA_ROOT}/lstrlib.c
+    ${LUA_ROOT}/ltable.c
+    ${LUA_ROOT}/ltablib.c
+    ${LUA_ROOT}/ltests.c
+    ${LUA_ROOT}/ltm.c
+    ${LUA_ROOT}/lundump.c
+    ${LUA_ROOT}/lvm.c
+    ${LUA_ROOT}/lzio.c
+)
+# compile Lua as C++ - we need this for the fixmath black magic
+set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
+add_compile_definitions(LUA_USE_LONGJMP)
+target_sources(y8 PRIVATE ${LUA_SOURCES})
+
+set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
+set(FIXMATH_SOURCES
+    ${FIXMATH_ROOT}/fix16_exp.c
+    ${FIXMATH_ROOT}/fix16_sqrt.c
+    ${FIXMATH_ROOT}/fix16_str.c
+    ${FIXMATH_ROOT}/fix16_trig.c
+    ${FIXMATH_ROOT}/fix16.c
+)
+target_sources(y8 PRIVATE ${FIXMATH_SOURCES})
+
+set(ALLOC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tinyalloc/")
+set(ALLOC_SOURCES
+    ${ALLOC_ROOT}/tinyalloc.c
+)
+target_sources(y8 PRIVATE ${ALLOC_SOURCES})
+
+if (Y8_DESKTOP_VM)
+else()
+    pico_sdk_init()
+
+    set(PLATFORM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
+    set(PLATFORM_SOURCES
+        ${PLATFORM_ROOT}/extmem/cachedinterface.cpp
+        ${PLATFORM_ROOT}/extmem/faulthandler.cpp
+        ${PLATFORM_ROOT}/extmem/spiram.cpp
+        ${PLATFORM_ROOT}/hal/hal.cpp
+        ${PLATFORM_ROOT}/hardwarestate.cpp
+        ${PLATFORM_ROOT}/cmdthread.cpp
+        ${PLATFORM_ROOT}/main/main.cpp
+    )
+    target_sources(y8 PRIVATE ${PLATFORM_SOURCES})
+    target_link_libraries(y8 PRIVATE pico_stdlib pico_multicore hardware_spi hardware_dma)
+    target_include_directories(y8 PRIVATE ${PLATFORM_ROOT})
+    pico_add_extra_outputs(y8)
+
+    set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
+    set_source_files_properties(
+        "${SDK_ROOT}/src/rp2_common/hardware_irq/irq.c"
+        PROPERTIES COMPILE_FLAGS -fno-lto
+    )
+endif()
+
+set_property(TARGET y8 PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
+
+target_compile_options(y8
+    PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wno-ignored-qualifiers>
 )
 
-set_property(TARGET yocto-8-core PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
-
-target_include_directories(yocto-8-core PUBLIC
+target_include_directories(y8 PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tinyalloc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-target_link_libraries(yocto-8-core picolua libfixmath)
-
-if (Y8_DESKTOP_VM)
-    add_subdirectory(src/arch/desktop)
-else()
-    add_subdirectory(src/arch/pico)
-endif()
-
 #pico_enable_stdio_usb(yocto-8 1)
-
-# Do not relocate if possible - this should be after the C/C++ flag changes
-# See https://stackoverflow.com/a/33834879/6261331 - add_subdirectory clones the current set of variables
-add_subdirectory(vendor/libfixmath)
-add_subdirectory(vendor/lua)
