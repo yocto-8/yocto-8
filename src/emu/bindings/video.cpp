@@ -24,6 +24,8 @@ namespace detail
 // - one refers to having the transparency info (set_pixel_with_alpha)
 // it is currently past 1am and my brain infodumps better than it chooses names
 
+// FIXME: most bindings do not properly set the pen color as they should.
+
 inline void set_pixel_with_pattern(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
 {
     auto fb = device<devices::Framebuffer>;
@@ -84,7 +86,7 @@ inline void draw_line(int x0, int y0, int x1, int y1, std::uint8_t raw_color)
             plot_y = x;
         }
 
-        if (clip.contains_integer(plot_x, plot_y))
+        if (clip.contains(plot_x, plot_y))
         {
             detail::set_pixel_with_pattern(plot_x, plot_y, raw_color);
         }
@@ -97,6 +99,15 @@ inline void draw_line(int x0, int y0, int x1, int y1, std::uint8_t raw_color)
             error += dx;
         }
     }
+}
+
+// TODO: make a Vec class already that does the transforms jeez
+inline void transform_screenspace(int& worldspace_x, int& worldspace_y)
+{
+    const auto draw_misc = device<devices::DrawStateMisc>;
+
+    worldspace_x -= draw_misc.get_camera_x();
+    worldspace_y -= draw_misc.get_camera_y();
 }
 
 [[gnu::always_inline]]
@@ -173,15 +184,34 @@ inline void draw_sprite(int sprite_index, int raw_orig_x, int raw_orig_y, int wi
 
 }
 
+int y8_camera(lua_State* state)
+{
+    const std::int16_t x = lua_tointeger(state, 1);
+    const std::int16_t y = lua_tointeger(state, 2);
+
+    device<devices::DrawStateMisc>.set_camera_position(x, y);
+
+    return 0;
+}
+
 int y8_pset(lua_State* state)
 {
-    const auto x = luaL_checkunsigned(state, 1);
-    const auto y = luaL_checkunsigned(state, 2);
-    const auto v = luaL_checkunsigned(state, 3);
+    const auto argument_count = lua_gettop(state);
+
+    int x = lua_tointeger(state, 1);
+    int y = lua_tointeger(state, 2);
+    detail::transform_screenspace(x, y);
+
+    std::uint8_t color = device<devices::DrawStateMisc>.raw_pen_color() % 16;
+
+    if (argument_count >= 3)
+    {
+        color = lua_tounsigned(state, 3);
+    }
 
     if (device<devices::ClippingRectangle>.contains(x, y))
     {
-        device<devices::Framebuffer>.set_pixel(x, y, v % 16);
+        device<devices::Framebuffer>.set_pixel(x, y, color);
     }
 
     return 0;
@@ -189,8 +219,9 @@ int y8_pset(lua_State* state)
 
 int y8_pget(lua_State* state)
 {
-    const auto x = luaL_checkunsigned(state, 1);
-    const auto y = luaL_checkunsigned(state, 2);
+    int x = lua_tointeger(state, 1);
+    int y = lua_tointeger(state, 2);
+    detail::transform_screenspace(x, y);
 
     std::uint8_t pixel = 0;
     if (device<devices::ClippingRectangle>.contains(x, y))
@@ -255,52 +286,59 @@ int y8_line(lua_State* state)
 
     unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
 
-    if (argument_count >= 5)
-    {
-        raw_color = lua_tounsigned(state, 5);
-    }
+    std::int16_t new_endpoint_x, new_endpoint_y;
 
     if (argument_count >= 4)
     {
+        if (argument_count >= 5)
+        {
+            raw_color = lua_tounsigned(state, 5);
+        }
+
         x0 = lua_tointegerx(state, 1, nullptr);
         y0 = lua_tointegerx(state, 2, nullptr);
         x1 = lua_tointegerx(state, 3, nullptr);
         y1 = lua_tointegerx(state, 4, nullptr);
 
+        detail::transform_screenspace(x0, y0);
+        detail::transform_screenspace(x1, y1);
+
+        new_endpoint_x = x1;
+        new_endpoint_y = y1;
+
         detail::draw_line(x0, y0, x1, y1, raw_color);
 
-        draw_misc.set_line_endpoint(x1, y1);
-
-        return 0;
+        draw_misc.set_line_endpoint(new_endpoint_x, new_endpoint_y);
     }
-
-    if (argument_count >= 3)
+    else if (argument_count >= 2)
     {
-        raw_color = lua_tounsigned(state, 3);
-    }
+        if (argument_count >= 3)
+        {
+            raw_color = lua_tounsigned(state, 3);
+        }
 
-    if (argument_count >= 2)
-    {
         x0 = lua_tointegerx(state, 1, nullptr);
         y0 = lua_tointegerx(state, 2, nullptr);
 
+        detail::transform_screenspace(x0, y0);
+        detail::transform_screenspace(x1, y1);
+
+        new_endpoint_x = x1;
+        new_endpoint_y = y1;
+
         detail::draw_line(x0, y0, x1, y1, raw_color);
 
-        draw_misc.set_line_endpoint(x0, y0);
-
-        return 0;
+        draw_misc.set_line_endpoint(new_endpoint_x, new_endpoint_y);
     }
-
-    if (argument_count >= 1)
+    else
     {
-        // FIXME: everywhere raw_color is used should WRITE BACK TO MEMORY
-        raw_color = lua_tounsigned(state, 1);
-    }
+        if (argument_count >= 1)
+        {
+            // FIXME: everywhere raw_color is used should WRITE BACK TO MEMORY
+            raw_color = lua_tounsigned(state, 1);
+        }
 
-    if (argument_count >= 0)
-    {
         draw_misc.set_line_endpoint_valid(false);
-        return 0;
     }
 
     return 0;
@@ -314,6 +352,9 @@ int y8_rectfill(lua_State* state)
     auto y0 = lua_tointeger(state, 2);
     auto x1 = lua_tointeger(state, 3);
     auto y1 = lua_tointeger(state, 4);
+
+    detail::transform_screenspace(x0, y0);
+    detail::transform_screenspace(x1, y1);
 
     auto clip = device<devices::ClippingRectangle>;
 
@@ -347,8 +388,10 @@ int y8_spr(lua_State* state)
     const auto argument_count = lua_gettop(state);
 
     const auto sprite_index = luaL_checkunsigned(state, 1);
-    const auto raw_orig_x = luaL_checkinteger(state, 2);
-    const auto raw_orig_y = luaL_checkinteger(state, 3);
+    
+    int raw_orig_x = lua_tointeger(state, 2);
+    int raw_orig_y = lua_tointeger(state, 3);
+    detail::transform_screenspace(raw_orig_x, raw_orig_y);
 
     std::uint8_t width = 8, height = 8;
     bool x_flip = false, y_flip = false;
@@ -490,8 +533,11 @@ int y8_map(lua_State* state)
 
     const auto tile_x_raw_origin = lua_tointeger(state, 1);
     const auto tile_y_raw_origin = lua_tointeger(state, 2);
-    const auto screen_x_origin = lua_tointeger(state, 3);
-    const auto screen_y_origin = lua_tointeger(state, 4);
+    
+    int screen_x_origin = lua_tointeger(state, 3);
+    int screen_y_origin = lua_tointeger(state, 4);
+    detail::transform_screenspace(screen_x_origin, screen_y_origin);
+    
     int tile_width = 128;
     int tile_height = 128;
 

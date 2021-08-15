@@ -64,7 +64,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         });
     };
 
-    stub("camera");
+    bind("camera", bindings::y8_camera);
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
     bind("fget", bindings::y8_fget);

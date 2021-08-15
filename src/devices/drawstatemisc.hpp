@@ -35,6 +35,34 @@ struct DrawStateMisc : emu::MMIODevice<64>
         return (data[0x33] & 0b1) != 0;
     }
 
+    std::int16_t get_camera_x() const
+    {
+        return data[0x28] | (data[0x29] << 8);
+    }
+
+    void set_camera_x(std::int16_t x) const
+    {
+        data[0x28] = x & 0xFF;
+        data[0x29] = x >> 8;
+    }
+
+    std::int16_t get_camera_y() const
+    {
+        return data[0x2A] | (data[0x2B] << 8);
+    }
+
+    void set_camera_y(std::int16_t x) const
+    {
+        data[0x2A] = x & 0xFF;
+        data[0x2B] = x >> 8;
+    }
+
+    void set_camera_position(std::int16_t x, std::int16_t y) const
+    {
+        set_camera_x(x);
+        set_camera_y(y);
+    }
+
     bool is_line_endpoint_valid() const
     {
         return data[0x35] == 0;
