@@ -12,6 +12,9 @@
 #include <devices/image.hpp>
 #include <devices/spriteflags.hpp>
 #include <devices/map.hpp>
+#include <util/point.hpp>
+
+using util::Point;
 
 namespace emu::bindings
 {
@@ -26,69 +29,67 @@ namespace detail
 
 // FIXME: most bindings do not properly set the pen color as they should.
 
-inline void set_pixel_with_pattern(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
+inline void set_pixel_with_pattern(Point p, std::uint8_t raw_color)
 {
     auto fb = device<devices::Framebuffer>;
     auto draw_state = device<devices::DrawStateMisc>;
 
-    if (draw_state.fill_pattern_at(x, y))
+    if (draw_state.fill_pattern_at(p.x, p.y))
     {
-        fb.set_pixel(x, y, raw_color >> 4);
+        fb.set_pixel(p.x, p.y, raw_color >> 4);
     }
     else if (!draw_state.fill_zero_is_transparent())
     {
-        fb.set_pixel(x, y, raw_color & 0b1111);
+        fb.set_pixel(p.x, p.y, raw_color & 0b1111);
     }
 }
 
-inline void set_pixel_with_alpha(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
+inline void set_pixel_with_alpha(Point p, std::uint8_t raw_color)
 {
     const auto color = raw_color & 0x0F;
     const bool transparent = (raw_color >> 4) != 0;
 
     if (!transparent)
     {
-        device<devices::Framebuffer>.set_pixel(x, y, color & 0x0F);
+        device<devices::Framebuffer>.set_pixel(p.x, p.y, color & 0x0F);
     }
 }
 
-inline void draw_line(int x0, int y0, int x1, int y1, std::uint8_t raw_color)
+inline void draw_line(Point a, Point b, std::uint8_t raw_color)
 {
     const auto clip = device<devices::ClippingRectangle>;
 
-    const bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
+    const bool steep = std::abs(b.y - a.y) > std::abs(b.x - a.x);
 
     if (steep)
     {
-        std::swap(x0, y0);
-        std::swap(x1, y1);
+        a = a.yx();
+        b = b.yx();
     }
 
-    if (x0 > x1)
+    if (a.x > b.x)
     {
-        std::swap(x0, x1);
-        std::swap(y0, y1);
+        std::swap(a, b);
     }
 
-    const auto dx = x1 - x0;
-    const auto dy = std::abs(y1 - y0);
+    const auto dx = b.x - a.x;
+    const auto dy = std::abs(b.y - a.y);
 
     auto error = dx / 2;
-    const auto y_step = (y0 < y1) ? 1 : -1;
+    const auto y_step = (a.y < b.y) ? 1 : -1;
 
-    int y = y0;
-    for (int x = x0; x <= x1; ++x)
+    int y = a.y;
+    for (int x = a.x; x <= b.x; ++x)
     {
-        auto plot_x = x, plot_y = y;
+        Point plot_point(x, y);
         if (steep)
         {
-            plot_x = y;
-            plot_y = x;
+            plot_point = plot_point.yx();
         }
 
-        if (clip.contains(plot_x, plot_y))
+        if (clip.contains(plot_point.x, plot_point.y))
         {
-            detail::set_pixel_with_pattern(plot_x, plot_y, raw_color);
+            detail::set_pixel_with_pattern(plot_point, raw_color);
         }
 
         error -= dy;
@@ -102,38 +103,44 @@ inline void draw_line(int x0, int y0, int x1, int y1, std::uint8_t raw_color)
 }
 
 // TODO: make a Vec class already that does the transforms jeez
-inline void transform_screenspace(int& worldspace_x, int& worldspace_y)
+inline Point worldspace_to_screenspace(Point p)
 {
     const auto draw_misc = device<devices::DrawStateMisc>;
 
-    worldspace_x -= draw_misc.camera_x();
-    worldspace_y -= draw_misc.camera_y();
+    return Point(
+        p.x - draw_misc.camera_x(),
+        p.y - draw_misc.camera_y()
+    );
 }
 
 [[gnu::always_inline]]
-inline void draw_sprite(int sprite_index, int raw_orig_x, int raw_orig_y, int width = 8, int height = 8, bool x_flip = false, bool y_flip = false)
+inline void draw_sprite(int sprite_index, Point unclipped_origin, int width = 8, int height = 8, bool x_flip = false, bool y_flip = false)
 {
     auto sprite = device<devices::Spritesheet>;
     auto palette = device<devices::DrawPalette>;
     auto clip = device<devices::ClippingRectangle>;
 
-    const int orig_x = std::max(raw_orig_x, int(clip.x_begin()));
-    const int orig_y = std::max(raw_orig_y, int(clip.y_begin()));
+    const Point top_left(
+        std::max(unclipped_origin.x, int(clip.x_begin())),
+        std::max(unclipped_origin.y, int(clip.y_begin()))
+    );
 
-    const int target_x = std::min(raw_orig_x + width, int(clip.x_end()));
-    const int target_y = std::min(raw_orig_y + height, int(clip.y_end()));
+    const Point bottom_right(
+        std::min(unclipped_origin.x + width, int(clip.x_end())),
+        std::min(unclipped_origin.y + height, int(clip.y_end()))
+    );
 
     constexpr int sprites_per_row = 128 / 8;
     const int sprite_orig_x = (sprite_index % sprites_per_row) * 8;
     const int sprite_orig_y = (sprite_index / sprites_per_row) * 8;
 
     const auto main_loop = [&](bool x_flip, bool y_flip) {
-        for (int y = orig_y; y < target_y; ++y)
+        for (int y = top_left.y; y < bottom_right.y; ++y)
         {
-            for (int x = orig_x; x < target_x; ++x)
+            for (int x = top_left.x; x < bottom_right.x; ++x)
             {
-                const int x_offset = x - orig_x;
-                const int y_offset = y - orig_y;
+                const int x_offset = x - top_left.x;
+                const int y_offset = y - top_left.y;
 
                 int sprite_x, sprite_y;
 
@@ -157,7 +164,7 @@ inline void draw_sprite(int sprite_index, int raw_orig_x, int raw_orig_y, int wi
 
                 const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
 
-                detail::set_pixel_with_alpha(x, y, palette_entry);
+                detail::set_pixel_with_alpha(Point(x, y), palette_entry);
             }
         }
     };
@@ -198,9 +205,9 @@ int y8_pset(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
 
-    int x = lua_tointeger(state, 1);
-    int y = lua_tointeger(state, 2);
-    detail::transform_screenspace(x, y);
+    const int world_x = lua_tointeger(state, 1);
+    const int world_y = lua_tointeger(state, 2);
+    Point p = detail::worldspace_to_screenspace({world_x, world_y});
 
     std::uint8_t color = device<devices::DrawStateMisc>.raw_pen_color() % 16;
 
@@ -209,9 +216,9 @@ int y8_pset(lua_State* state)
         color = lua_tounsigned(state, 3);
     }
 
-    if (device<devices::ClippingRectangle>.contains(x, y))
+    if (device<devices::ClippingRectangle>.contains(p.x, p.y))
     {
-        device<devices::Framebuffer>.set_pixel(x, y, color);
+        device<devices::Framebuffer>.set_pixel(p.x, p.y, color);
     }
 
     return 0;
@@ -219,14 +226,14 @@ int y8_pset(lua_State* state)
 
 int y8_pget(lua_State* state)
 {
-    int x = lua_tointeger(state, 1);
-    int y = lua_tointeger(state, 2);
-    detail::transform_screenspace(x, y);
+    const int world_x = lua_tointeger(state, 1);
+    const int world_y = lua_tointeger(state, 2);
+    Point p = detail::worldspace_to_screenspace({world_x, world_y});
 
     std::uint8_t pixel = 0;
-    if (device<devices::ClippingRectangle>.contains(x, y))
+    if (device<devices::ClippingRectangle>.contains(p.x, p.y))
     {
-        pixel = device<devices::Framebuffer>.get_pixel(x, y);
+        pixel = device<devices::Framebuffer>.get_pixel(p.x, p.y);
     }
 
     lua_pushunsigned(state, pixel);
@@ -280,13 +287,10 @@ int y8_line(lua_State* state)
 
     const auto draw_misc = device<devices::DrawStateMisc>;
 
-    int x0, y0;
-    int x1 = draw_misc.line_endpoint_x();
-    int y1 = draw_misc.line_endpoint_y();
+    Point a;
+    Point b(draw_misc.line_endpoint_x(), draw_misc.line_endpoint_y());
 
     unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
-
-    std::int16_t new_endpoint_x, new_endpoint_y;
 
     if (argument_count >= 4)
     {
@@ -295,20 +299,18 @@ int y8_line(lua_State* state)
             raw_color = lua_tounsigned(state, 5);
         }
 
-        x0 = lua_tointegerx(state, 1, nullptr);
-        y0 = lua_tointegerx(state, 2, nullptr);
-        x1 = lua_tointegerx(state, 3, nullptr);
-        y1 = lua_tointegerx(state, 4, nullptr);
+        a.x = lua_tointegerx(state, 1, nullptr);
+        a.y = lua_tointegerx(state, 2, nullptr);
+        b.x = lua_tointegerx(state, 3, nullptr);
+        b.y = lua_tointegerx(state, 4, nullptr);
 
-        detail::transform_screenspace(x0, y0);
-        detail::transform_screenspace(x1, y1);
+        detail::draw_line(
+            detail::worldspace_to_screenspace(a),
+            detail::worldspace_to_screenspace(b),
+            raw_color
+        );
 
-        new_endpoint_x = x1;
-        new_endpoint_y = y1;
-
-        detail::draw_line(x0, y0, x1, y1, raw_color);
-
-        draw_misc.set_line_endpoint(new_endpoint_x, new_endpoint_y);
+        draw_misc.set_line_endpoint(b.x, b.y);
     }
     else if (argument_count >= 2)
     {
@@ -317,18 +319,16 @@ int y8_line(lua_State* state)
             raw_color = lua_tounsigned(state, 3);
         }
 
-        x0 = lua_tointegerx(state, 1, nullptr);
-        y0 = lua_tointegerx(state, 2, nullptr);
+        a.x = lua_tointegerx(state, 1, nullptr);
+        a.y = lua_tointegerx(state, 2, nullptr);
 
-        detail::transform_screenspace(x0, y0);
-        detail::transform_screenspace(x1, y1);
+        detail::draw_line(
+            detail::worldspace_to_screenspace(a),
+            detail::worldspace_to_screenspace(b),
+            raw_color
+        );
 
-        new_endpoint_x = x1;
-        new_endpoint_y = y1;
-
-        detail::draw_line(x0, y0, x1, y1, raw_color);
-
-        draw_misc.set_line_endpoint(new_endpoint_x, new_endpoint_y);
+        draw_misc.set_line_endpoint(a.x, a.y);
     }
     else
     {
@@ -348,13 +348,13 @@ int y8_rectfill(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
 
-    auto x0 = lua_tointeger(state, 1);
-    auto y0 = lua_tointeger(state, 2);
-    auto x1 = lua_tointeger(state, 3);
-    auto y1 = lua_tointeger(state, 4);
+    auto world_x0 = lua_tointeger(state, 1);
+    auto world_y0 = lua_tointeger(state, 2);
+    auto world_x1 = lua_tointeger(state, 3);
+    auto world_y1 = lua_tointeger(state, 4);
 
-    detail::transform_screenspace(x0, y0);
-    detail::transform_screenspace(x1, y1);
+    Point top_left = detail::worldspace_to_screenspace(Point(world_x0, world_y0));
+    Point bottom_right = detail::worldspace_to_screenspace(Point(world_x1, world_y1));
 
     auto clip = device<devices::ClippingRectangle>;
 
@@ -365,16 +365,16 @@ int y8_rectfill(lua_State* state)
         raw_color = lua_tounsigned(state, 5);
     }
 
-    x0 = std::max(x0, int(clip.x_begin()));
-    y0 = std::max(y0, int(clip.y_begin()));
-    x1 = std::min(x1, int(clip.x_end() + 1));
-    y1 = std::min(y1, int(clip.y_end() + 1));
+    top_left.x = std::max(top_left.x, int(clip.x_begin()));
+    top_left.y = std::max(top_left.y, int(clip.y_begin()));
+    bottom_right.x = std::min(bottom_right.x, int(clip.x_end() + 1));
+    bottom_right.y = std::min(bottom_right.y, int(clip.y_end() + 1));
 
-    for (int y = y0; y <= y1; ++y)
+    for (int y = top_left.y; y <= bottom_right.y; ++y)
     {
-        for (int x = x0; x <= x1; ++x)
+        for (int x = top_left.x; x <= bottom_right.x; ++x)
         {
-            detail::set_pixel_with_pattern(x, y, raw_color);
+            detail::set_pixel_with_pattern(Point(x, y), raw_color);
         }
     }
 
@@ -389,9 +389,9 @@ int y8_spr(lua_State* state)
 
     const auto sprite_index = luaL_checkunsigned(state, 1);
 
-    int raw_orig_x = lua_tointeger(state, 2);
-    int raw_orig_y = lua_tointeger(state, 3);
-    detail::transform_screenspace(raw_orig_x, raw_orig_y);
+    const int world_origin_x = lua_tointeger(state, 2);
+    const int world_origin_y = lua_tointeger(state, 3);
+    const auto unclipped_origin = detail::worldspace_to_screenspace(Point(world_origin_x, world_origin_y));
 
     std::uint8_t width = 8, height = 8;
     bool x_flip = false, y_flip = false;
@@ -415,7 +415,7 @@ int y8_spr(lua_State* state)
         y_flip = lua_toboolean(state, 7);
     }
 
-    detail::draw_sprite(sprite_index, raw_orig_x, raw_orig_y, width, height, x_flip, y_flip);
+    detail::draw_sprite(sprite_index, unclipped_origin, width, height, x_flip, y_flip);
 
     return 0;
 }
@@ -534,9 +534,8 @@ int y8_map(lua_State* state)
     const auto tile_x_raw_origin = lua_tointeger(state, 1);
     const auto tile_y_raw_origin = lua_tointeger(state, 2);
     
-    int screen_x_origin = lua_tointeger(state, 3);
-    int screen_y_origin = lua_tointeger(state, 4);
-    detail::transform_screenspace(screen_x_origin, screen_y_origin);
+    const Point world_origin(lua_tointeger(state, 3), lua_tointeger(state, 4));
+    const Point screen_origin = detail::worldspace_to_screenspace(world_origin);
     
     int tile_width = 128;
     int tile_height = 128;
@@ -570,8 +569,8 @@ int y8_map(lua_State* state)
     {
         for (int tile_x = tile_x_origin; tile_x < tile_x_end; ++tile_x)
         {
-            const auto screen_x_offset = screen_x_origin + (tile_x - tile_x_raw_origin) * 8;
-            const auto screen_y_offset = screen_y_origin + (tile_y - tile_y_raw_origin) * 8;
+            const auto screen_x_offset = screen_origin.x + (tile_x - tile_x_raw_origin) * 8;
+            const auto screen_y_offset = screen_origin.y + (tile_y - tile_y_raw_origin) * 8;
 
             const auto tile = map.tile(tile_x, tile_y);
 
@@ -581,11 +580,7 @@ int y8_map(lua_State* state)
                 continue;
             }
 
-            detail::draw_sprite(
-                tile,
-                screen_x_offset,
-                screen_y_offset
-            );
+            detail::draw_sprite(tile, Point(screen_x_offset, screen_y_offset));
         }
     }
 

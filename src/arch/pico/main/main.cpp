@@ -5,7 +5,7 @@
 
 namespace pico = arch::pico;
 
-#include "cartridges/oxo.hpp"
+#include "cartridges/celeste.hpp"
 
 int main()
 {
