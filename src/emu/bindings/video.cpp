@@ -24,7 +24,7 @@ namespace detail
 // - one refers to having the transparency info (set_pixel_with_alpha)
 // it is currently past 1am and my brain infodumps better than it chooses names
 
-void set_pixel_with_pattern(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
+inline void set_pixel_with_pattern(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
 {
     auto fb = device<devices::Framebuffer>;
     auto draw_state = device<devices::DrawStateMisc>;
@@ -39,7 +39,7 @@ void set_pixel_with_pattern(std::uint8_t x, std::uint8_t y, std::uint8_t raw_col
     }
 }
 
-void set_pixel_with_alpha(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
+inline void set_pixel_with_alpha(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color)
 {
     const auto color = raw_color & 0x0F;
     const bool transparent = (raw_color >> 4) != 0;
@@ -50,7 +50,7 @@ void set_pixel_with_alpha(std::uint8_t x, std::uint8_t y, std::uint8_t raw_color
     }
 }
 
-void draw_line(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y1, std::uint8_t raw_color)
+inline void draw_line(int x0, int y0, int x1, int y1, std::uint8_t raw_color)
 {
     const auto clip = device<devices::ClippingRectangle>;
 
@@ -74,8 +74,8 @@ void draw_line(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y
     auto error = dx / 2;
     const auto y_step = (y0 < y1) ? 1 : -1;
 
-    std::int16_t y = y0;
-    for (std::int16_t x = x0; x <= x1; ++x)
+    int y = y0;
+    for (int x = x0; x <= x1; ++x)
     {
         auto plot_x = x, plot_y = y;
         if (steep)
@@ -99,34 +99,75 @@ void draw_line(std::int16_t x0, std::int16_t y0, std::int16_t x1, std::int16_t y
     }
 }
 
-void draw_sprite(int sprite_index, int raw_orig_x, int raw_orig_y, int width = 8, int height = 8)
+[[gnu::always_inline]]
+inline void draw_sprite(int sprite_index, int raw_orig_x, int raw_orig_y, int width = 8, int height = 8, bool x_flip = false, bool y_flip = false)
 {
     auto sprite = device<devices::Spritesheet>;
     auto palette = device<devices::DrawPalette>;
     auto clip = device<devices::ClippingRectangle>;
 
-    const auto orig_x = std::max(raw_orig_x, int(clip.x_begin()));
-    const auto orig_y = std::max(raw_orig_y, int(clip.y_begin()));
+    const int orig_x = std::max(raw_orig_x, int(clip.x_begin()));
+    const int orig_y = std::max(raw_orig_y, int(clip.y_begin()));
 
-    const auto target_x = std::min(raw_orig_x + width, int(clip.x_end()));
-    const auto target_y = std::min(raw_orig_y + height, int(clip.y_end()));
+    const int target_x = std::min(raw_orig_x + width, int(clip.x_end()));
+    const int target_y = std::min(raw_orig_y + height, int(clip.y_end()));
 
-    constexpr std::size_t sprites_per_row = 128 / 8;
-    const auto sprite_orig_x = (sprite_index % sprites_per_row) * 8;
-    const auto sprite_orig_y = (sprite_index / sprites_per_row) * 8;
+    constexpr int sprites_per_row = 128 / 8;
+    const int sprite_orig_x = (sprite_index % sprites_per_row) * 8;
+    const int sprite_orig_y = (sprite_index / sprites_per_row) * 8;
 
-    for (std::uint8_t y = orig_y; y < target_y; ++y)
-    {
-        for (std::uint8_t x = orig_x; x < target_x; ++x)
+    const auto main_loop = [&](bool x_flip, bool y_flip) {
+        for (int y = orig_y; y < target_y; ++y)
         {
-            // TODO: flip_x and flip_y
-            const auto sprite_x = (x - orig_x) + sprite_orig_x;
-            const auto sprite_y = (y - orig_y) + sprite_orig_y;
+            for (int x = orig_x; x < target_x; ++x)
+            {
+                const int x_offset = x - orig_x;
+                const int y_offset = y - orig_y;
 
-            const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
+                int sprite_x, sprite_y;
 
-            detail::set_pixel_with_alpha(x, y, palette_entry);
+                if (!x_flip)
+                {
+                    sprite_x = sprite_orig_x + x_offset;
+                }
+                else
+                {
+                    sprite_x = sprite_orig_x + width - 1 - x_offset;
+                }
+
+                if (!y_flip)
+                {
+                    sprite_y = sprite_orig_y + y_offset;
+                }
+                else
+                {
+                    sprite_y = sprite_orig_y + height - 1 - y_offset;
+                }
+
+                const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
+
+                detail::set_pixel_with_alpha(x, y, palette_entry);
+            }
         }
+    };
+
+    // we manually specialize the main loop for all x_flip/y_flip combinations
+    // this causes slight code bloat (not by a lot, actually) but improves performance.
+    if (x_flip && y_flip)
+    {
+        main_loop(true, true);
+    }
+    else if (x_flip && !y_flip)
+    {
+        main_loop(true, false);
+    }
+    else if (!x_flip && y_flip)
+    {
+        main_loop(false, true);
+    }
+    else
+    {
+        main_loop(false, false);
     }
 }
 
@@ -208,9 +249,9 @@ int y8_line(lua_State* state)
 
     const auto draw_misc = device<devices::DrawStateMisc>;
 
-    std::int16_t x0, y0;
-    std::int16_t x1 = draw_misc.line_endpoint_x();
-    std::int16_t y1 = draw_misc.line_endpoint_y();
+    int x0, y0;
+    int x1 = draw_misc.line_endpoint_x();
+    int y1 = draw_misc.line_endpoint_y();
 
     unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
 
@@ -331,7 +372,7 @@ int y8_spr(lua_State* state)
         y_flip = lua_toboolean(state, 7);
     }
 
-    detail::draw_sprite(sprite_index, raw_orig_x, raw_orig_y, width, height);
+    detail::draw_sprite(sprite_index, raw_orig_x, raw_orig_y, width, height, x_flip, y_flip);
 
     return 0;
 }
