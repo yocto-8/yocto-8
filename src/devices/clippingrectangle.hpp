@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <emu/mmio.hpp>
+#include <util/point.hpp>
 
 namespace devices
 {
@@ -30,6 +31,11 @@ struct ClippingRectangle : emu::MMIODevice<4>
         return data[1];
     }
 
+    util::Point top_left() const
+    {
+        return {int(x_begin()), int(y_begin())};
+    }
+
     std::uint8_t& x_end() const
     {
         return data[2];
@@ -38,6 +44,11 @@ struct ClippingRectangle : emu::MMIODevice<4>
     std::uint8_t& y_end() const
     {
         return data[3];
+    }
+
+    util::Point bottom_right() const
+    {
+        return {int(x_end()), int(y_end())};
     }
 
     std::uint8_t width() const
@@ -60,10 +71,10 @@ struct ClippingRectangle : emu::MMIODevice<4>
         return y_end() - y_begin();
     }
 
-    bool contains(int x, int y) const
+    bool contains(util::Point p) const
     {
-        return x >= int(x_begin()) && y >= int(y_begin())
-            && x <= int(x_end()) && y <= int(y_end());
+        return p.x >= int(x_begin()) && p.y >= int(y_begin())
+            && p.x <= int(x_end()) && p.y <= int(y_end());
     }
 };
 

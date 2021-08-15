@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <emu/mmio.hpp>
 #include <util/endian.hpp>
+#include <util/point.hpp>
 
 namespace devices
 {
@@ -46,10 +47,10 @@ struct DrawStateMisc : emu::MMIODevice<64>
         return get<std::int16_t>(0x2A);
     }
 
-    void set_camera_position(std::int16_t x, std::int16_t y) const
+    void set_camera_position(util::Point p) const
     {
-        camera_x() = x;
-        camera_y() = y;
+        camera_x() = p.x;
+        camera_y() = p.y;
     }
 
     bool is_line_endpoint_valid() const
@@ -72,11 +73,11 @@ struct DrawStateMisc : emu::MMIODevice<64>
         return get<std::int16_t>(0x3E);
     }
 
-    void set_line_endpoint(std::int16_t x, std::int16_t y) const
+    void set_line_endpoint(util::Point p) const
     {
         set_line_endpoint_valid(true);
-        line_endpoint_x() = x;
-        line_endpoint_y() = y;
+        line_endpoint_x() = p.x;
+        line_endpoint_y() = p.y;
     }
 };
 
