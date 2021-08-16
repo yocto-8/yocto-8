@@ -218,10 +218,9 @@ int y8_pset(lua_State* state)
 
 int y8_pget(lua_State* state)
 {
-    const int world_x = lua_tointeger(state, 1);
-    const int world_y = lua_tointeger(state, 2);
-    Point p = detail::worldspace_to_screenspace({world_x, world_y});
-
+    const Point world_point(lua_tointeger(state, 1), lua_tointeger(state, 2));
+    const Point p = detail::worldspace_to_screenspace(world_point);
+    
     std::uint8_t pixel = 0;
     if (device<devices::ClippingRectangle>.contains(p))
     {
