@@ -8,8 +8,6 @@
 namespace devices
 {
 
-// TODO: the amount of manual bit logic is terrifying, pls fix
-
 struct DrawStateMisc : emu::MMIODevice<64>
 {
     using MMIODevice::MMIODevice;

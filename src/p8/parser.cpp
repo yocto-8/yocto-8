@@ -33,8 +33,6 @@ std::uint8_t hex_digit(char c)
     return -1;
 }
 
-// FIXME: the lua chunk should be initialized after loading everything
-
 Parser::Parser(std::string_view source) :
     _source(source),
     _current_block_offset(0),

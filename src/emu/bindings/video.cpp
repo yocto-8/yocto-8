@@ -102,7 +102,6 @@ inline void draw_line(Point a, Point b, std::uint8_t raw_color)
     }
 }
 
-// TODO: make a Vec class already that does the transforms jeez
 inline Point worldspace_to_screenspace(Point p)
 {
     const auto draw_misc = device<devices::DrawStateMisc>;
@@ -320,7 +319,6 @@ int y8_line(lua_State* state)
     {
         if (argument_count >= 1)
         {
-            // FIXME: everywhere raw_color is used should WRITE BACK TO MEMORY
             raw_color = lua_tounsigned(state, 1);
         }
 
