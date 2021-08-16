@@ -1,6 +1,7 @@
 #include "video.hpp"
 
 #include <cmath>
+#include <concepts>
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -24,34 +25,36 @@ namespace detail
 
 // TODO: the raw_color naming is confusing:
 // - one refers to having the fill pattern color in the upper nibble (set_pixel_with_pattern)
-// - one refers to having the transparency info (set_pixel_with_alpha)
+// - one refers to having the transparency info (set_pixel_with_alpha) (UPDATE: now to finish renaming to pen_color)
 // it is currently past 1am and my brain infodumps better than it chooses names
 
-// FIXME: most bindings do not properly set the pen color as they should.
+inline void set_pixel(Point p, std::uint8_t pen_color)
+{
+    const auto resolved_color = device<devices::DrawPalette>.get_color(pen_color & 0x0F);
+    device<devices::Framebuffer>.set_pixel(p.x, p.y, resolved_color);
+}
 
 inline void set_pixel_with_pattern(Point p, std::uint8_t raw_color)
 {
-    auto fb = device<devices::Framebuffer>;
     auto draw_state = device<devices::DrawStateMisc>;
 
     if (draw_state.fill_pattern_at(p.x, p.y))
     {
-        fb.set_pixel(p.x, p.y, raw_color >> 4);
+        set_pixel(p, raw_color >> 4);
     }
     else if (!draw_state.fill_zero_is_transparent())
     {
-        fb.set_pixel(p.x, p.y, raw_color & 0b1111);
+        set_pixel(p, raw_color & 0b1111);
     }
 }
 
-inline void set_pixel_with_alpha(Point p, std::uint8_t raw_color)
+inline void set_pixel_with_alpha(Point p, std::uint8_t pen_color)
 {
-    const auto color = raw_color & 0x0F;
-    const bool transparent = (raw_color >> 4) != 0;
+    const bool transparent = (pen_color >> 4) != 0;
 
     if (!transparent)
     {
-        device<devices::Framebuffer>.set_pixel(p.x, p.y, color & 0x0F);
+        set_pixel(p, pen_color);
     }
 }
 
@@ -181,6 +184,45 @@ inline void draw_sprite(int sprite_index, Point unclipped_origin, int width = 8,
     }
 }
 
+inline void draw_circle(
+    Point origin,
+    int radius,
+    std::invocable<Point> auto point_plotter,
+    std::invocable<Point, Point> auto symmetric_point_plotter
+)
+{
+    // i don't know how this works but it should
+    int f = 1 - radius;
+    int ddf_x = 0;
+    int ddf_y = -2 * radius;
+
+    int x = 0;
+    int y = radius;
+
+    point_plotter(Point(origin.x, origin.y - radius));
+    point_plotter(Point(origin.x, origin.y + radius));
+    symmetric_point_plotter(Point(origin.x - radius, origin.y), Point(origin.x + radius, origin.y));
+
+    while (x < y)
+    {
+        if (f >= 0)
+        {
+            --y;
+            ddf_y += 2;
+            f += ddf_y;
+        }
+        ++x;
+
+        ddf_x += 2;
+        f += ddf_x + 1;
+
+        symmetric_point_plotter(Point(origin.x - x, origin.y + y), Point(origin.x + x, origin.y + y));
+        symmetric_point_plotter(Point(origin.x - x, origin.y - y), Point(origin.x + x, origin.y - y));
+        symmetric_point_plotter(Point(origin.x - y, origin.y + x), Point(origin.x + y, origin.y + x));
+        symmetric_point_plotter(Point(origin.x - y, origin.y - x), Point(origin.x + y, origin.y - x));
+    }
+}
+
 }
 
 int y8_camera(lua_State* state)
@@ -200,7 +242,7 @@ int y8_pset(lua_State* state)
     const Point world_point(lua_tointeger(state, 1), lua_tointeger(state, 2));
     const Point p = detail::worldspace_to_screenspace(world_point);
 
-    std::uint8_t color = device<devices::DrawStateMisc>.raw_pen_color() % 16;
+    auto& color = device<devices::DrawStateMisc>.raw_pen_color();
 
     if (argument_count >= 3)
     {
@@ -209,7 +251,7 @@ int y8_pset(lua_State* state)
 
     if (device<devices::ClippingRectangle>.contains(p))
     {
-        device<devices::Framebuffer>.set_pixel(p.x, p.y, color);
+        detail::set_pixel(p, color);
     }
 
     return 0;
@@ -277,7 +319,7 @@ int y8_line(lua_State* state)
 
     const auto draw_misc = device<devices::DrawStateMisc>;
 
-    unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
+    auto& raw_color = device<devices::DrawStateMisc>.raw_pen_color();
 
     if (argument_count >= 4)
     {
@@ -328,6 +370,57 @@ int y8_line(lua_State* state)
     return 0;
 }
 
+int y8_circfill(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const Point world_origin(lua_tointeger(state, 1), lua_tointeger(state, 2));
+    const Point screen_origin = detail::worldspace_to_screenspace(world_origin);
+
+    const auto clip = device<devices::ClippingRectangle>;
+
+    int radius = 4;
+
+    auto& raw_color = device<devices::DrawStateMisc>.raw_pen_color();
+
+    if (argument_count >= 3)
+    {
+        radius = lua_tointeger(state, 3);
+    }
+
+    if (argument_count >= 4)
+    {
+        raw_color = lua_tounsigned(state, 4);
+    }
+
+    const auto plot_point = [&](Point p) {
+        if (clip.contains(p))
+        {
+            detail::set_pixel_with_pattern(p, raw_color);
+        }
+    };
+
+    detail::draw_circle(
+        screen_origin,
+        radius,
+        [&](Point p) { plot_point(p); },
+        [&](Point a, Point b) {
+            // FIXME: clipping could be vastly optimized here.
+            if (a.x > b.x)
+            {
+                std::swap(a, b);
+            }
+
+            for (int x = a.x; x <= b.x; ++x)
+            {
+                plot_point(Point(x, a.y));
+            }
+        }
+    );
+
+    return 0;
+}
+
 int y8_rectfill(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
@@ -342,7 +435,7 @@ int y8_rectfill(lua_State* state)
 
     auto clip = device<devices::ClippingRectangle>;
 
-    unsigned raw_color = device<devices::DrawStateMisc>.raw_pen_color();
+    auto& raw_color = device<devices::DrawStateMisc>.raw_pen_color();
     
     if (argument_count >= 5)
     {

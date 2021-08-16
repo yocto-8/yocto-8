@@ -70,7 +70,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("fget", bindings::y8_fget);
     bind("cls", bindings::y8_cls);
     bind("line", bindings::y8_line);
-    stub("circfill");
+    bind("circfill", bindings::y8_circfill);
     bind("rectfill", bindings::y8_rectfill);
     bind("spr", bindings::y8_spr);
     bind("pal", bindings::y8_pal);
