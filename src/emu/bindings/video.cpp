@@ -405,15 +405,12 @@ int y8_circfill(lua_State* state)
         radius,
         [&](Point p) { plot_point(p); },
         [&](Point a, Point b) {
-            // FIXME: clipping could be vastly optimized here.
-            if (a.x > b.x)
+            const int x_min = std::max(std::min(a.x, b.x), int(clip.x_begin()));
+            const int x_max = std::min(std::max(a.x, b.x), int(clip.x_end()));
+            
+            for (int x = x_min; x <= x_max; ++x)
             {
-                std::swap(a, b);
-            }
-
-            for (int x = a.x; x <= b.x; ++x)
-            {
-                plot_point(Point(x, a.y));
+                detail::set_pixel_with_pattern(Point(x, a.y), raw_color);
             }
         }
     );
