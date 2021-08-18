@@ -3,13 +3,23 @@
 A physical, handheld pico-8 console based on the Raspberry Pi Pico/RP2040 using a custom reimplementation.
 
 [pico-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.  
-yocto-8 does not aim to be a perfect replacement: I only hope to make it a working *player* for most pico-8 cartridges, *eventually*. In other words, if I ever try to make this project usable for other people than me, the idea is to have a niche but cheap player for pico-8 enthusiasts to provide a fun on-the-go experience.
+yocto-8 does not aim to be a perfect replacement: I only hope to make it a working *player* for most pico-8 cartridges, *eventually*. In other words, if I ever try to make this project usable for other people than me, the idea is to have a niche but cheap player for pico-8 enthusiasts to provide a fun on-the-go experience.  
+Ultimately, you should be able to copy a .p8 (or .p8.png later down the road) on the yocto-8 plugged through USB and run it right away.
 
 yocto = pico².
 
 # Current progress
 
-**This is currently in a very early stage!!** I only have an incomplete electronics prototype at the moment and development of the actual software has barely begun.
+This is currently in an early stage: there is no user-friendly way to get this working yet and most cartridges will not work.
+
+Some demos and cartridges work with some modifications, most notably, Celeste Classic runs (with no font rendering or any audio is implemented yet) at full speed even on a Pico at stock frequency.
+
+# Limitations
+
+- This does currently only aim to be a pico-8-compatible game runner, not an editor.
+- There is currently no plan to support games that require the mouse or extra keyboard keys to function.
+- No emulation of "CPU cycles" as calculated by pico-8 is planned for now: Game performance will be limited by how fast the RP2040 can run it. This is usually slower than official pico-8 anyways, but *may* be faster at some operations, namely draw calls.
+- Yocto-8 uses an external SPI RAM chip to provide more Lua memory when the malloc pool limit is reached (pico-8 allows allocating up to 2MB of Lua memory). As this requires expensive emulation on the RP2040, games that heavily allocate may run *significantly* slower.
 
 # Why?
 
@@ -29,22 +39,14 @@ The project aims to make use of the following bare-minimum requirements:
 
 Probably not, this solution is barely cheaper but may have a few differences:
 - Power draw would _probably_ be better than what you would get with an SBC.
-- You should get something close to instant bootup! Being this specific-purpose, the bootup sequence should be significantly shorter and faster than starting up an entire Linux distro.
-- This will not be as stable as the real thing.
+- Instant boot-up! There is no OS to load.
+- This will not be as stable as the real thing. There is a lot of edge cases to handle where yocto-8 may behave slightly differently.
 - You won't get the full pico-8 experience.
 - This is a specific-purpose device, an SBC will allow you running emulators and such. This is really niche.
-- Getting those PSRAM modules is a pain in the ass in the EU. ESP-PSRAM64H on aliexpress was the only good option I found which is not really a good sign.
-- But hey, it's going to look cool. Hopefully. If I even have the motivation to do progress past the 3 first days. `"A" * 9999`
+- Getting those PSRAM modules is a pain in the ass in the EU. ESP-PSRAM64H on aliexpress was the only good option I found which is not really a good sign. Mouser provides similar chips, but if you live in the EU, you would have to pack in more stuff in your order, otherwise, you will have to pay a lot for shipping a 1€ chip.
+- But hey, it's going to look cool. Hopefully.
 
 This is not really intended to be practical, though.
-
-# Design challenges
-
-I can imagine a few:
-- Memory requirements are probably the largest issue. The pico-8 "CPU" "RAM" easily fits into the RP2040 SRAM, and the rest of the runtime should not be much of a problem wrt RAM requirements. Lua memory (which seems to be for the program + any lua allocs), on the other hand, can apparently reach 2MB. This is absolutely not going to fit in the RP2040 SRAM, hence the SPI RAM requirement - I am thinking of doing some sort of caching with the remaining SRAM and swap to/back from the SPI RAM as required. I do not know whether this will be fast enough.
-- Lua will need to be patched heavily to provide compat with pico-8 lua because of the above point and due to a [significant number of changes done in pico-8](https://gist.github.com/josefnpat/bfe4aaa5bbb44f572cd0).
-- Some level of optimization will probably be required to run the pico-8 at full speed. Looking at the pico-8 "CPU" timings it seems quite feasible. Regardless, squeezing as much performance as possible is interesting in the scope of this project as power draw scales with the CPU frequency somewhat, and a lower power draw is nice when running off a battery. I have _no idea_ how the battery lifetime would turn out for, say, the 3.7V 1800mAh battery I got, but it should hopefully be good.
-- I haven't thought or cared about mouse support for now.
 
 # Technical articles
 
