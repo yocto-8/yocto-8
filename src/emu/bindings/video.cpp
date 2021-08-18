@@ -14,6 +14,7 @@
 #include <devices/spriteflags.hpp>
 #include <devices/map.hpp>
 #include <util/point.hpp>
+#include <video/defaultfont.hpp>
 
 using util::Point;
 
@@ -221,6 +222,83 @@ inline void draw_circle(
         symmetric_point_plotter(Point(origin.x - y, origin.y + x), Point(origin.x + y, origin.y + x));
         symmetric_point_plotter(Point(origin.x - y, origin.y - x), Point(origin.x + y, origin.y - x));
     }
+}
+
+// returns the glyph width in pixels
+// FIXME: uhhhhhhh this should return height too, or just transform the point.
+inline int draw_glyph(
+    Point origin,
+    std::uint8_t glyph,
+    std::span<const std::uint8_t, 2048> font,
+    std::uint8_t pen_color
+)
+{
+    const auto clip = device<devices::ClippingRectangle>;
+
+    const auto glyph_offset = std::size_t(glyph) * 8;
+
+    // TODO: this works differently on custom fonts, the default font should be modified to have the
+    // same properties header in the special glyph 0 and this function should read it.
+    // when that is done, make sure to min(,8)
+    int glyph_width = (glyph >= 128) ? 8 : 4;
+    int glyph_height = 6;
+
+    for (int local_y = 0; local_y < glyph_height; ++local_y)
+    {
+        for (int local_x = 0; local_x < glyph_width; ++local_x)
+        {
+            const Point p = origin.with_offset(local_x, local_y);
+
+            const bool pixel_set = (font[glyph_offset + local_y] >> local_x) & 0b1;
+
+            if (pixel_set && clip.contains(p))
+            {
+                set_pixel(p, pen_color);
+            }
+        }
+    }
+
+    return glyph_width;
+}
+
+// returns the new mouse cursor
+inline Point draw_text(
+    Point origin,
+    std::string_view text,
+    std::span<const std::uint8_t, 2048> font,
+    std::uint8_t pen_color,
+    bool terminal
+)
+{
+    Point current_position = origin;
+
+    for (const char c : text)
+    {
+        int glyph_width = 0;
+
+        // P8SCII handling
+        switch (c)
+        {
+        case 0: break;
+        default:
+        {
+            glyph_width = draw_glyph(current_position, c, font, pen_color);
+            break;
+        }
+        }
+
+        if (terminal)
+        {
+            // TODO: scroll to origin.x when overflowing (yes, not to 0)
+            // TODO: scroll text with some memcpy/memset to the framebuffer when needed
+        }
+        else
+        {
+            current_position.x += glyph_width;
+        }
+    }
+
+    return current_position;
 }
 
 }
@@ -656,6 +734,59 @@ int y8_map(lua_State* state)
 
             detail::draw_sprite(tile, Point(screen_x_offset, screen_y_offset));
         }
+    }
+
+    return 0;
+}
+
+int y8_print(lua_State* state)
+{
+    const std::span font(video::pico8_builtin_font);
+
+    const auto argument_count = lua_gettop(state);
+
+    // case: print()
+    if (argument_count == 0)
+    {
+        return 0;
+    }
+
+    // FIXME: this should allow numbers etc and do the same stuff as printh(?)
+    const char* str = lua_tostring(state, 1);
+
+    if (str == nullptr)
+    {
+        return 0;
+    }
+
+    auto& raw_color = device<devices::DrawStateMisc>.raw_pen_color();
+
+    // case: print(text, x, y, [col])
+    if (argument_count >= 3)
+    {
+        if (argument_count >= 4)
+        {
+            raw_color = lua_tounsigned(state, 4);
+        }
+
+        const Point world_point(lua_tointeger(state, 2), lua_tointeger(state, 3));
+        const Point screen_point(detail::worldspace_to_screenspace(world_point));
+        detail::draw_text(screen_point, str, font, raw_color, false);
+
+        return 0;
+    }
+
+    // case: print(text, [col])
+    if (argument_count >= 1)
+    {
+        if (argument_count >= 2)
+        {
+            raw_color = lua_tounsigned(state, 2);
+        }
+
+        // FIXME: to implement.
+
+        return 0;
     }
 
     return 0;

@@ -10,6 +10,7 @@
 
 #include <emu/bindings/input.hpp>
 #include <emu/bindings/math.hpp>
+#include <emu/bindings/misc.hpp>
 #include <emu/bindings/mmio.hpp>
 #include <emu/bindings/video.hpp>
 #include <emu/bindings/rng.hpp>
@@ -78,6 +79,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("mset", bindings::y8_mset);
     bind("mget", bindings::y8_mget);
     bind("map", bindings::y8_map);
+    bind("print", bindings::y8_print);
 
     bind("btn", bindings::y8_btn);
 
@@ -101,6 +103,8 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("shl", bindings::y8_shl);
     bind("shr", bindings::y8_shr);
     bind("band", bindings::y8_band);
+
+    bind("printh", bindings::y8_printh);
 
     bind("rnd", bindings::y8_rnd);
 
