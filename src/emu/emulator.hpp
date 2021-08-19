@@ -6,6 +6,7 @@
 #include <lua.h>
 
 #include <emu/mmio.hpp>
+#include <video/palette.hpp>
 
 namespace emu
 {
@@ -41,12 +42,18 @@ public:
         return _memory_buffer;
     }
 
+    auto& palette()
+    {
+        return _palette;
+    }
+
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
 
 private:
     std::span<std::byte> _memory_buffer;
     std::array<std::uint8_t, 65536> _memory = {};
+    std::array<std::uint32_t, 32> _palette = video::default_palette_rgb8;
     lua_State* _lua = nullptr;
 };
 

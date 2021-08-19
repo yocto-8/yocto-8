@@ -1,4 +1,5 @@
 #include "video.hpp"
+#include "hal/hal.hpp"
 
 #include <cmath>
 #include <concepts>
@@ -787,6 +788,40 @@ int y8_print(lua_State* state)
         // FIXME: to implement.
 
         return 0;
+    }
+
+    return 0;
+}
+
+int y8_rgbpal(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    auto& palette = emu::emulator.palette();
+
+    // case: rgbpal(entry, [r], [g], [b])
+    if (argument_count >= 1)
+    {
+        const unsigned entry = lua_tounsigned(state, 1) % 32;
+
+        const auto old_value = palette[entry];
+
+        if (argument_count >= 4)
+        {
+            const unsigned r = lua_tounsigned(state, 2) % 256;
+            const unsigned g = lua_tounsigned(state, 3) % 256;
+            const unsigned b = lua_tounsigned(state, 4) % 256;
+
+            palette[entry] = (r << 16) | (g << 8) | b;
+
+            hal::load_rgb_palette(palette);
+        }
+
+        lua_pushunsigned(state, (old_value >> 16) & 0xFF);
+        lua_pushunsigned(state, (old_value >> 8) & 0xFF);
+        lua_pushunsigned(state, old_value & 0xFF);
+
+        return 3;
     }
 
     return 0;

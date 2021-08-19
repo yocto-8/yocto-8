@@ -80,6 +80,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("mget", bindings::y8_mget);
     bind("map", bindings::y8_map);
     bind("print", bindings::y8_print);
+    bind("_rgbpal", bindings::y8_rgbpal);
 
     bind("btn", bindings::y8_btn);
 
@@ -113,6 +114,8 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     stub("music");
     stub("sfx");
+
+    hal::load_rgb_palette(_palette);
 
     load(R"(
 print("Setting up yocto-8 Lua routines")

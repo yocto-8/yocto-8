@@ -25,4 +25,7 @@ std::uint64_t measure_time_us();
 /// @brief Wait for approximately @p time microseconds.
 void delay_time_us(std::uint64_t time);
 
+/// @brief Load a new RGB palette to use from the next presented frame onwards.
+void load_rgb_palette(std::span<std::uint32_t, 32> new_palette);
+
 }

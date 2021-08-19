@@ -43,4 +43,9 @@ void delay_time_us(std::uint64_t time)
     sleep_us(time);
 }
 
+void load_rgb_palette(std::span<std::uint32_t, 32> new_palette)
+{
+    pico::hw.ssd1351.load_rgb_palette(new_palette);
+}
+
 }

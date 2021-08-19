@@ -128,6 +128,11 @@ class SSD1351
         channel_config_set_dreq(&dma_cfg, spi_get_index(spi_default) ? DREQ_SPI1_TX : DREQ_SPI0_TX);*/
     }
 
+    void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette)
+    {
+        palette = rgb_palette_to_ssd1351_format(new_rgb_palette);
+    }
+
     void reset_blocking()
     {
         gpio_put(_pinout.rst, 1);
@@ -188,9 +193,9 @@ class SSD1351
         write(Command::NORMAL_DISPLAY);
 
         // Contrast settings
-        write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xC0, 0xC0, 0xC0});
+        write(Command::SET_CHANNEL_CONTRAST, DataBuffer<3>{0xFF, 0xFF, 0xFF});
         //set_brightness(0xA); const float gamma = 1.25;
-        set_brightness(0x7); const float gamma = 1.1;
+        set_brightness(0xA); const float gamma = 1.0;
         //set_brightness(0x3); const float gamma = 0.7;
         //set_brightness(0x2); const float gamma = 0.6;
 
@@ -264,7 +269,7 @@ class SSD1351
         //printf("%fms\n", absolute_time_diff_us(time_start, time_end) / 1000.0f);
     }
 
-    static constexpr auto palette = rgb_palette_to_ssd1351_format(::video::pico8_palette_rgb8);
+    std::array<std::uint16_t, 32> palette;
 
     private:
     //unsigned _dma_channel;
