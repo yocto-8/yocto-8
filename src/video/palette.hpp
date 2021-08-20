@@ -22,8 +22,8 @@ constexpr std::uint32_t pack_rgb(std::uint8_t r, std::uint8_t g, std::uint8_t b)
 
 constexpr std::array<std::uint32_t, 32> pico8_precal_palette_rgb8 {
     pack_rgb(0, 0, 0),
-    pack_rgb(29, 43, 71),
-    pack_rgb(109, 5, 42),
+    pack_rgb(9, 17, 61),
+    pack_rgb(89, 0, 61),
     pack_rgb(0, 121, 54),
     pack_rgb(149, 70, 45),
     pack_rgb(68, 72, 69),
@@ -33,8 +33,8 @@ constexpr std::array<std::uint32_t, 32> pico8_precal_palette_rgb8 {
     pack_rgb(255, 148, 0),
     pack_rgb(255, 250, 17),
     pack_rgb(0, 255, 81),
-    pack_rgb(32, 144, 255),
-    pack_rgb(99, 88, 165),
+    pack_rgb(70, 123, 255),
+    pack_rgb(127, 88, 165),
     pack_rgb(238, 25, 159),
     pack_rgb(240, 179, 133)
 };
