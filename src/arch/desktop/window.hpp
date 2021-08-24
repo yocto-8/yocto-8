@@ -17,6 +17,7 @@ class Window
 
     sf::RenderWindow window;
     sf::Texture fb_texture;
+    std::uint8_t button_state;
 };
 
 extern Window yolo_window;

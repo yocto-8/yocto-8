@@ -3,6 +3,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Window/Event.hpp>
 
+#include <SFML/Window/Keyboard.hpp>
 #include <video/palette.hpp>
 
 namespace arch::desktop
@@ -16,6 +17,14 @@ Window::Window() :
 
 void Window::present_frame(devices::Framebuffer fb)
 {
+    button_state =
+        sf::Keyboard::isKeyPressed(sf::Keyboard::Left) << 0
+        | sf::Keyboard::isKeyPressed(sf::Keyboard::Right) << 1
+        | sf::Keyboard::isKeyPressed(sf::Keyboard::Up) << 2
+        | sf::Keyboard::isKeyPressed(sf::Keyboard::Down) << 3
+        | sf::Keyboard::isKeyPressed(sf::Keyboard::C) << 4
+        | sf::Keyboard::isKeyPressed(sf::Keyboard::X) << 5;
+
     for (sf::Event ev; window.pollEvent(ev);)
     {
 

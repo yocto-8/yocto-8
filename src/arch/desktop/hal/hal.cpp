@@ -1,3 +1,4 @@
+#include <SFML/Window/Keyboard.hpp>
 #include <hal/hal.hpp>
 
 #include <sys/time.h>
@@ -13,7 +14,7 @@ namespace hal
 
 std::uint16_t update_button_state()
 {
-    return 0;
+    return arch::desktop::yolo_window.button_state;
 }
 
 void present_frame()
