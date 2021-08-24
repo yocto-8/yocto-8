@@ -368,6 +368,42 @@ int y8_pget(lua_State* state)
     return 1;
 }
 
+int y8_sset(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const Point p(lua_tointeger(state, 1), lua_tointeger(state, 2));
+    auto& color = device<devices::DrawStateMisc>.raw_pen_color();
+
+    if (argument_count >= 3)
+    {
+        color = lua_tounsigned(state, 3);
+    }
+
+    if (p.x >= 0 && p.y >= 0 && p.x < 128 && p.y < 128)
+    {
+        device<devices::Spritesheet>.set_pixel(p.x, p.y, color);
+    }
+
+    return 0;
+}
+
+int y8_sget(lua_State* state)
+{
+    const Point p(lua_tointeger(state, 1), lua_tointeger(state, 2));
+
+    if (p.x >= 0 && p.y >= 0 && p.x < 128 && p.y < 128)
+    {
+        lua_pushunsigned(state, device<devices::Spritesheet>.get_pixel(p.x, p.y));
+    }
+    else
+    {
+        lua_pushunsigned(state, 0);
+    }
+
+    return 1;
+}
+
 int y8_fget(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
@@ -692,6 +728,12 @@ int y8_mget(lua_State* state)
     }
 
     return 1;
+}
+
+int y8_flip(lua_State* state)
+{
+    emu::emulator.flip();
+    return 0;
 }
 
 int y8_map(lua_State* state)

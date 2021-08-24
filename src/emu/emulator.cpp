@@ -70,6 +70,8 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("camera", bindings::y8_camera);
     bind("pset", bindings::y8_pset);
     bind("pget", bindings::y8_pget);
+    bind("sset", bindings::y8_sset);
+    bind("sget", bindings::y8_sget);
     bind("fget", bindings::y8_fget);
     bind("cls", bindings::y8_cls);
     bind("line", bindings::y8_line);
@@ -81,6 +83,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("mset", bindings::y8_mset);
     bind("mget", bindings::y8_mget);
     bind("map", bindings::y8_map);
+    bind("flip", bindings::y8_flip);
     bind("print", bindings::y8_print);
     bind("_rgbpal", bindings::y8_rgbpal);
 
@@ -231,15 +234,12 @@ void Emulator::run()
 {
     hal::reset_timer();
 
+    _frame_target_time = 1'000'000u / get_fps_target();
+
     run_hook("_init");
     
     for (;;)
     {
-        const auto frame_start_time = hal::measure_time_us();
-        auto target_time = 1'000'000u / 60;
-
-        device<devices::ButtonState>.for_player(0) = hal::update_button_state();
-        
         // this _update behavior matches pico-8's: if _update60 is defined, _update is ignored
         // when both are unspecified, flipping will occur at 30Hz regardless
         //
@@ -249,22 +249,40 @@ void Emulator::run()
 
         if (run_hook("_update60") == HookResult::UNDEFINED)
         {
-            target_time = 1'000'000u / 30;
             run_hook("_update");
         }
 
         run_hook("_draw");
-        hal::present_frame();
-
-        const auto taken_time = hal::measure_time_us() - frame_start_time;
-
-        printf("%f\n", double(taken_time) / 1000.0);
-
-        if (taken_time < target_time)
-        {
-            hal::delay_time_us(target_time - taken_time);
-        }
+        
+        flip();
     }
+}
+
+void Emulator::flip()
+{
+    hal::present_frame();
+
+    const auto taken_time = hal::measure_time_us() - _frame_start_time;
+
+    printf("%f\n", double(taken_time) / 1000.0);
+
+    if (taken_time < _frame_target_time)
+    {
+        hal::delay_time_us(_frame_target_time - taken_time);
+    }
+    
+    _frame_start_time = hal::measure_time_us();
+    
+    device<devices::ButtonState>.for_player(0) = hal::update_button_state();
+}
+
+int Emulator::get_fps_target() const
+{
+    lua_getglobal(_lua, "_update60");
+    const bool is60 = lua_isfunction(_lua, -1);
+    lua_pop(_lua, 1);
+
+    return is60 ? 60 : 30;
 }
 
 Emulator::HookResult Emulator::run_hook(const char* name)

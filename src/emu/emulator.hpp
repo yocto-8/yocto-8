@@ -22,6 +22,9 @@ public:
     void load(std::string_view buf);
 
     void run();
+    void flip();
+
+    int get_fps_target() const;
 
     enum class HookResult
     {
@@ -57,6 +60,9 @@ private:
     std::array<std::uint8_t, 65536> _memory = {};
     std::array<std::uint32_t, 32> _palette = video::default_palette_rgb8;
     lua_State* _lua = nullptr;
+
+    std::uint64_t _frame_start_time = 0;
+    std::uint64_t _frame_target_time = 0;
 };
 
 void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize);
