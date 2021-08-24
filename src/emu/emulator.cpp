@@ -336,7 +336,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // note that the real heap usage may be significantly higher, because of:
     // - fragmentation
     // - overhead of the allocator
-    const std::size_t malloc_pool_limit = 128 * 1024;
+    const std::size_t malloc_pool_limit = 112 * 1024;
 
     /*printf("%u;%u;%i;%i;%i\n",
         malloc_pool_used, malloc_pool_limit,
