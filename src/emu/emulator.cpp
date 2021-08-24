@@ -108,6 +108,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("band", bindings::y8_band);
 
     bind("printh", bindings::y8_printh);
+    bind("sub", bindings::y8_sub);
 
     bind("rnd", bindings::y8_rnd);
 
