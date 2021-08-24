@@ -31,7 +31,7 @@ void reset_timer()
 std::uint64_t measure_time_us()
 {
     struct timeval tv;
-    gettimeofday(&tv,NULL);
+    gettimeofday(&tv, nullptr);
     return (1000000 * std::uint64_t(tv.tv_sec) + std::uint64_t(tv.tv_usec)) - timer_start_micros;
 }
 
