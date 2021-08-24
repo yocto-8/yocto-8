@@ -803,8 +803,6 @@ int y8_print(lua_State* state)
 
         world_point = draw_misc.get_text_point();
         terminal_scrolling = true;
-
-        printf("draw '%s' (%d,%d)\n", str, world_point.x, world_point.y);
     }
 
     const Point screen_point(detail::worldspace_to_screenspace(world_point));
