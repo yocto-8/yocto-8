@@ -1,4 +1,6 @@
 #include "emulator.hpp"
+#include "devices/drawstatemisc.hpp"
+#include "devices/image.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -195,6 +197,11 @@ function count(t, v)
     end
     return n
 end
+
+function __panic(msg)
+    print(":(", 0, 0, 7)
+    print(msg)
+end
 )");
 }
 
@@ -272,11 +279,29 @@ Emulator::HookResult Emulator::run_hook(const char* name)
     if (lua_pcall(_lua, 0, 0, 0) != 0)
     {
         printf("hook '%s' execution failed: %s\n", name, lua_tostring(_lua, -1));
+        panic(lua_tostring(_lua, -1));
         lua_pop(_lua, 1);
-        return HookResult::LUA_ERROR;
+        //return HookResult::LUA_ERROR;
     }
 
     return HookResult::SUCCESS;
+}
+
+void Emulator::panic(const char* message)
+{
+    device<devices::DrawPalette>.reset();
+    device<devices::ScreenPalette>.reset();
+    //device<devices::DrawStateMisc>.reset();
+    device<devices::Framebuffer>.clear(0);
+
+    lua_getglobal(_lua, "__panic");
+    lua_pushstring(_lua, message);
+
+    lua_pcall(_lua, 1, 0, 0);
+
+    hal::present_frame();
+
+    for (;;);
 }
 
 void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)

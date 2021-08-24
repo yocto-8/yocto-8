@@ -110,11 +110,13 @@ inline void draw_line(Point a, Point b, std::uint8_t raw_color)
 inline Point worldspace_to_screenspace(Point p)
 {
     const auto draw_misc = device<devices::DrawStateMisc>;
+    return p.with_offset(-draw_misc.camera_x(), -draw_misc.camera_y());
+}
 
-    return Point(
-        p.x - draw_misc.camera_x(),
-        p.y - draw_misc.camera_y()
-    );
+inline Point screenspace_to_worldspace(Point p)
+{
+    const auto draw_misc = device<devices::DrawStateMisc>;
+    return p.with_offset(draw_misc.camera_x(), draw_misc.camera_y());
 }
 
 [[gnu::always_inline]]
@@ -273,6 +275,8 @@ inline Point draw_text(
 {
     Point current_position = origin;
 
+    int glyph_height = 5;
+
     for (const char c : text)
     {
         int glyph_width = 0;
@@ -290,7 +294,16 @@ inline Point draw_text(
 
         if (terminal)
         {
-            // TODO: scroll to origin.x when overflowing (yes, not to 0)
+            if (current_position.x > 127 - glyph_width)
+            {
+                current_position.x = origin.x;
+                current_position.y += glyph_height + 1;
+            }
+            else
+            {
+                current_position.x += glyph_width;
+            }
+
             // TODO: scroll text with some memcpy/memset to the framebuffer when needed
         }
         else
@@ -298,6 +311,9 @@ inline Point draw_text(
             current_position.x += glyph_width;
         }
     }
+
+    current_position.x = origin.x;
+    current_position.y += glyph_height + 1;
 
     return current_position;
 }
@@ -743,6 +759,7 @@ int y8_map(lua_State* state)
 int y8_print(lua_State* state)
 {
     const std::span font(video::pico8_builtin_font);
+    const auto draw_misc = device<devices::DrawStateMisc>;
 
     const auto argument_count = lua_gettop(state);
 
@@ -762,6 +779,9 @@ int y8_print(lua_State* state)
 
     auto& raw_color = device<devices::DrawStateMisc>.raw_pen_color();
 
+    Point world_point;
+    bool terminal_scrolling;
+
     // case: print(text, x, y, [col])
     if (argument_count >= 3)
     {
@@ -770,25 +790,28 @@ int y8_print(lua_State* state)
             raw_color = lua_tounsigned(state, 4);
         }
 
-        const Point world_point(lua_tointeger(state, 2), lua_tointeger(state, 3));
-        const Point screen_point(detail::worldspace_to_screenspace(world_point));
-        detail::draw_text(screen_point, str, font, raw_color, false);
-
-        return 0;
+        world_point = Point(lua_tointeger(state, 2), lua_tointeger(state, 3));
+        terminal_scrolling = false;
     }
-
     // case: print(text, [col])
-    if (argument_count >= 1)
+    else
     {
         if (argument_count >= 2)
         {
             raw_color = lua_tounsigned(state, 2);
         }
 
-        // FIXME: to implement.
+        world_point = draw_misc.get_text_point();
+        terminal_scrolling = true;
 
-        return 0;
+        printf("draw '%s' (%d,%d)\n", str, world_point.x, world_point.y);
     }
+
+    const Point screen_point(detail::worldspace_to_screenspace(world_point));
+    const Point updated_point = detail::screenspace_to_worldspace(
+        detail::draw_text(screen_point, str, font, raw_color, terminal_scrolling)
+    );
+    draw_misc.set_text_point(updated_point);
 
     return 0;
 }

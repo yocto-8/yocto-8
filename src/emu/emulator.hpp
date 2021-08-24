@@ -32,6 +32,8 @@ public:
     
     HookResult run_hook(const char* name);
 
+    [[noreturn]] void panic(const char* message);
+
     constexpr Memory memory()
     {
         return Memory{std::span(_memory)};

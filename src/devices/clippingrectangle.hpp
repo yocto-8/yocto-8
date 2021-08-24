@@ -73,7 +73,9 @@ struct ClippingRectangle : emu::MMIODevice<4>
 
     bool contains(util::Point p) const
     {
-        return p.x >= int(x_begin()) && p.y >= int(y_begin())
+        return p.x >= 0 && p.y >= 0
+            && p.x <= 127 && p.y <= 127
+            && p.x >= int(x_begin()) && p.y >= int(y_begin())
             && p.x <= int(x_end()) && p.y <= int(y_end());
     }
 };

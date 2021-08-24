@@ -77,6 +77,27 @@ struct DrawStateMisc : emu::MMIODevice<64>
         line_endpoint_x() = p.x;
         line_endpoint_y() = p.y;
     }
+
+    std::int8_t& text_x() const
+    {
+        return reinterpret_cast<std::int8_t&>(data[0x26]);
+    }
+
+    std::int8_t& text_y() const
+    {
+        return reinterpret_cast<std::int8_t&>(data[0x27]);
+    }
+
+    util::Point get_text_point() const
+    {
+        return {text_x(), text_y()};
+    }
+
+    void set_text_point(util::Point p) const
+    {
+        text_x() = std::int8_t(p.x);
+        text_y() = std::int8_t(p.y);
+    }
 };
 
 }
