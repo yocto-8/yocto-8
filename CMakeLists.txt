@@ -130,6 +130,10 @@ else()
     )
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--thinlto-cache-dir=./ltocache")
+endif()
+
 target_sources(y8 PRIVATE ${PLATFORM_SOURCES})
 target_include_directories(y8 PRIVATE ${PLATFORM_ROOT})
 
