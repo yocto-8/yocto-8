@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-#set(Y8_DESKTOP_VM ON)
+set(Y8_DESKTOP_VM ON)
 
 if (Y8_DESKTOP_VM)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
@@ -100,6 +100,13 @@ set(ALLOC_SOURCES
 target_sources(y8 PRIVATE ${ALLOC_SOURCES})
 
 if (Y8_DESKTOP_VM)
+    set(PLATFORM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/desktop")
+    set(PLATFORM_SOURCES
+        ${PLATFORM_ROOT}/hal/hal.cpp
+        ${PLATFORM_ROOT}/main.cpp
+        ${PLATFORM_ROOT}/window.cpp
+    )
+    target_link_libraries(y8 PRIVATE sfml-system sfml-window sfml-graphics)
 else()
     pico_sdk_init()
 
@@ -113,9 +120,7 @@ else()
         ${PLATFORM_ROOT}/cmdthread.cpp
         ${PLATFORM_ROOT}/main/main.cpp
     )
-    target_sources(y8 PRIVATE ${PLATFORM_SOURCES})
     target_link_libraries(y8 PRIVATE pico_stdlib pico_multicore hardware_spi hardware_dma)
-    target_include_directories(y8 PRIVATE ${PLATFORM_ROOT})
     pico_add_extra_outputs(y8)
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
@@ -124,6 +129,9 @@ else()
         PROPERTIES COMPILE_FLAGS -fno-lto
     )
 endif()
+
+target_sources(y8 PRIVATE ${PLATFORM_SOURCES})
+target_include_directories(y8 PRIVATE ${PLATFORM_ROOT})
 
 set_property(TARGET y8 PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
 

@@ -2,6 +2,8 @@
 
 #include <sys/time.h>
 
+
+#include <unistd.h>
 #include <emu/emulator.hpp>
 #include "../window.hpp"
 #include "devices/image.hpp"
@@ -35,9 +37,12 @@ std::uint64_t measure_time_us()
 
 void delay_time_us(std::uint64_t time)
 {
-    // YOLO busy loop
-    while (measure_time_us() <= time)
-        ;
+    usleep(time);
+}
+
+void load_rgb_palette(std::span<std::uint32_t, 32> new_palette)
+{
+    printf("RGB palette update unimplemented on desktop\n");
 }
 
 }

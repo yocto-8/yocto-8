@@ -28,8 +28,8 @@ int main(int argc, char** argv)
     }
     
     emu::emulator.init(std::span<std::byte, yolo_heap.size()>(
-        reinterpret_cast<char*>(yolo_heap.data()),
-        reinterpret_cast<char*>(yolo_heap.data() + yolo_heap.size())
+        reinterpret_cast<std::byte*>(yolo_heap.data()),
+        reinterpret_cast<std::byte*>(yolo_heap.data() + yolo_heap.size())
     ));
 
     printf("Loading game from '%s'\n", argv[1]);
