@@ -79,6 +79,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("rectfill", bindings::y8_rectfill);
     bind("spr", bindings::y8_spr);
     bind("pal", bindings::y8_pal);
+    bind("palt", bindings::y8_palt);
     bind("clip", bindings::y8_clip);
     bind("mset", bindings::y8_mset);
     bind("mget", bindings::y8_mget);

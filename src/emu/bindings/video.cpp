@@ -663,6 +663,33 @@ int y8_pal(lua_State* state)
     return 0;
 }
 
+int y8_palt(lua_State* state)
+{
+    const auto draw_palette = device<devices::DrawPalette>;
+
+    const auto argument_count = lua_gettop(state);
+
+    // case: palt(col, [transparent])
+    if (argument_count >= 1)
+    {
+        const auto color = lua_tounsigned(state, 1) % 16;
+        const auto is_transparent = lua_toboolean(state, 2);
+        draw_palette.set_transparent(color, is_transparent);
+    }
+    // case: palt()
+    else
+    {
+        draw_palette.set_transparent(0, true);
+        for (std::size_t i = 1; i < 16; ++i)
+        {
+            draw_palette.set_transparent(i, false);
+        }
+        return 0;
+    }
+
+    return 0;
+}
+
 int y8_clip(lua_State* state)
 {
     std::uint8_t x = 0, y = 0;
