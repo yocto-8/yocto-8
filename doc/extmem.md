@@ -93,10 +93,9 @@ Depending on your expectations, this may be surprisingly much or utter garbage.
 
 How can the real world effect of this hack be reduced?
 
-- While I gave up on the idea to rewrite the entire Lua VM to use functions for every memory accesses, replacing *some* of these might still be a good idea, because it would skip a lot of code (entering the exception handler + disassembly of an instruction).
-- In practice, it should be feasible to have two memory pools for the Lua heap: one that lives in SRAM and one in the emulated memory area. This could significantly improve performance if the hottest data was put in SRAM, but I am not sure what approach to take here.  
-The consequence is that the less SRAM yocto-8 would use, the faster it could run, because the more heap data could be stuffed into SRAM.
+- The memory allocator used for this heap (tinyalloc) is probably not too efficient.
 - Currently, cache misses are rather expensive, because it involves a blocking page write and page read with the SPI RAM. Write DMA accesses could possibly be performed in the background, which could make cache misses up to twice as fast.
 - That external RAM is currently used in SPI mode, because the RP2040 does not have an extra QPI interface we could use. It does however have PIO, which could be used to write a QPI interface, which could make cache misses up to 4 times as fast.
+- The external RAM is currently driven at a low-ish frequency, due to either a software bug or dupont cables in the prototype being a limiting factor.
 - In real world scenarios, the caching algorithm and tweakables could use some improvement in order to improve the cache hit rate.
-- Currently, the disassembly logic is probably slower than it could be. Through some deep inspection of the generated assembly, it could be possible to improve the common code path by quite a bit.
+- Currently, the disassembly logic is probably slower than it could be. Through some deep inspection of the generated assembly, it could be possible to improve the common code path by quite a bit, maybe even using some cursed sort of JIT.
