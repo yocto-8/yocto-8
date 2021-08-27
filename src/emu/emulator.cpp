@@ -265,6 +265,8 @@ void Emulator::flip()
 
     const auto taken_time = hal::measure_time_us() - _frame_start_time;
 
+    lua_gc(_lua, LUA_GCSTEP, 10);
+
     printf("%f\n", double(taken_time) / 1000.0);
 
     if (taken_time < _frame_target_time)
@@ -328,29 +330,30 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 {
     (void)ud;
 
-    static std::uint32_t malloc_pool_used = 0;
+    // This is a Lua allocation function that uses standard malloc and realloc,
+    // but can make use of a secondary memory pool as a fallback using tinyalloc.
 
-    static bool can_try_emergency = true;
-    static std::uint32_t retry_emergency_when_below = 0;
+    // The secondary memory pool is used only when malloc() fails to allocate.
+    // For performance reasons, it is a good idea to aggressively GC so that heap
+    // usage remains as low as possible since the secondary memory pool may be
+    // significantly slower.
 
-    // max bytes allocated through malloc. the larger this is, the faster Lua will be, by a lot.
-    // note that the real heap usage may be significantly higher, because of:
-    // - fragmentation
-    // - overhead of the allocator
-    const std::size_t malloc_pool_limit = 112 * 1024;
+    // We used to (ab)use the Lua emergency GC by strategically returning nullptr
+    // to force GC to occur when the primary pool is exhausted, but this caused
+    // spikes and using LUA_GCSTEP regularly enough appears to mitigate the
+    // problem rather well.
 
-    /*printf("%u;%u;%i;%i;%i\n",
-        malloc_pool_used, malloc_pool_limit,
-        ta_num_used(), ta_num_free(), ta_num_fresh()
-    );*/
+    // The idea of letting Lua consume all of the malloc() heap is somewhat fine
+    // for us, because we never allocate memory dynamically elsewhere.
+    // (TODO: is that really true, though? can newlib printf malloc?)
 
     const auto is_slow_heap = [&] {
-        // FIXME: this is very naughty
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
         return ptr >= alloc_buffer.data()
             && ptr < alloc_buffer.data() + alloc_buffer.size();
     };
 
+    // Free this pointer no matter the heap it was allocated in.
     const auto auto_free = [&] {
         if (ptr == nullptr)
         {
@@ -364,37 +367,32 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         else
         {
             free(ptr);
-            malloc_pool_used -= osize;
-            //printf("free fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
-
-            // if we freed up enough memory, maybe we can try to fit in the malloc pool again
-            if (malloc_pool_used <= retry_emergency_when_below)
-            {
-                can_try_emergency = true;
-            }
         }
     };
 
+    // 
     const auto auto_malloc = [&]() -> void* {
-        std::uint32_t new_malloc_pool_size = malloc_pool_used + nsize;
+        void* malloc_ptr = malloc(nsize);
 
-        if (new_malloc_pool_size > malloc_pool_limit)
+        if (malloc_ptr != nullptr)
         {
-            if (can_try_emergency)
-            {
-                can_try_emergency = false;
-                retry_emergency_when_below = malloc_pool_limit - nsize;
-                return nullptr;
-            }
-
-            // allocate on slow pool
-            return ta_alloc(nsize);
+            return malloc_ptr;
         }
-        
-        // we've got spare space in the malloc pool, allocate there
-        malloc_pool_used = new_malloc_pool_size;
-        //printf("alloc fast pool %d/%d\n", int(malloc_pool_used), int(malloc_pool_limit));
-        return malloc(nsize);
+
+        return ta_alloc(nsize);
+    };
+
+    const auto slow_realloc = [&]() -> void* {
+        const auto new_ptr = auto_malloc();
+
+        if (new_ptr == nullptr)
+        {
+            return nullptr;
+        }
+
+        std::memcpy(new_ptr, ptr, osize);
+        auto_free();
+        return new_ptr;
     };
 
 
@@ -407,23 +405,24 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     {
         return auto_malloc();
     }
-    else if (nsize <= osize)
+    else if (nsize == osize)
     {
-        // whatever
+        // this does happen and i don't know if this is handled quickly by newlib realloc()
         return ptr;
+    }
+    else if (nsize < osize)
+    {
+        if (!is_slow_heap())
+        {
+            // here we assume this never fails: can it really not?
+            return realloc(ptr, nsize);
+        }
+        
+        return slow_realloc();
     }
     else
     {
-        const auto new_ptr = auto_malloc();
-
-        if (new_ptr == nullptr)
-        {
-            return nullptr;
-        }
-
-        std::memcpy(new_ptr, ptr, osize);
-        auto_free();
-        return new_ptr;
+        return slow_realloc();
     }
 }
 
