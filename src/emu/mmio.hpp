@@ -19,11 +19,11 @@ struct MMIODevice
         data(data)
     {}
 
-    constexpr std::array<std::uint8_t, map_length> clone() const
+    using ClonedArray = std::array<std::uint8_t, map_length>;
+
+    constexpr void clone_into(ClonedArray& target) const
     {
-        std::array<std::uint8_t, map_length> ret;
-        std::memcpy(ret.data(), data.data(), data.size());
-        return ret;
+        std::memcpy(target.data(), data.data(), target.size());
     }
 
     template<std::size_t Size>

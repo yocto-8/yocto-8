@@ -11,8 +11,11 @@
 namespace arch::pico
 {
 
-[[gnu::flatten, gnu::optimize("Os")]]
-void __not_in_flash_func(core1_entry)()
+// we make this live statically rather than on the core1 stack because of stack size concerns
+static devices::Framebuffer::ClonedArray fb_copy;
+
+[[gnu::flatten]]
+void __scratch_x("core1_entry") core1_entry()
 {
     for (;;)
     {
@@ -22,8 +25,10 @@ void __not_in_flash_func(core1_entry)()
         {
         case IoThreadCommand::PUSH_FRAME:
         {
-            auto fb_copy = emu::device<devices::Framebuffer>.clone();
-            auto palette_copy = emu::device<devices::ScreenPalette>.clone();
+            emu::device<devices::Framebuffer>.clone_into(fb_copy);
+
+            devices::ScreenPalette::ClonedArray palette_copy;
+            emu::device<devices::ScreenPalette>.clone_into(palette_copy);
 
             multicore_fifo_push_blocking(0); // copy done - we can update in background now
 
