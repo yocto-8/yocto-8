@@ -3,6 +3,7 @@
 #include <pico/stdlib.h>
 #include <pico/multicore.h>
 #include <hardware/vreg.h>
+#include <hardware/clocks.h>
 
 #include <emu/emulator.hpp>
 #include <extmem/cachedinterface.hpp>
@@ -27,6 +28,12 @@ void initialize_default_frequency()
 
     /*vreg_set_voltage(VREG_VOLTAGE_1_25);
     set_sys_clock_khz(351000, false);*/
+
+    clock_configure(clk_peri,
+                    0,
+                    CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+                    300 * MHZ,
+                    300 * MHZ);
 }
 
 void initialize_stdio()
@@ -100,7 +107,7 @@ void test_ram()
 void initialize_spi_ram()
 {
     pico::extmem::spiram::setup();
-    test_ram();
+    //test_ram();
 }
 
 void initialize_emulator()

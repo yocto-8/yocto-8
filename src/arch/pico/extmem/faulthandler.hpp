@@ -9,9 +9,9 @@ namespace arch::pico::extmem
 extern "C"
 {
 [[gnu::naked, gnu::used]] // owo
-void isr_hardfault();
+void __scratch_y("isr_hardfault") isr_hardfault();
 
-[[gnu::used, gnu::flatten]]
-void hard_fault_handler_c(std::uint32_t* args);
+[[gnu::used]]
+void __scratch_y("hard_fault_handler_c") hard_fault_handler_c(std::uint32_t* args);
 }
 }

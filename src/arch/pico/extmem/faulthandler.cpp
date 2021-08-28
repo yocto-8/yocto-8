@@ -105,6 +105,10 @@ void hard_fault_handler_c(std::uint32_t* args)
         return get_low_register(op.rn) + op.raw_memory_offset * offset_multiplier;
     };
 
+    const auto resolve_relative_address = [&](const arm::RegisterMemoryOp& op) {
+        return std::uintptr_t(int(get_low_register(op.rn)) + int(get_low_register(op.rm)));
+    };
+
     // consider this a switch where the first parameter of with() is the opcode and the second parameter is its handler
     // building a dispatch table ourselves seems more efficient than the switch-case that gcc generates
     static constexpr auto dispatch = DispatchTableHelper(&&default_case)
@@ -142,7 +146,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_str_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_temporary_ref<std::uint32_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
+        get_temporary_ref<std::uint32_t>(resolve_relative_address(op)) = get_low_register(op.rt);
 
         pc += 1;
         return;
@@ -151,7 +155,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_strh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_temporary_ref<std::uint16_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
+        get_temporary_ref<std::uint16_t>(resolve_relative_address(op)) = get_low_register(op.rt);
 
         pc += 1;
         return;
@@ -160,7 +164,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_strb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_temporary_ref<std::uint8_t>(get_low_register(op.rn) + get_low_register(op.rm)) = get_low_register(op.rt);
+        get_temporary_ref<std::uint8_t>(resolve_relative_address(op)) = get_low_register(op.rt);
 
         pc += 1;
         return;
@@ -169,7 +173,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_strsb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::int8_t>(get_low_register(op.rn) + get_low_register(op.rm));
+        get_low_register(op.rt) = get_temporary_ref<std::int8_t>(resolve_relative_address(op));
 
         pc += 1;
         return;
@@ -178,7 +182,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_ldr_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(get_low_register(op.rn) + get_low_register(op.rm));
+        get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(resolve_relative_address(op));
 
         pc += 1;
         return;
@@ -187,7 +191,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_ldrh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint16_t>(get_low_register(op.rn) + get_low_register(op.rm));
+        get_low_register(op.rt) = get_temporary_ref<std::uint16_t>(resolve_relative_address(op));
 
         pc += 1;
         return;
@@ -196,7 +200,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_ldrb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint8_t>(get_low_register(op.rn) + get_low_register(op.rm));
+        get_low_register(op.rt) = get_temporary_ref<std::uint8_t>(resolve_relative_address(op));
 
         pc += 1;
         return;
@@ -205,7 +209,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_ldrsh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::int16_t>(get_low_register(op.rn) + get_low_register(op.rm));
+        get_low_register(op.rt) = get_temporary_ref<std::int16_t>(resolve_relative_address(op));
 
         pc += 1;
         return;
@@ -280,11 +284,8 @@ void hard_fault_handler_c(std::uint32_t* args)
             }
         }
 
-        // writeback logic
-        if (((op.register_list >> op.base_register) & 0b1) == 0)
-        {
-            get_low_register(op.base_register) = current_address;
-        }
+        // writeback logic: STM always writes back to the base register
+        get_low_register(op.base_register) = current_address;
 
         pc += 1;
         return;
@@ -298,6 +299,10 @@ void hard_fault_handler_c(std::uint32_t* args)
 
         for (int i = 0; i < 8; ++i)
         {
+            // note that if the base register is present in this list and it is not the lowest bit set
+            // in the bitfield, the value read from memory will be undefined.
+            // this does not really matter in our case.
+            
             if ((op.register_list >> i) & 0b1)
             {
                 get_low_register(i) = get_temporary_ref<std::uint32_t>(current_address);
@@ -305,7 +310,7 @@ void hard_fault_handler_c(std::uint32_t* args)
             }
         }
 
-        // writeback logic
+        // writeback logic: LDM writes back to the base register if it is not present in the register list
         if (((op.register_list >> op.base_register) & 0b1) == 0)
         {
             get_low_register(op.base_register) = current_address;

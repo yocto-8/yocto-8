@@ -121,6 +121,12 @@ else()
         ${PLATFORM_ROOT}/main/main.cpp
     )
     target_link_libraries(y8 PRIVATE pico_stdlib pico_multicore hardware_spi hardware_dma)
+    target_compile_definitions(y8 PRIVATE PICO_MALLOC_PANIC=0)
+    
+    # Performs some checksum verification on SPI RAM when swapping pages in and out.
+    # Use only for debugging; increases memory and CPU workload.
+    #target_compile_definitions(y8 PRIVATE YOCTO8_EXTMEM_CHECKSUM)
+    
     pico_add_extra_outputs(y8)
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")

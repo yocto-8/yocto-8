@@ -19,7 +19,7 @@ constexpr bool
     access_debug = true;
 
 constexpr std::size_t
-    cache_page_count = 32;
+    cache_page_count = 16;
 
 constexpr std::uintptr_t
     bank_last_byte = bank_base + bank_size - 1;
@@ -34,9 +34,30 @@ struct Cache
     alignas(4) std::array<CachePage, cache_page_count> pages;
     std::array<std::uint16_t, cache_page_count> active_page_indices;
 
+#ifdef YOCTO8_EXTMEM_CHECKSUM
+    using Checksum = std::uint8_t;
+    static constexpr Checksum default_checksum = 69;
+    std::array<Checksum, bank_size / cache_size> checksums;
+
+    static constexpr Checksum compute_checksum(std::span<std::uint8_t, cache_size> cache_page)
+    {
+        std::uint32_t ret = 0;
+
+        for (const auto b : cache_page)
+        {
+            ret = (ret + 1) ^ b;
+        }
+
+        return Checksum(ret);
+    }
+#endif
+
     constexpr Cache()
     {
         active_page_indices.fill(invalid_bank);
+#ifdef YOCTO8_EXTMEM_CHECKSUM
+        checksums.fill(default_checksum);
+#endif
     }
 };
 
@@ -58,12 +79,36 @@ struct PageInfo
 inline void swap_out(PageInfo page)
 {
     spiram::write_page(page.base_address, cache.pages[page.cache_slot]);
+
+#ifdef YOCTO8_EXTMEM_CHECKSUM
+    cache.checksums[page.base_address / cache_size] = Cache::compute_checksum(cache.pages[page.cache_slot]);
+    //printf("chk %d\n", Cache::compute_checksum(cache.pages[page.cache_slot]));
+#endif
 }
 
 inline void swap_in(PageInfo page)
 {
     spiram::read_page(page.base_address, cache.pages[page.cache_slot]);
     cache.active_page_indices[page.cache_slot] = page.index;
+
+#ifdef YOCTO8_EXTMEM_CHECKSUM
+    const auto calculated_checksum = Cache::compute_checksum(cache.pages[page.cache_slot]);
+    const auto expected_checksum = cache.checksums[page.base_address / cache_size];
+
+    if (expected_checksum != Cache::default_checksum && calculated_checksum != expected_checksum) [[unlikely]]
+    {
+        printf(
+            "Page %#06x: expected checksum %#04x, just calculated %#04x\n",
+            page.base_address,
+            expected_checksum,
+            calculated_checksum
+        );
+
+        for (;;)
+            ;
+    }
+
+#endif
 }
 
 inline char* get_raw_temporary_ref(std::uintptr_t address)
