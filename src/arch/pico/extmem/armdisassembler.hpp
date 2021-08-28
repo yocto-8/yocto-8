@@ -52,7 +52,7 @@ struct MultipleMemoryOp
     std::uint8_t base_register;
 
     explicit MultipleMemoryOp(std::uint16_t instruction) :
-        register_list(instruction & 0b1111111),
+        register_list(instruction & 0b11111111),
         base_register((instruction >> 8) & 0b111)
     {}
 };
