@@ -106,7 +106,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     };
 
     const auto resolve_relative_address = [&](const arm::RegisterMemoryOp& op) {
-        return std::uintptr_t(int(get_low_register(op.rn)) + int(get_low_register(op.rm)));
+        return get_low_register(op.rn) + get_low_register(op.rm);
     };
 
     // consider this a switch where the first parameter of with() is the opcode and the second parameter is its handler
