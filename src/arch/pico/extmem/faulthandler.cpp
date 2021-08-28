@@ -115,7 +115,7 @@ void hard_fault_handler_c(std::uint32_t* args)
         .with(0b0101'000, &&op_str_reg)
         .with(0b0101'001, &&op_strh_reg)
         .with(0b0101'010, &&op_strb_reg)
-        .with(0b0101'011, &&op_strsb_reg)
+        .with(0b0101'011, &&op_ldrsb_reg)
         .with(0b0101'100, &&op_ldr_reg)
         .with(0b0101'101, &&op_ldrh_reg)
         .with(0b0101'110, &&op_ldrb_reg)
@@ -170,10 +170,10 @@ void hard_fault_handler_c(std::uint32_t* args)
         return;
     }
 
-    op_strsb_reg:
+    op_ldrsb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::int8_t>(resolve_relative_address(op));
+        get_low_register(op.rt) = std::int32_t(get_temporary_ref<std::int8_t>(resolve_relative_address(op)));
 
         pc += 1;
         return;
@@ -209,7 +209,7 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_ldrsh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::int16_t>(resolve_relative_address(op));
+        get_low_register(op.rt) = std::int32_t(get_temporary_ref<std::int16_t>(resolve_relative_address(op)));
 
         pc += 1;
         return;
