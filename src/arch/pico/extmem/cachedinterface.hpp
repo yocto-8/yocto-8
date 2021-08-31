@@ -24,15 +24,15 @@ constexpr std::size_t
 constexpr std::uintptr_t
     bank_last_byte = bank_base + bank_size - 1;
 
-constexpr std::uint16_t
-    invalid_bank = std::uint16_t(-1);
+constexpr std::uint32_t
+    invalid_bank = std::uint32_t(-1);
 
 struct Cache
 {
     using CachePage = std::array<std::uint8_t, cache_size>;
 
     alignas(4) std::array<CachePage, cache_page_count> pages;
-    std::array<std::uint16_t, cache_page_count> active_page_indices;
+    std::array<std::uint32_t, cache_page_count> active_page_indices;
 
 #ifdef YOCTO8_EXTMEM_CHECKSUM
     using Checksum = std::uint8_t;
@@ -65,27 +65,29 @@ extern Cache cache;
 
 struct PageInfo
 {
-    PageInfo(std::uint16_t page_index) :
+    PageInfo(std::uint32_t page_index) :
         index(page_index),
         cache_slot(page_index % cache.active_page_indices.size()),
         base_address(page_index * spiram::page_size)
     {}
 
-    std::uint16_t index;
-    std::uint16_t cache_slot;
-    std::uintptr_t base_address;
+    std::uint32_t index;
+    std::uint32_t cache_slot;
+    std::uint32_t base_address;
 };
 
+[[gnu::noinline]]
 inline void swap_out(PageInfo page)
 {
     spiram::write_page(page.base_address, cache.pages[page.cache_slot]);
 
 #ifdef YOCTO8_EXTMEM_CHECKSUM
-    cache.checksums[page.base_address / cache_size] = Cache::compute_checksum(cache.pages[page.cache_slot]);
+    cache.checksums[page.index] = Cache::compute_checksum(cache.pages[page.cache_slot]);
     //printf("chk %d\n", Cache::compute_checksum(cache.pages[page.cache_slot]));
 #endif
 }
 
+[[gnu::noinline]]
 inline void swap_in(PageInfo page)
 {
     spiram::read_page(page.base_address, cache.pages[page.cache_slot]);
@@ -93,7 +95,7 @@ inline void swap_in(PageInfo page)
 
 #ifdef YOCTO8_EXTMEM_CHECKSUM
     const auto calculated_checksum = Cache::compute_checksum(cache.pages[page.cache_slot]);
-    const auto expected_checksum = cache.checksums[page.base_address / cache_size];
+    const auto expected_checksum = cache.checksums[page.index];
 
     if (expected_checksum != Cache::default_checksum && calculated_checksum != expected_checksum) [[unlikely]]
     {
@@ -108,9 +110,12 @@ inline void swap_in(PageInfo page)
             ;
     }
 
+    printf("%d ok\n", page.index);
+
 #endif
 }
 
+[[gnu::always_inline]]
 inline char* get_raw_temporary_ref(std::uintptr_t address)
 {
     const std::uintptr_t address_in_bank = address - bank_base;
@@ -124,9 +129,6 @@ inline char* get_raw_temporary_ref(std::uintptr_t address)
     {
         // perform the address bounds check inside of this cold path is faster
         // this should be somewhat safe and cozy to do in here, as the slot should never match if the address is bad
-        //
-        // i'm actually not quite sure how true that is because index is a uint16_t,
-        // but this probably won't cause too much trouble anyway
         if constexpr (access_debug)
         {
             if (!((address >= bank_base) && (address <= bank_last_byte))) [[unlikely]]

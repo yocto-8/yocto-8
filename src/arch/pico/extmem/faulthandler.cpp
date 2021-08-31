@@ -1,5 +1,6 @@
 #include "faulthandler.hpp"
 
+#include <cstdint>
 #include <cstdio>
 
 #include "armdisassembler.hpp"
@@ -196,7 +197,7 @@ void hard_fault_handler_c(std::uint32_t* args)
         pc += 1;
         return;
     }
-
+    
     op_ldrb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
@@ -320,7 +321,7 @@ void hard_fault_handler_c(std::uint32_t* args)
         return;
     }
 
-    default_case:
+    default_case: [[unlikely]]
     {
         printf("Hard fault handler failed to recover (instr 0x%02x)\n", first_word);
         for (;;)
