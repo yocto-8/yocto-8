@@ -338,14 +338,18 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // usage remains as low as possible since the secondary memory pool may be
     // significantly slower.
 
-    // We used to (ab)use the Lua emergency GC by strategically returning nullptr
-    // to force GC to occur when the primary pool is exhausted, but this caused
-    // spikes and using LUA_GCSTEP regularly enough appears to mitigate the
-    // problem rather well.
+    // We (ab)use the Lua emergency GC by strategically returning nullptr to force
+    // the GC to kick in when the primary pool is exhausted.
+    // In the emulator we try to make the GC step a bit, but while it helps reduce
+    // GC-induced spikes it is not a perfect solution and is only performed once
+    // per frame, whereas the program may be trying to allocate and free a lot within
+    // one frame.
 
     // The idea of letting Lua consume all of the malloc() heap is somewhat fine
     // for us, because we never allocate memory dynamically elsewhere.
     // (TODO: is that really true, though? can newlib printf malloc?)
+
+    static bool can_emergency_gc = false;
 
     const auto is_slow_heap = [&] {
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
@@ -366,6 +370,8 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         }
         else
         {
+            can_emergency_gc = true;
+
             free(ptr);
         }
     };
@@ -377,6 +383,12 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         if (malloc_ptr != nullptr)
         {
             return malloc_ptr;
+        }
+
+        if (can_emergency_gc)
+        {
+            can_emergency_gc = false;
+            return nullptr;
         }
 
         return ta_alloc(nsize);
@@ -414,6 +426,8 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     {
         if (!is_slow_heap())
         {
+            can_emergency_gc = true;
+
             // here we assume this never fails: can it really not?
             return realloc(ptr, nsize);
         }
