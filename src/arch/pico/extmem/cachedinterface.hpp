@@ -144,7 +144,7 @@ inline char* get_raw_temporary_ref(std::uintptr_t address)
             swap_out(cache.active_page_indices[page.cache_slot]);
         }
 
-        swap_in(page.index);
+        swap_in(page);
     }
 
     return reinterpret_cast<char*>(&cache.pages[page.cache_slot][address_in_page]);
