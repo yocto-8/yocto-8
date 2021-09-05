@@ -53,6 +53,7 @@ void initialize_buttons()
 
 #include <extmem/spiram.hpp>
 
+[[gnu::noinline]]
 void test_ram()
 {
     using namespace arch::pico;
@@ -60,6 +61,90 @@ void test_ram()
     int successes = 0, total = 0;
 
     printf("Performing PSRAM test\n");
+
+    printf("OP validation\n");
+
+    // STR(imm)
+    asm(
+        "str %[value], [%[addr], #8]"
+        :: [value]"r"(123456), [addr]"r"(0x2F000100-8)
+    );
+
+    // LDR(imm)
+    {
+        std::uint32_t out;
+        asm(
+            "ldr %[out], [%[addr], #16]"
+            : [out]"=r"(out)
+            : [addr]"r"(0x2F000100-16)
+        );
+        printf("LDR(imm): %d (expected 123456)\n", out);
+    }
+
+    // STRB(imm)
+    asm(
+        "strb %[value], [%[addr], #3]"
+        :: [value]"r"(128), [addr]"r"(0x2F000200-3)
+    );
+
+    // LDRB(imm)
+    {
+        std::uint8_t out;
+        asm(
+            "ldrb %[out], [%[addr], #1]"
+            : [out]"=r"(out)
+            : [addr]"r"(0x2F000200-1)
+        );
+        printf("LDRB(imm): %d (expected 128)\n", out);
+    }
+
+    // STRH(imm)
+    asm(
+        "strh %[value], [%[addr], #2]"
+        :: [value]"r"(5000), [addr]"r"(0x2F000300-2)
+    );
+
+    // LDRH(imm)
+    {
+        std::uint16_t out;
+        asm(
+            "ldrh %[out], [%[addr], #4]"
+            : [out]"=r"(out)
+            : [addr]"r"(0x2F000300-4)
+        );
+        printf("LDRH(imm): %d (expected 5000)\n", out);
+    }
+
+    // STM
+    {
+        register uint32_t a asm("r0"), b asm("r2"), c asm("r4"), addr asm("r6");
+        a = 123456;
+        b = 654321;
+        c = 696969;
+        addr = 0x2F000400;
+        asm volatile(
+            "stm %[addr], {%[a], %[b], %[c]}"
+            : [addr]"+r"(addr)
+            : [a]"r"(a), [b]"r"(b), [c]"r"(c)
+            : "memory"
+        );
+    }
+
+    // LDM(imm)
+    {
+        register uint32_t a asm("r1"), b asm("r3"), c asm("r5"), addr asm("r7");
+
+        addr = 0x2F000400;
+
+        asm(
+            "ldm %[addr]!, {%[a], %[b], %[c]}"
+            : [a]"=r"(a), [b]"=r"(b), [c]"=r"(c)
+            : [addr]"r"(addr)
+        );
+        printf("LDM(imm): %d %d %d (expect 123456, 654321, 696969)\n", a, b, c);
+    }
+
+    printf("Bank swapping test\n");
 
     for (int i = 0; i < 100; ++i)
     {
