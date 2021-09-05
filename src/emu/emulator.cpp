@@ -349,7 +349,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // for us, because we never allocate memory dynamically elsewhere.
     // (TODO: is that really true, though? can newlib printf malloc?)
 
-    static bool can_emergency_gc = false;
+    static bool can_emergency_gc = true;
 
     const auto is_slow_heap = [&] {
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
@@ -376,7 +376,6 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         }
     };
 
-    // 
     const auto auto_malloc = [&]() -> void* {
         void* malloc_ptr = malloc(nsize);
 
@@ -402,7 +401,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return nullptr;
         }
 
-        std::memcpy(new_ptr, ptr, osize);
+        std::memcpy(new_ptr, ptr, std::min(osize, nsize));
         auto_free();
         return new_ptr;
     };
