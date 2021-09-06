@@ -267,7 +267,7 @@ void Emulator::flip()
 
     lua_gc(_lua, LUA_GCSTEP, 10);
 
-    printf("%f\n", double(taken_time) / 1000.0);
+    //printf("%f\n", double(taken_time) / 1000.0);
 
     if (taken_time < _frame_target_time)
     {
