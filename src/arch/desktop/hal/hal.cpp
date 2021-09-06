@@ -14,15 +14,23 @@ namespace hal
 
 std::uint16_t update_button_state()
 {
+#ifndef YOCTO8_DESKTOP_HEADLESS
     return arch::desktop::yolo_window.button_state;
+#else
+    return 0;
+#endif
 }
 
 void present_frame()
 {
+#ifndef YOCTO8_DESKTOP_HEADLESS
     arch::desktop::yolo_window.present_frame(emu::device<devices::Framebuffer>);
+#endif
 }
 
 static std::uint64_t timer_start_micros;
+
+// TODO: headless: time accounting should be less shite
 
 void reset_timer()
 {
