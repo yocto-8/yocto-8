@@ -205,6 +205,8 @@ void initialize_emulator()
 
 void initialize_ssd1351(spi_inst_t* spi_instance)
 {
+    printf("SSD1351 baudrate: %d\n", spi_get_baudrate(spi_instance));
+
     hw.ssd1351.init({
         .spi = spi_instance,
         .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6 }
