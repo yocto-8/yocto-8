@@ -6,3 +6,6 @@ src/arch/pico/main/cartridges/picodino.hpp
 src/arch/pico/main/cartridges/celeste.hpp
 
 src/arch/pico/main/cartridges/badapple.hpp
+
+build/
+build.desktop/
