@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.13)
 
+# FIXME: This is currently broken when using the secondary memory pool because OOM situations in Lua are turned into UB
+#        Maybe this should be scrapped altogether
+# set(YOCTO8_YOLO_RELEASE OFF CACHE BOOL "Enables highly aggressive optimizations that turn some error conditions into undefined behavior")
+
+set(Y8_DESKTOP_VM OFF CACHE BOOL "Makes a desktop build instead of a build for the Raspberry Pi Pico")
+
 if (Y8_DESKTOP_VM)
+    enable_testing()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
 else()
     include(vendor/pico-sdk/pico_sdk_init.cmake)
@@ -16,10 +23,6 @@ endif()
 project(yocto-8)
 
 add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
-
-# NOTE: YOCTO8_YOLO_RELEASE enables VERY aggressive optimizations that turn error conditions into undefined behavior
-#       It also currently renders OOM situations UB which really should not be the case, bc the emergency GC exists
-#add_compile_definitions(YOCTO8_YOLO_RELEASE)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
@@ -119,6 +122,12 @@ if (Y8_DESKTOP_VM)
     add_executable(y8-headless ${PLATFORM_SOURCES})
     target_compile_definitions(y8-headless PRIVATE YOCTO8_DESKTOP_HEADLESS)
     target_link_libraries(y8-headless PRIVATE y8-core)
+
+    function(y8_test testname)
+        add_test(${testname} y8-headless "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/${testname}.p8")
+    endfunction()
+
+    y8_test(basic-assert)
 else()
     pico_sdk_init()
 

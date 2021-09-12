@@ -112,7 +112,8 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     bind("band", bindings::y8_band);
 
     bind("printh", bindings::y8_printh);
-    bind("sub", bindings::y8_sub);
+    bind("sub", bindings::y8_sub); // OwO
+    bind("_exit", bindings::y8_exit);
 
     bind("rnd", bindings::y8_rnd);
 
@@ -204,6 +205,7 @@ function count(t, v)
 end
 
 function __panic(msg)
+    printh("PANIC: " .. msg)
     print(":(", 0, 0, 7)
     print(msg)
 end
@@ -323,7 +325,7 @@ void Emulator::panic(const char* message)
 
     hal::present_frame();
 
-    for (;;);
+    exit(1);
 }
 
 void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)

@@ -1,10 +1,17 @@
 #include "input.hpp"
 
+#include <cstdlib>
+#include <emu/emulator.hpp>
 #include <lua.h>
 #include <lauxlib.h>
 
 namespace emu::bindings
 {
+
+int y8_exit(lua_State* state)
+{
+    std::exit(lua_tounsigned(state, 1));
+}
 
 int y8_printh(lua_State* state)
 {
