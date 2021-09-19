@@ -825,6 +825,27 @@ int y8_map(lua_State* state)
     return 0;
 }
 
+int y8_cursor(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const auto draw_misc = device<devices::DrawStateMisc>;
+
+    lua_pushinteger(state, draw_misc.text_x());
+    lua_pushinteger(state, draw_misc.text_y());
+    lua_pushinteger(state, draw_misc.raw_pen_color());
+
+    draw_misc.text_x() = lua_tointeger(state, 1);
+    draw_misc.text_y() = lua_tointeger(state, 2);
+
+    if (argument_count >= 3)
+    {
+        draw_misc.raw_pen_color() = lua_tointeger(state, 3);
+    }
+    
+    return 3;
+}
+
 int y8_print(lua_State* state)
 {
     const std::span font(video::pico8_builtin_font);
