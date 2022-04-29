@@ -9,17 +9,7 @@ namespace hal
 
 namespace pico = arch::pico;
 
-std::uint16_t update_button_state()
-{
-    std::uint16_t ret = 0;
-
-    for (std::size_t i = 0; i < pico::hw.buttons.size(); ++i)
-    {
-        ret |= pico::hw.buttons[i] << i;
-    }
-
-    return ret;
-}
+// NOTE: some of the implementations are deferred to the platform.
 
 void present_frame()
 {
@@ -28,24 +18,18 @@ void present_frame()
 
 void reset_timer()
 {
-    pico::hw.timer_start = get_absolute_time();
+    pico::state.timer_start = get_absolute_time();
 }
 
 std::uint64_t measure_time_us()
 {
     const auto current_time = get_absolute_time();
-    return absolute_time_diff_us(pico::hw.timer_start, current_time);
+    return absolute_time_diff_us(pico::state.timer_start, current_time);
 }
-
 
 void delay_time_us(std::uint64_t time)
 {
     sleep_us(time);
-}
-
-void load_rgb_palette(std::span<std::uint32_t, 32> new_palette)
-{
-    pico::hw.ssd1351.load_rgb_palette(new_palette);
 }
 
 }

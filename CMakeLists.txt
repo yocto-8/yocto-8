@@ -4,20 +4,27 @@ cmake_minimum_required(VERSION 3.13)
 #        Maybe this should be scrapped altogether
 # set(YOCTO8_YOLO_RELEASE OFF CACHE BOOL "Enables highly aggressive optimizations that turn some error conditions into undefined behavior")
 
-set(Y8_DESKTOP_VM OFF CACHE BOOL "Makes a desktop build instead of a build for the Raspberry Pi Pico")
+set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
+set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
 
-if (Y8_DESKTOP_VM)
+if (Y8_ARCH STREQUAL "desktop")
     enable_testing()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
-else()
+elseif(Y8_ARCH STREQUAL "pico")
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 
     # FIXME: this is a horrible workaround for clangd in vscode
-    set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/11.2.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/11.2.0/ -isystem /usr/arm-none-eabi/include/")
+    set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/11.3.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/11.3.0/ -isystem /usr/arm-none-eabi/include/")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
 
+    # Higher frequencies mean we need a higher SPI clock divisor.
+    # Past 200MHz, we are way out of spec for the Flash and everything crashes.
+    # This is not as much of a big deal as you may think;
+    # the XIP cache works well if you pay attention to things (e.g. multicore).
     add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
+else()
+    message(FATAL_ERROR "Y8_ARCH not specified or illegal")
 endif()
 
 project(yocto-8)
@@ -100,26 +107,25 @@ set(ALLOC_SOURCES
 )
 target_sources(y8-core PUBLIC ${ALLOC_SOURCES})
 
-if (Y8_DESKTOP_VM)
+if (Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
 
-    set(PLATFORM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/desktop")
-    set(PLATFORM_SOURCES
-        ${PLATFORM_ROOT}/hal/hal.cpp
-        ${PLATFORM_ROOT}/main.cpp
-        
+    set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/desktop")
+    set(ARCH_SOURCES
+        ${ARCH_ROOT}/hal/hal.cpp
+        ${ARCH_ROOT}/main.cpp
     )
 
     add_executable(y8
-        ${PLATFORM_SOURCES}
-        ${PLATFORM_ROOT}/window.cpp
+        ${ARCH_SOURCES}
+        ${ARCH_ROOT}/window.cpp
     )
     target_link_libraries(y8 PRIVATE y8-core sfml-system sfml-window sfml-graphics)
 
-    add_executable(y8-headless ${PLATFORM_SOURCES})
+    add_executable(y8-headless ${ARCH_SOURCES})
     target_compile_definitions(y8-headless PRIVATE YOCTO8_DESKTOP_HEADLESS)
     target_link_libraries(y8-headless PRIVATE y8-core)
 
@@ -128,23 +134,41 @@ if (Y8_DESKTOP_VM)
     endfunction()
 
     y8_test(basic-assert)
-else()
+    y8_test(lua-if)
+elseif (Y8_ARCH STREQUAL "pico")
     pico_sdk_init()
 
-    set(PLATFORM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
-    set(PLATFORM_SOURCES
-        ${PLATFORM_ROOT}/extmem/cachedinterface.cpp
-        ${PLATFORM_ROOT}/extmem/faulthandler.cpp
-        ${PLATFORM_ROOT}/extmem/spiram.cpp
-        ${PLATFORM_ROOT}/hal/hal.cpp
-        ${PLATFORM_ROOT}/hardwarestate.cpp
-        ${PLATFORM_ROOT}/cmdthread.cpp
-        ${PLATFORM_ROOT}/main/main.cpp
+    set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
+    set(ARCH_SOURCES
+        ${ARCH_ROOT}/extmem/cachedinterface.cpp
+        ${ARCH_ROOT}/extmem/faulthandler.cpp
+        ${ARCH_ROOT}/extmem/spiram.cpp
+        ${ARCH_ROOT}/hal/hal.cpp
+        ${ARCH_ROOT}/hardwarestate.cpp
+        ${ARCH_ROOT}/cmdthread.cpp
+        ${ARCH_ROOT}/main/main.cpp
     )
+
+    if (Y8_PLATFORM STREQUAL "asupico")
+        set(PLATFORM_ROOT "${ARCH_ROOT}/platform/asupico")
+        set(PLATFORM_SOURCES
+            ${PLATFORM_ROOT}/asupico.cpp
+            ${PLATFORM_ROOT}/hal.cpp
+            ${PLATFORM_ROOT}/platform.cpp)
+    else()
+        message(FATAL_ERROR "Y8_PLATFORM not specified, illegal or not supported on the \"pico\" arch")
+    endif()
+
     target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore hardware_spi hardware_dma)
+    
+    # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
+    # 1. usage of the secondary memory pool requires us to handle failing allocs.
+    # 2. dynamic allocation in non-desktop platforms is forbidden, so we can check
+    #    malloc return values in the only place it can be used: the lua allocator.
+    # 3. we rely on the lua emergency GC, which can save us in this usecase.
     target_compile_definitions(y8-core PUBLIC PICO_MALLOC_PANIC=0)
 
-    add_executable(y8 ${PLATFORM_SOURCES})
+    add_executable(y8 ${ARCH_SOURCES} ${PLATFORM_SOURCES})
     target_link_libraries(y8 PRIVATE y8-core)
 
     set_property(TARGET y8 y8-core PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
@@ -156,13 +180,17 @@ else()
     pico_add_extra_outputs(y8)
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
+
+    # NOTE: at the moment, usage of LTO on the pico has its shares of gotchas, see
+    # https://github.com/raspberrypi/pico-sdk/issues/97
+    # so we have to do a few silly things... overall it's a net gain on pico, though.
     set_source_files_properties(
         "${SDK_ROOT}/src/rp2_common/hardware_irq/irq.c"
         PROPERTIES COMPILE_FLAGS -fno-lto
     )
 endif()
 
-target_include_directories(y8-core PUBLIC ${PLATFORM_ROOT})
+target_include_directories(y8-core PUBLIC ${ARCH_ROOT})
 
 target_compile_options(y8-core
     PUBLIC

@@ -1,7 +1,7 @@
 #include <emu/emulator.hpp>
 #include <p8/parser.hpp>
 
-#include "hardwarestate.hpp"
+#include <platform/platform.hpp>
 
 namespace pico = arch::pico;
 
@@ -9,7 +9,7 @@ namespace pico = arch::pico;
 
 int main()
 {
-    pico::initialize_hardware();
+    pico::platform::init_hardware();
 
     p8::Parser parser(cartridge);
 

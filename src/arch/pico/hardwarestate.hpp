@@ -3,22 +3,22 @@
 #include "pico/types.h"
 #include <array>
 
-#include <video/ssd1351.hpp>
 #include <io/pushbutton.hpp>
 #include <pico/time.h>
 
 namespace arch::pico
 {
 
-struct HardwareState
+/// \brief Hardware state shared across all pico-compatible platforms.
+struct ArchState
 {
-    video::SSD1351 ssd1351;
-    std::array<io::PushButton, 6> buttons;
     absolute_time_t timer_start;
 };
 
-extern HardwareState hw;
+extern ArchState state;
 
-void initialize_hardware();
+// also put here initialization functions that are shared across all pico-based devices
+
+void init_cmd_thread();
 
 }
