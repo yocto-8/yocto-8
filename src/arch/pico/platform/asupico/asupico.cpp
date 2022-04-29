@@ -214,7 +214,7 @@ void init_video_ssd1351()
 
     asupico::hw.ssd1351.init({
         .spi = video_spi,
-        .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6 }
+        .pinout = { .sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6 }
     });
 }
 

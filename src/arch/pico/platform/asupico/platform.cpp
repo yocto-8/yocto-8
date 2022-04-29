@@ -16,11 +16,12 @@ void init_hardware()
     using namespace asupico;
 
     init_default_frequency();
+    init_cmd_thread();
     init_stdio();
     init_buttons();
     init_spi_ram();
+    init_video_ssd1351();
     init_emulator();
-    init_cmd_thread();
 }
 
 void present_frame(FrameCopiedCallback* callback)
