@@ -9,3 +9,5 @@ src/arch/pico/main/cartridges/badapple.hpp
 
 build/
 build.desktop/
+
+.cache/
