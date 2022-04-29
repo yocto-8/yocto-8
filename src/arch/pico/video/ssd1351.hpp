@@ -2,7 +2,6 @@
 
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
-#include <hardware/dma.h>
 #include <array>
 #include <cstdint>
 #include <cmath>
