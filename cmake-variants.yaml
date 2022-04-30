@@ -1,0 +1,32 @@
+buildType:
+  default: release
+  choices:
+    debug:
+      short: Debug
+      long: Emit debug information
+      buildType: Debug
+    release:
+      short: RelWithDebInfo
+      long: Optimize generated code and emit debug info
+      buildType: RelWithDebInfo
+
+arch:
+  default: desktop
+  choices:
+    desktop:
+      short: Desktop
+      long: Desktop build
+      settings:
+        Y8_ARCH: "desktop"
+    asu:
+      short: Pico w/ asu pinout
+      long: asu's development hardware based on the Raspberry Pi Pico with 8MB RAM
+      settings:
+        Y8_ARCH: "pico"
+        Y8_PLATFORM: "asupico"
+    picosystem:
+      short: PicoSystem
+      long: Build for the RP2040-based PicoSystem handheld from Pimoroni
+      settings:
+        Y8_ARCH: "pico"
+        Y8_PLATFORM: "picosystem"

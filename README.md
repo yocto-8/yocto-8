@@ -4,10 +4,9 @@ An open-source PICO-8 cartridge runner for the Raspberry Pi Pico.
 
 [PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.
 
-Currently, yocto-8 does not aim to provide editor tools. What it eventually will be is a compatible reimplementation of PICO-8 that should be able to run most games at "near-native" performance (assuming an overclocked RP2040).
+Currently, yocto-8 does not aim to provide editor tools. What it eventually *will* be is a compatible reimplementation of PICO-8 that should be able to run most games at "near-native" performance (assuming an overclocked RP2040) and serve as a console.
 
 yocto = pico².
-
 
 # Current progress and plans
 
@@ -20,7 +19,7 @@ This is currently in an early stage: there is no user-friendly way to get this w
 A significant challenge is the usage of [a hack](doc/extmem.md) to enable using of external SPI RAM which causes very significant slowdowns when hit and may compromise the usage of the RP2040 for this project, as opposed to a different microcontroller with higher amounts of user SRAM and a memory controller.  
 There is a lot of room for optimization for the RAM hack routine, however.
 
-There are (uncertain) plans to design real hardware (with a PCB and an enclosure) based on the RP2040 or a STM32. Though more expensive, STM32 microcontrollers might be a better fit for the reason highlighted above, and because of higher performance on the candidate lineups (F7/H7). The current silicon shortage seems to hit ST harder, though, so this may be a no-go for now.
+There are (uncertain) plans to design real hardware (with a PCB and an enclosure) based on the RP2040 or a STM32 or an ESP32 because of performance and better RAM capabilities. The current silicon shortage seems to hit ST harder, though, so this may be a no-go for now. And as those are significantly more expensive, the BOM would likely be driven up, lessening the purpose of such a project.
 
 # Limitations
 

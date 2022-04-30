@@ -58,7 +58,7 @@ public:
 private:
     std::span<std::byte> _memory_buffer;
     std::array<std::uint8_t, 65536> _memory = {};
-    std::array<std::uint32_t, 32> _palette = video::default_palette_rgb8;
+    std::array<std::uint32_t, 32> _palette = {};
     lua_State* _lua = nullptr;
 
     std::uint64_t _frame_start_time = 0;

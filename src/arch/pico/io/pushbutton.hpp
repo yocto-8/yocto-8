@@ -12,7 +12,7 @@ class PushButton
     {
         _pin = pin;
         gpio_init(_pin);
-        gpio_set_dir(_pin, false);
+        gpio_set_dir(_pin, GPIO_IN);
         gpio_set_pulls(_pin, true, false);
     }
 

@@ -20,7 +20,7 @@ constexpr std::uint32_t pack_rgb(std::uint8_t r, std::uint8_t g, std::uint8_t b)
     return (r << 16) | (g << 8) | b;
 }
 
-constexpr std::array<std::uint32_t, 32> pico8_precal_palette_rgb8 {
+constexpr std::array<std::uint32_t, 32> ssd1351_precal_palette_rgb8 {
     pack_rgb(0, 0, 0),
     pack_rgb(9, 17, 61),
     pack_rgb(89, 0, 61),
@@ -38,7 +38,5 @@ constexpr std::array<std::uint32_t, 32> pico8_precal_palette_rgb8 {
     pack_rgb(238, 25, 159),
     pack_rgb(240, 179, 133)
 };
-
-constexpr auto default_palette_rgb8 = pico8_precal_palette_rgb8;
 
 }

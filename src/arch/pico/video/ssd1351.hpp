@@ -2,7 +2,6 @@
 
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
-#include <hardware/dma.h>
 #include <array>
 #include <cstdint>
 #include <cmath>
@@ -11,32 +10,10 @@
 #include <emu/emulator.hpp>
 #include <devices/image.hpp>
 #include <devices/screenpalette.hpp>
-#include <video/palette.hpp>
+#include <util/colors.hpp>
 
 namespace arch::pico::video
 {
-
-static constexpr std::array<std::uint16_t, 32> rgb_palette_to_ssd1351_format(std::span<const std::uint32_t, 32> palette)
-{
-    std::array<std::uint16_t, 32> ret{};
-
-    for (std::size_t i = 0; i < 32; ++i)
-    {
-        const std::uint32_t rgb8 = palette[i];
-
-        std::uint8_t
-            r5 = ((rgb8 >> 16) & 0xFF) >> (8 - 5),
-            g6 = ((rgb8 >>  8) & 0xFF) >> (8 - 6),
-            b5 = ((rgb8 >>  0) & 0xFF) >> (8 - 5);
-            
-        ret[i] = (r5 << (5 + 6)) | (g6 << 5) | b5;
-
-        // Swap LSB/MSB
-        ret[i] = ((ret[i] & 0xFF) << 8) | (ret[i] >> 8);
-    }
-
-    return ret;
-}
 
 class SSD1351
 {
@@ -130,7 +107,7 @@ class SSD1351
 
     void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette)
     {
-        palette = rgb_palette_to_ssd1351_format(new_rgb_palette);
+        palette = util::make_r5g6b5_palette(new_rgb_palette, true);
     }
 
     void reset_blocking()

@@ -28,4 +28,7 @@ void delay_time_us(std::uint64_t time);
 /// @brief Load a new RGB palette to use from the next presented frame onwards.
 void load_rgb_palette(std::span<std::uint32_t, 32> new_palette);
 
+/// @brief Gets the default/precalibrated color for this platform.
+std::span<const std::uint32_t, 32> get_default_palette();
+
 }
