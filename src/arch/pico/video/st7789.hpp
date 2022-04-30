@@ -166,47 +166,93 @@ class ST7789
         gpio_put(_pinout.cs, 1);
     }
 
-    void update_frame(devices::Framebuffer view, devices::ScreenPalette screen_palette)
+    [[nodiscard]] std::array<std::uint16_t, 240> compute_horizontal_scanline(
+        devices::Framebuffer view,
+        devices::ScreenPalette screen_palette,
+        std::size_t scanline_fb_byte_offset) const
     {
-        write(Command::CASET, DataBuffer<4>{0x00, 0x00, 0x00, 0xEF});
-        write(Command::RASET, DataBuffer<4>{0x00, 0x00, 0x00, 0xEF});
-        write(Command::RAMWR);
+        std::array<std::uint16_t, 240> scanline;
 
+        for (std::size_t fb_x = 0; fb_x < 8; fb_x += 2)
+        {
+            const auto pixel_pair = view.data[fb_x / 2 + scanline_fb_byte_offset];
+            scanline[fb_x] = palette[screen_palette.get_color(pixel_pair & 0x0F)];
+            scanline[fb_x + 1] = palette[screen_palette.get_color(pixel_pair >> 4)];
+        }
+
+        for (std::size_t fb_x = 8; fb_x < 120; fb_x += 2)
+        {
+            const auto pixel_pair = view.data[fb_x / 2 + scanline_fb_byte_offset];
+            const auto x_off = fb_x - 4;
+
+            scanline[x_off * 2] = scanline[x_off * 2 + 1] =
+                palette[screen_palette.get_color(pixel_pair & 0x0F)];
+
+            scanline[x_off * 2 + 2] = scanline[x_off * 2 + 3] =
+                palette[screen_palette.get_color(pixel_pair >> 4)];
+        }
+
+        for (std::size_t fb_x = 120; fb_x < 128; fb_x += 2)
+        {
+            const auto x_off = fb_x - 120;
+            const auto pixel_pair = view.data[fb_x / 2 + scanline_fb_byte_offset];
+            scanline[232 + x_off] = palette[screen_palette.get_color(pixel_pair & 0x0F)];
+            scanline[232 + x_off + 1] = palette[screen_palette.get_color(pixel_pair >> 4)];
+        }
+
+        return scanline;
+    }
+
+    void write_pixel_data(std::span<const std::uint16_t> pixel_data)
+    {
+        spi_write_blocking(
+            _spi,
+            reinterpret_cast<const std::uint8_t*>(pixel_data.data()),
+            pixel_data.size_bytes()
+        );
+    }
+
+    void update_frame_smartzoom(devices::Framebuffer view, devices::ScreenPalette screen_palette)
+    {
+        /*
+        The PICO-8 framebuffer is 128x128.
+        The ST7789-based display we support is 240x240.
+
+        Hence, scaling the framebuffer by 2x results in a 256x256 resolution,
+        which is 8 too much on both axes.
+
+        So we resort to a smart scaling solution as to not crop any pixel data.
+        Consider, for instance, the 8 topmost rows *on screen*.
+        At 2x scale, those would only represent 4 rows of the original framebuffer.
+        What we do for these 8 rows is to instead use 1x scaling.
+        This makes screen edges look stretched, but that is usually better than cropping.
+        */
+
+        write(Command::CASET, DataBuffer<4>{0x00, 0, 0x00, 239});
+        write(Command::RASET, DataBuffer<4>{0x00, 0, 0x00, 239});
+        write(Command::RAMWR);
         gpio_put(_pinout.dc, 1);
         gpio_put(_pinout.cs, 0);
 
-        // FIXME: this is only to see if anything shows up on screen at all
-        //        we need the 240x240 cropping logic
-
-        for (std::size_t fb_y = 0; fb_y < 120; fb_y += 1)
+        for (std::size_t fb_y = 0; fb_y < 128; fb_y += 1)
         {
-            std::array<std::uint16_t, 240> scanline;
-            const auto scanline_fb_byte_offset = (view.frame_width * fb_y) / 2;
+            const auto scanline = compute_horizontal_scanline(view, screen_palette, (view.frame_width * fb_y) / 2);
+            write_pixel_data(scanline);
 
-            for (std::size_t fb_x = 0; fb_x < 120; fb_x += 2)
+            // 2x zoom, excluding the 1x borders at [0;7] and [120;127]
+            if (fb_y >= 8 && fb_y <= 119)
             {
-                const auto byte_index = fb_x / 2 + scanline_fb_byte_offset;
-                const auto pixel_pair = view.data[byte_index];
-
-                scanline[fb_x * 2] = scanline[fb_x * 2 + 1] = palette[screen_palette.get_color(pixel_pair & 0x0F)];
-                scanline[fb_x * 2 + 2] = scanline[fb_x * 2 + 3] = palette[screen_palette.get_color(pixel_pair >> 4)];
-            }
-            
-            // double pixels vertically
-            for (std::size_t i = 0; i < 2; ++i)
-            {
-                spi_write_blocking(
-                    _spi,
-                    reinterpret_cast<const std::uint8_t*>(scanline.data()),
-                    scanline.size() * 2
-                );
+                write_pixel_data(scanline);
             }
         }
 
         gpio_put(_pinout.cs, 1);
+    }
 
-        //const auto time_end = get_absolute_time();
-        //printf("%fms\n", absolute_time_diff_us(time_start, time_end) / 1000.0f);
+    void update_frame(devices::Framebuffer view, devices::ScreenPalette screen_palette)
+    {
+        update_frame_smartzoom(view, screen_palette);
+        // TODO: crop, no scale variants
     }
 
     std::array<std::uint16_t, 32> palette;
