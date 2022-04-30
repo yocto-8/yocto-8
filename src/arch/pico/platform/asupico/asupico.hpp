@@ -1,6 +1,5 @@
 #include <video/ssd1351.hpp>
 #include <io/pushbutton.hpp>
-#include <pico/time.h>
 
 namespace arch::pico::platform::asupico
 {
