@@ -13,7 +13,7 @@ void init_hardware()
 {
     using namespace picosystem;
 
-    //init_default_frequency();
+    init_default_frequency();
     init_cmd_thread();
     init_stdio();
     init_buttons();
