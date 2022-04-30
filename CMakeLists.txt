@@ -155,11 +155,17 @@ elseif (Y8_ARCH STREQUAL "pico")
             ${PLATFORM_ROOT}/asupico.cpp
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp)
+    elseif (Y8_PLATFORM STREQUAL "picosystem")
+        set(PLATFORM_ROOT "${ARCH_ROOT}/platform/picosystem")
+        set(PLATFORM_SOURCES
+            ${PLATFORM_ROOT}/picosystem.cpp
+            ${PLATFORM_ROOT}/hal.cpp
+            ${PLATFORM_ROOT}/platform.cpp)
     else()
         message(FATAL_ERROR "Y8_PLATFORM not specified, illegal or not supported on the \"pico\" arch")
     endif()
 
-    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore hardware_spi hardware_dma)
+    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore)
     
     # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
     # 1. usage of the secondary memory pool requires us to handle failing allocs.
@@ -178,6 +184,16 @@ elseif (Y8_ARCH STREQUAL "pico")
     #target_compile_definitions(y8 PRIVATE YOCTO8_EXTMEM_CHECKSUM)
     
     pico_add_extra_outputs(y8)
+
+    if (Y8_PLATFORM STREQUAL "asupico")
+        target_link_libraries(y8-core PUBLIC hardware_spi hardware_dma)
+    elseif (Y8_PLATFORM STREQUAL "picosystem")
+        #target_link_libraries(y8-core PUBLIC hardware_spi hardware_pio hardware_dma)
+        target_link_libraries(y8-core PUBLIC hardware_spi hardware_dma)
+        #pico_generate_pio_header(y8-core ${PLATFORM_ROOT}/screen.pio)
+        pico_set_linker_script(y8 "${PLATFORM_ROOT}/memmap_picosystem.ld")
+        pico_enable_stdio_usb(y8 1)
+    endif()
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
 
@@ -203,5 +219,3 @@ target_include_directories(y8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
-
-#pico_enable_stdio_usb(yocto-8 1)

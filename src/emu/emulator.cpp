@@ -38,15 +38,21 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 {
     _memory_buffer = memory_buffer;
 
-    _memory.fill(0);
+    if (!memory_buffer.empty())
+    {
+        _memory.fill(0);
 
-    ta_init(
-        _memory_buffer.data(),
-        _memory_buffer.data() + _memory_buffer.size(),
-        1024, // TODO: what value..?
-        16,
-        sizeof(std::uintptr_t)
-    );
+        ta_init(
+            _memory_buffer.data(),
+            _memory_buffer.data() + _memory_buffer.size(),
+            1024, // TODO: what value..?
+            16,
+            sizeof(std::uintptr_t)
+        );
+    }
+    
+    const auto default_palette = hal::get_default_palette();
+    std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
 
     _lua = lua_newstate(lua_alloc, nullptr);
     luaL_openlibs(_lua);
@@ -353,6 +359,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // (TODO: is that really true, though? can newlib printf malloc?)
 
     static bool can_emergency_gc = true;
+    const bool has_extra_heap = !emulator.get_memory_alloc_buffer().empty();
 
     const auto is_slow_heap = [&] {
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
@@ -367,7 +374,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return;
         }
 
-        if (is_slow_heap())
+        if (has_extra_heap && is_slow_heap())
         {
             ta_free(ptr);
         }
@@ -390,6 +397,11 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         if (can_emergency_gc)
         {
             can_emergency_gc = false;
+            return nullptr;
+        }
+
+        if (!has_extra_heap)
+        {
             return nullptr;
         }
 

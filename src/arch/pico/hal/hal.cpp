@@ -1,4 +1,5 @@
 #include "pico/time.h"
+#include "video/palette.hpp"
 #include <hal/hal.hpp>
 
 #include <hardwarestate.hpp>
@@ -30,6 +31,11 @@ std::uint64_t measure_time_us()
 void delay_time_us(std::uint64_t time)
 {
     sleep_us(time);
+}
+
+std::span<const std::uint32_t, 32> get_default_palette()
+{
+    return video::pico8_palette_rgb8;
 }
 
 }
