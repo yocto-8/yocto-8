@@ -34,15 +34,6 @@ void init_default_frequency()
 void init_stdio()
 {
     stdio_init_all();
-
-    while (!tud_cdc_connected()) {
-      printf(".");
-      sleep_ms(500);
-    }
-
-    printf("yop ready\n");
-    sleep_ms(1000);
-    printf("yop ready2\n");
 }
 
 void init_buttons()
