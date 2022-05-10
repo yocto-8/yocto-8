@@ -54,4 +54,9 @@ void load_rgb_palette(std::span<std::uint32_t, 32> new_palette)
     printf("RGB palette update unimplemented on desktop\n");
 }
 
+std::span<const std::uint32_t, 32> get_default_palette()
+{
+    return video::pico8_palette_rgb8;
+}
+
 }
