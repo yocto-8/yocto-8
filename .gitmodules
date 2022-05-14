@@ -10,3 +10,6 @@
 [submodule "umm_malloc"]
 	path = vendor/umm_malloc
 	url = git@github.com:yocto-8/umm_malloc.git
+[submodule "vendor/frozen"]
+	path = vendor/frozen
+	url = git@github.com:serge-sans-paille/frozen.git

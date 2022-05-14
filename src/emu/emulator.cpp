@@ -10,6 +10,8 @@
 #include <lauxlib.h>
 #include <lualib.h>
 #include <umm_malloc.h>
+#include <frozen/string.h>
+#include <frozen/unordered_map.h>
 
 #include <emu/bindings/input.hpp>
 #include <emu/bindings/math.hpp>
@@ -68,61 +70,71 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         });
     };
 
-    bind("camera", bindings::y8_camera);
-    bind("color", bindings::y8_color);
-    bind("pset", bindings::y8_pset);
-    bind("pget", bindings::y8_pget);
-    bind("sset", bindings::y8_sset);
-    bind("sget", bindings::y8_sget);
-    bind("fget", bindings::y8_fget);
-    bind("cls", bindings::y8_cls);
-    bind("line", bindings::y8_line);
-    bind("circfill", bindings::y8_circfill);
-    bind("rectfill", bindings::y8_rectfill);
-    bind("spr", bindings::y8_spr);
-    bind("pal", bindings::y8_pal);
-    bind("palt", bindings::y8_palt);
-    bind("clip", bindings::y8_clip);
-    bind("mset", bindings::y8_mset);
-    bind("mget", bindings::y8_mget);
-    bind("map", bindings::y8_map);
-    bind("flip", bindings::y8_flip);
-    bind("print", bindings::y8_print);
-    bind("_rgbpal", bindings::y8_rgbpal);
+    // TODO: make lua use this directly; and define a const string table
+    using Binding = int(lua_State*);
+    constexpr frozen::unordered_map<frozen::string, Binding*, 49> y8_std = {
+        {"camera", bindings::y8_camera},
+        {"color", bindings::y8_color},
+        {"pset", bindings::y8_pset},
+        {"pget", bindings::y8_pget},
+        {"sset", bindings::y8_sset},
+        {"sget", bindings::y8_sget},
+        {"fget", bindings::y8_fget},
+        {"cls", bindings::y8_cls},
+        {"line", bindings::y8_line},
+        {"circfill", bindings::y8_circfill},
+        {"rectfill", bindings::y8_rectfill},
+        {"spr", bindings::y8_spr},
+        {"pal", bindings::y8_pal},
+        {"palt", bindings::y8_palt},
+        {"clip", bindings::y8_clip},
+        {"mset", bindings::y8_mset},
+        {"mget", bindings::y8_mget},
+        {"map", bindings::y8_map},
+        {"flip", bindings::y8_flip},
+        {"print", bindings::y8_print},
+        {"_rgbpal", bindings::y8_rgbpal},
 
-    bind("btn", bindings::y8_btn);
+        {"btn", bindings::y8_btn},
 
-    bind("peek", bindings::y8_peek);
-    bind("peek2", bindings::y8_peek2);
-    bind("peek4", bindings::y8_peek4);
-    bind("poke", bindings::y8_poke);
-    bind("poke2", bindings::y8_poke2);
-    bind("poke4", bindings::y8_poke4);
-    bind("memcpy", bindings::y8_memcpy);
-    bind("memset", bindings::y8_memset);
+        {"peek", bindings::y8_peek},
+        {"peek2", bindings::y8_peek2},
+        {"peek4", bindings::y8_peek4},
+        {"poke", bindings::y8_poke},
+        {"poke2", bindings::y8_poke2},
+        {"poke4", bindings::y8_poke4},
+        {"memcpy", bindings::y8_memcpy},
+        {"memset", bindings::y8_memset},
 
-    bind("abs", bindings::y8_abs);
-    bind("flr", bindings::y8_flr);
-    bind("mid", bindings::y8_mid);
-    bind("min", bindings::y8_min);
-    bind("max", bindings::y8_max);
-    bind("sin", bindings::y8_sin);
-    bind("cos", bindings::y8_cos);
-    bind("sqrt", bindings::y8_sqrt);
-    bind("shl", bindings::y8_shl);
-    bind("shr", bindings::y8_shr);
-    bind("band", bindings::y8_band);
+        {"abs", bindings::y8_abs},
+        {"flr", bindings::y8_flr},
+        {"mid", bindings::y8_mid},
+        {"min", bindings::y8_min},
+        {"max", bindings::y8_max},
+        {"sin", bindings::y8_sin},
+        {"cos", bindings::y8_cos},
+        {"sqrt", bindings::y8_sqrt},
+        {"shl", bindings::y8_shl},
+        {"shr", bindings::y8_shr},
+        {"band", bindings::y8_band},
 
-    bind("cursor", bindings::y8_cursor);
-    bind("printh", bindings::y8_printh);
-    bind("stat", bindings::y8_stat);
-    bind("sub", bindings::y8_sub); // OwO
-    bind("_exit", bindings::y8_exit);
+        {"cursor", bindings::y8_cursor},
+        {"printh", bindings::y8_printh},
+        {"stat", bindings::y8_stat},
+        {"sub", bindings::y8_sub}, // OwO
+        {"_exit", bindings::y8_exit},
 
-    bind("rnd", bindings::y8_rnd);
+        {"rnd", bindings::y8_rnd},
 
-    bind("t", bindings::y8_time);
-    bind("time", bindings::y8_time);
+        {"t", bindings::y8_time},
+        {"time", bindings::y8_time},
+    };
+
+    for (const auto [func, binding] : y8_std)
+    {
+        lua_pushcfunction(_lua, binding);
+        lua_setglobal(_lua, func.data());
+    }
 
     stub("music");
     stub("sfx");
