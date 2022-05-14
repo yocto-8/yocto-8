@@ -98,4 +98,12 @@ int y8_band(lua_State* state)
     return 1;
 }
 
+int y8_bor(lua_State* state)
+{
+    const auto x = lua_tonumber(state, 1);
+    const auto y = lua_tonumber(state, 2);
+    lua_pushnumber(state, LuaFix16::from_fix16(x.value | y.value));
+    return 1;
+}
+
 }

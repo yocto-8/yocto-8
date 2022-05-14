@@ -16,5 +16,6 @@ int y8_sqrt(lua_State* state);
 int y8_shl(lua_State* state);
 int y8_shr(lua_State* state);
 int y8_band(lua_State* state);
+int y8_bor(lua_State* state);
 
 }
