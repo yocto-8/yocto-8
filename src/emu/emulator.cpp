@@ -338,7 +338,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     (void)ud;
 
     // This is a Lua allocation function that uses standard malloc and realloc,
-    // but can make use of a secondary memory pool as a fallback using tinyalloc.
+    // but can make use of a secondary memory pool as a fallback using umm_malloc.
 
     // The secondary memory pool is used only when malloc() fails to allocate.
     // For performance reasons, it is a good idea to aggressively GC so that heap
@@ -354,18 +354,19 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 
     // The idea of letting Lua consume all of the malloc() heap is somewhat fine
     // for us, because we never allocate memory dynamically elsewhere.
-    // (TODO: is that really true, though? can newlib printf malloc?)
 
-    static bool can_emergency_gc = true;
+    static bool has_alloc_succeeded_since_egc = false;
 
     // unfortunately using UMM comes with alignment issues on 64-bit platforms;
+    // let's disable the extra heap on these for now.
     const bool has_extra_heap =
         !emulator.get_memory_alloc_buffer().empty()
         && sizeof(void*) <= 4;
 
-    const auto is_slow_heap = [&] {
+    const auto is_ptr_on_slow_heap = [&] {
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
-        return ptr >= alloc_buffer.data()
+        return has_extra_heap
+            && ptr >= alloc_buffer.data()
             && ptr < alloc_buffer.data() + alloc_buffer.size();
     };
 
@@ -376,14 +377,12 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return;
         }
 
-        if (has_extra_heap && is_slow_heap())
+        if (is_ptr_on_slow_heap())
         {
             umm_free(ptr);
         }
         else
         {
-            can_emergency_gc = true;
-
             free(ptr);
         }
     };
@@ -393,12 +392,19 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 
         if (malloc_ptr != nullptr)
         {
+            /*if (!has_alloc_succeeded_since_egc)
+            {
+                printf("recovered enough mem\n");
+            }*/
+            has_alloc_succeeded_since_egc = true;
             return malloc_ptr;
         }
 
-        if (can_emergency_gc)
+        if (has_alloc_succeeded_since_egc)
         {
-            can_emergency_gc = false;
+            // trigger Lua's EGC
+            has_alloc_succeeded_since_egc = false;
+            //printf("EGC\n");
             return nullptr;
         }
 
@@ -410,8 +416,13 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         return umm_malloc(nsize);
     };
 
-    const auto slow_realloc = [&]() -> void* {
-        const auto new_ptr = auto_malloc();
+    const auto realloc_from_main_to_extra_heap = [&]() -> void* {
+        if (!has_extra_heap)
+        {
+            return nullptr;
+        }
+
+        const auto new_ptr = umm_malloc(nsize);
 
         if (new_ptr == nullptr)
         {
@@ -419,7 +430,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         }
 
         std::memcpy(new_ptr, ptr, std::min(osize, nsize));
-        auto_free();
+        free(ptr);
         return new_ptr;
     };
 
@@ -434,24 +445,46 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     }
     else if (nsize == osize)
     {
-        // this does happen and i don't know if this is handled quickly by newlib realloc()
+        // this does happen; so let's not bother accidentally figuring out
+        // if we're triggering some bad behavior un umm_realloc/newlib realloc
         return ptr;
     }
     else if (nsize < osize)
     {
-        if (!is_slow_heap())
+        if (!is_ptr_on_slow_heap())
         {
-            can_emergency_gc = true;
+            const auto nptr = realloc(ptr, nsize);
 
-            // here we assume this never fails: can it really not?
-            return realloc(ptr, nsize);
+            if (nptr != nullptr)
+            {
+                return nptr;
+            }
+
+            return realloc_from_main_to_extra_heap();
         }
         
         return umm_realloc(ptr, nsize);
     }
-    else
+    else // nsize > osize
     {
-        return slow_realloc();
+        if (is_ptr_on_slow_heap())
+        {
+            // it is possible, but rare that this would fail in the extra heap
+            // even though the realloc could fit in the main heap.
+            // so let's ignore that usecase.
+            return umm_realloc(ptr, nsize);
+        }
+        
+        const auto nptr = realloc(ptr, nsize);
+
+        if (nptr != nullptr)
+        {
+            has_alloc_succeeded_since_egc = true;
+            return nptr;
+        }
+
+        // main heap exhausted
+        return realloc_from_main_to_extra_heap();
     }
 }
 
