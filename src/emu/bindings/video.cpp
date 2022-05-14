@@ -684,12 +684,12 @@ int y8_sspr(lua_State* state)
 
     if (argument_count >= 7)
     {
-        target_width = std::uint8_t(lua_tounsigned(state, 7));
+        target_width = lua_tointeger(state, 7);
     }
 
     if (argument_count >= 8)
     {
-        target_height = std::uint8_t(lua_tounsigned(state, 8));
+        target_height = lua_tointeger(state, 8);
     }
 
     if (argument_count >= 9)
