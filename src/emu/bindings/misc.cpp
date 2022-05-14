@@ -56,6 +56,9 @@ int y8_stat(lua_State* state)
     {
         case StatEntry::RAM_USAGE_KB:
         {
+            // p8 allegedly GCs before stat(0)
+            lua_gc(state, LUA_GCCOLLECT, 0);
+
             const auto usage_kb_part = lua_gc(state, LUA_GCCOUNT, 0);
             const auto usage_b_part = lua_gc(state, LUA_GCCOUNTB, 0);
             lua_pushnumber(state, LuaFix16(std::int16_t(usage_kb_part), usage_b_part));
