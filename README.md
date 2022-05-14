@@ -1,19 +1,24 @@
 # yocto-8
 
-An open-source PICO-8 cartridge runner for the Raspberry Pi Pico.
+<img align="left" src="assets/logo-v2-readme.png">
 
-[PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.
+## A (WIP) open-source PICO-8 cartridge runner for the Raspberry Pi Pico.
 
-Currently, yocto-8 does not aim to provide editor tools. What it eventually *will* be is a compatible reimplementation of PICO-8 that should be able to run most games at "near-native" performance (assuming an overclocked RP2040) and serve as a gaming handheld.
+[PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.  
+yocto-8 is a PICO-8 implementation that aims to run unmodified games.
+
+That's the plan anyway -- see [the current progress](#plans).
 
 The main implementation goals are:
 - To reach good PICO-8 compatibility
 - To be as fast as possible, and to minimize the RAM footprint as much as reasonably possible
 - To be generally portable to platforms with a high quality C++20 toolchain
 
+The current plan is not to be a PICO-8 devkit, that is, it will not provide any editor tools.
+
 yocto = pico².
 
-# Current progress and plans
+<h1 id="plans">Progress and plans</h1>
 
 With some modifications, some demos and games run. **We're far from good compatibility, especially on real hardware.**
 
@@ -36,10 +41,17 @@ There are (uncertain) plans to design a real handheld. The main two contenders a
 
 # Supported platforms
 
+<div align="center">
+
+![](assets/picosystem.png)  
+yocto-8 running [Celeste Classic](https://mattmakesgames.itch.io/celesteclassic) on the [PicoSystem](https://shop.pimoroni.com/products/picosystem).
+
+</div>
+
 - `Y8_ARCH=desktop`: Desktop (both with a SFML frontend and headless)
 - `Y8_ARCH=pico`: Raspberry Pi Pico based platforms
     - `Y8_PLATFORM=asupico`: My setup (Pico+SSD1351 display+8MB PSRAM+push buttons)
-    - `Y8_PLATFORM=picosystem`: [Pimoroni PicoSystem](https://shop.pimoroni.com/products/picosystem?variant=32369546985555)
+    - `Y8_PLATFORM=picosystem`: [Pimoroni PicoSystem](https://shop.pimoroni.com/products/picosystem)
 
 # Pros and cons against a SBC-based solution
 
