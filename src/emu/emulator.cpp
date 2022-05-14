@@ -2,6 +2,7 @@
 #include "devices/drawstatemisc.hpp"
 #include "devices/image.hpp"
 
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
@@ -113,6 +114,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     bind("cursor", bindings::y8_cursor);
     bind("printh", bindings::y8_printh);
+    bind("stat", bindings::y8_stat);
     bind("sub", bindings::y8_sub); // OwO
     bind("_exit", bindings::y8_exit);
 
@@ -127,8 +129,6 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     hal::load_rgb_palette(_palette);
 
     load(R"(
-print("Setting up yocto-8 Lua routines")
-
 function all(t)
     if t == nil or #t == 0 then
         return function() end
@@ -210,6 +210,8 @@ function __panic(msg)
     print(":(", 0, 0, 7)
     print(msg)
 end
+
+printh(stat(0) .. "KB at boot")
 )");
 }
 
@@ -220,12 +222,14 @@ void Emulator::load(std::string_view buf)
     if (load_status != 0)
     {
         printf("Script load failed: %s\n", lua_tostring(_lua, -1));
+        panic(lua_tostring(_lua, -1));
         lua_pop(_lua, 1);
     }
 
     if (lua_pcall(_lua, 0, 0, 0) != 0)
     {
         printf("Script exec at load time failed: %s\n", lua_tostring(_lua, -1));
+        panic(lua_tostring(_lua, -1));
         lua_pop(_lua, 1);
     }
     else
@@ -353,7 +357,11 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     // (TODO: is that really true, though? can newlib printf malloc?)
 
     static bool can_emergency_gc = true;
-    const bool has_extra_heap = !emulator.get_memory_alloc_buffer().empty();
+
+    // unfortunately using UMM comes with alignment issues on 64-bit platforms;
+    const bool has_extra_heap =
+        !emulator.get_memory_alloc_buffer().empty()
+        && sizeof(void*) <= 4;
 
     const auto is_slow_heap = [&] {
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
@@ -381,7 +389,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     };
 
     const auto auto_malloc = [&]() -> void* {
-        void* malloc_ptr = umm_malloc(nsize);
+        void* malloc_ptr = malloc(nsize);
 
         if (malloc_ptr != nullptr)
         {
@@ -414,7 +422,6 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         auto_free();
         return new_ptr;
     };
-
 
     if (nsize == 0)
     {

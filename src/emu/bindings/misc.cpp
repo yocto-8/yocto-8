@@ -8,6 +8,71 @@
 namespace emu::bindings
 {
 
+enum class StatEntry : std::uint16_t
+{
+    RAM_USAGE_KB = 0,
+    CPU_USAGE_SINCE_UPDATE = 1,
+    SYSTEM_CPU_USAGE = 2,
+    MAP_DISPLAY = 3,
+    CLIPBOARD_STRING = 4,
+    P8_VERSION = 5,
+    LOAD_PARAMETER = 6,
+    CURRENT_FPS = 7,
+    TARGET_FPS = 8,
+    SYSTEM_FPS = 9,
+    // 10 is unknown/reserved
+    ENABLED_DISPLAY_COUNT = 11,
+    PAUSE_MENU_UL_X = 12,
+    PAUSE_MENU_UL_Y = 13,
+    PAUSE_MENU_BR_X = 14,
+    PAUSE_MENU_BR_Y = 15,
+    // TODO: deprecated audio stuff 16..26
+    // 27 is unknown/reserved
+    RAW_KEYBOARD = 28, // with 2nd scancode param
+    // 29 is unknown
+    // TODO: devkit mouse/keyboard entries/stubs 30..39
+    // TODO: music/sound 46..56
+    // 57..71 is unknown, but we could match nil/empty str behavior
+    // TODO: time of day 80..95
+    PRE_GC_RAM_USAGE_KB = 99,
+    // TODO: 100..102 BBS
+    // 103..107 is unknown
+    // TODO: 110 is "frame-by-frame mode flag"
+    // 111..119 is unknown
+    // TODO: 120..121 GPIO functionality thingie
+    // 122..?? is unknown
+};
+
+int y8_stat(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const auto entry = lua_tointeger(state, 1);
+
+    // FIXME: this is a stub implementation.
+    // some games use this for meaningful things, and some of the entries return strings.
+
+    switch (StatEntry(entry))
+    {
+        case StatEntry::RAM_USAGE_KB:
+        {
+            const auto usage_kb_part = lua_gc(state, LUA_GCCOUNT, 0);
+            const auto usage_b_part = lua_gc(state, LUA_GCCOUNTB, 0);
+            lua_pushnumber(state, LuaFix16(std::int16_t(usage_kb_part), usage_b_part));
+            break;
+        }
+
+        default:
+        {
+            // unhandled; return 0 by default
+            lua_pushnumber(state, LuaFix16());
+            return 1;
+        }
+    }
+
+    return 1;
+}
+
 int y8_exit(lua_State* state)
 {
     std::exit(lua_tounsigned(state, 1));
