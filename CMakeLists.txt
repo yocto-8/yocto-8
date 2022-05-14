@@ -218,7 +218,6 @@ target_compile_options(y8-core
 
 target_include_directories(y8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tinyalloc"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
