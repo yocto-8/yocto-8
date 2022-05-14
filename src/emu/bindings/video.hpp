@@ -6,6 +6,7 @@ namespace emu::bindings
 {
 
 int y8_camera(lua_State* state);
+int y8_color(lua_State* state);
 int y8_pset(lua_State* state);
 int y8_pget(lua_State* state);
 int y8_sset(lua_State* state);

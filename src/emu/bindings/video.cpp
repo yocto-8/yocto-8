@@ -330,6 +330,27 @@ int y8_camera(lua_State* state)
     return 0;
 }
 
+int y8_color(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    auto& pen_color = device<devices::DrawStateMisc>.raw_pen_color();
+    const auto old_pen_color = pen_color;
+
+    if (argument_count >= 1)
+    {
+        pen_color = lua_tounsigned(state, 1);
+    }
+    else
+    {
+        pen_color = 6;
+    }
+
+    lua_pushinteger(state, old_pen_color);
+
+    return 1;
+}
+
 int y8_pset(lua_State* state)
 {
     const auto argument_count = lua_gettop(state);
@@ -657,6 +678,7 @@ int y8_pal(lua_State* state)
     {
     case 0: device<devices::DrawPalette>.set_color(c0, c1); break;
     case 1: device<devices::ScreenPalette>.set_raw_color(c0, c1); break;
+    // FIXME: case 2 should handle the 2ndary palette
     default: break; // verified pico-8 behavior: other values do nothing
     }
 
