@@ -12,6 +12,7 @@
 #include <umm_malloc.h>
 #include <frozen/string.h>
 #include <frozen/unordered_map.h>
+#include <frozen/set.h>
 
 #include <emu/bindings/input.hpp>
 #include <emu/bindings/math.hpp>
@@ -72,7 +73,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     // TODO: make lua use this directly; and define a const string table
     using Binding = int(lua_State*);
-    constexpr frozen::unordered_map<frozen::string, Binding*, 50> y8_std = {
+    constexpr frozen::unordered_map<frozen::string, Binding*, 51> y8_std = {
         {"camera", bindings::y8_camera},
         {"color", bindings::y8_color},
         {"pset", bindings::y8_pset},
@@ -85,6 +86,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         {"circfill", bindings::y8_circfill},
         {"rectfill", bindings::y8_rectfill},
         {"spr", bindings::y8_spr},
+        {"sspr", bindings::y8_sspr},
         {"pal", bindings::y8_pal},
         {"palt", bindings::y8_palt},
         {"clip", bindings::y8_clip},

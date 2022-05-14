@@ -1,6 +1,7 @@
 #include "video.hpp"
 #include "hal/hal.hpp"
 
+#include <cassert>
 #include <cmath>
 #include <concepts>
 #include <lua.h>
@@ -119,46 +120,56 @@ inline Point screenspace_to_worldspace(Point p)
     return p.with_offset(draw_misc.camera_x(), draw_misc.camera_y());
 }
 
+inline Point sprite_index_to_position(int sprite_index)
+{
+    constexpr int sprites_per_row = 128 / 8;
+    return {
+        (sprite_index % sprites_per_row) * 8,
+        (sprite_index / sprites_per_row) * 8
+    };
+}
+
 [[gnu::always_inline]]
-inline void draw_sprite(int sprite_index, Point unclipped_origin, int width = 8, int height = 8, bool x_flip = false, bool y_flip = false)
+inline void draw_sprite(
+    Point sprite_origin,
+    int sprite_width, int sprite_height,
+    Point unclipped_origin,
+    int target_width, int target_height,
+    bool x_flip = false, bool y_flip = false)
 {
     auto sprite = device<devices::Spritesheet>;
     auto palette = device<devices::DrawPalette>;
     auto clip = device<devices::ClippingRectangle>;
 
     const Point top_left = unclipped_origin.max(clip.top_left());
-    const Point bottom_right = (unclipped_origin.with_offset(width, height)).min(clip.bottom_right());
-
-    constexpr int sprites_per_row = 128 / 8;
-    const int sprite_orig_x = (sprite_index % sprites_per_row) * 8;
-    const int sprite_orig_y = (sprite_index / sprites_per_row) * 8;
+    const Point bottom_right = (unclipped_origin.with_offset(target_width, target_height)).min(clip.bottom_right());
 
     const auto main_loop = [&](bool x_flip, bool y_flip) {
         for (int y = top_left.y; y < bottom_right.y; ++y)
         {
             for (int x = top_left.x; x < bottom_right.x; ++x)
             {
-                const int x_offset = x - top_left.x;
-                const int y_offset = y - top_left.y;
+                const auto x_offset = (LuaFix16(x - top_left.x) * sprite_width) / LuaFix16(bottom_right.x - top_left.x);
+                const auto y_offset = (LuaFix16(y - top_left.y) * sprite_height) / LuaFix16(bottom_right.y - top_left.y);
 
                 int sprite_x, sprite_y;
 
                 if (!x_flip)
                 {
-                    sprite_x = sprite_orig_x + x_offset;
+                    sprite_x = sprite_origin.x + int(x_offset);
                 }
                 else
                 {
-                    sprite_x = sprite_orig_x + width - 1 - x_offset;
+                    sprite_x = sprite_origin.x + sprite_width - 1 - int(x_offset);
                 }
 
                 if (!y_flip)
                 {
-                    sprite_y = sprite_orig_y + y_offset;
+                    sprite_y = sprite_origin.y + int(y_offset);
                 }
                 else
                 {
-                    sprite_y = sprite_orig_y + height - 1 - y_offset;
+                    sprite_y = sprite_origin.y + sprite_height - 1 - int(y_offset);
                 }
 
                 const std::uint8_t palette_entry = palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
@@ -641,7 +652,62 @@ int y8_spr(lua_State* state)
         y_flip = lua_toboolean(state, 7);
     }
 
-    detail::draw_sprite(sprite_index, unclipped_origin, width, height, x_flip, y_flip);
+    detail::draw_sprite(
+        detail::sprite_index_to_position(sprite_index),
+        width, height,
+        unclipped_origin,
+        width, height,
+        x_flip, y_flip);
+
+    return 0;
+}
+
+int y8_sspr(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    const int sprite_origin_x = lua_tounsigned(state, 1);
+    const int sprite_origin_y = lua_tounsigned(state, 2);
+    const int sprite_width = lua_tounsigned(state, 3);
+    const int sprite_height = lua_tounsigned(state, 4);
+    const int world_origin_x = lua_tointeger(state, 5);
+    const int world_origin_y = lua_tointeger(state, 6);
+    int target_width = sprite_width;
+    int target_height = sprite_height;
+    
+    const auto unclipped_origin = detail::worldspace_to_screenspace(Point(world_origin_x, world_origin_y));
+
+    bool x_flip = false, y_flip = false;
+
+    // when providing only 4 arguments, pico-8 does not produce an error, but the sprite is not visible
+    // we assume no game rely on this behavior (why would any)
+
+    if (argument_count >= 7)
+    {
+        target_width = std::uint8_t(lua_tounsigned(state, 7));
+    }
+
+    if (argument_count >= 8)
+    {
+        target_height = std::uint8_t(lua_tounsigned(state, 8));
+    }
+
+    if (argument_count >= 9)
+    {
+        x_flip = lua_toboolean(state, 9);
+    }
+
+    if (argument_count >= 10)
+    {
+        y_flip = lua_toboolean(state, 10);
+    }
+
+    detail::draw_sprite(
+        Point(sprite_origin_x, sprite_origin_y),
+        sprite_width, sprite_height,
+        unclipped_origin,
+        target_width, target_height,
+        x_flip, y_flip);
 
     return 0;
 }
@@ -840,7 +906,12 @@ int y8_map(lua_State* state)
                 continue;
             }
 
-            detail::draw_sprite(tile, Point(screen_x_offset, screen_y_offset));
+            detail::draw_sprite(
+                detail::sprite_index_to_position(tile),
+                8, 8,
+                Point(screen_x_offset, screen_y_offset),
+                8, 8,
+                false, false);
         }
     }
 

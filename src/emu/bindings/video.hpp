@@ -17,6 +17,7 @@ int y8_line(lua_State* state);
 int y8_circfill(lua_State* state);
 int y8_rectfill(lua_State* state);
 int y8_spr(lua_State* state);
+int y8_sspr(lua_State* state);
 int y8_pal(lua_State* state);
 int y8_palt(lua_State* state);
 int y8_clip(lua_State* state);
