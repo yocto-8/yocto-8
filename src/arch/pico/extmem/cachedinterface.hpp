@@ -76,7 +76,7 @@ struct PageInfo
     std::uint32_t base_address;
 };
 
-[[gnu::noinline]]
+[[gnu::always_inline, gnu::flatten]]
 inline void swap_out(PageInfo page)
 {
     spiram::write_page(page.base_address, cache.pages[page.cache_slot]);
@@ -87,7 +87,7 @@ inline void swap_out(PageInfo page)
 #endif
 }
 
-[[gnu::noinline]]
+[[gnu::always_inline, gnu::flatten]]
 inline void swap_in(PageInfo page)
 {
     spiram::read_page(page.base_address, cache.pages[page.cache_slot]);
@@ -110,12 +110,12 @@ inline void swap_in(PageInfo page)
             ;
     }
 
-    printf("%d ok\n", page.index);
+    printf("%d ok: %#04x\n", page.index, expected_checksum);
 
 #endif
 }
 
-[[gnu::always_inline]]
+[[gnu::noinline]]
 inline char* get_raw_temporary_ref(std::uintptr_t address)
 {
     const std::uintptr_t address_in_bank = address - bank_base;

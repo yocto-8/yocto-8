@@ -17,7 +17,7 @@ std::string string_from_file(std::ifstream& file)
     return ret;
 }
 
-std::array<char, 1024 * 1024 * 8> yolo_heap;
+static std::array<std::byte, 1024 * 1024 * 8> yolo_heap;
 
 int main(int argc, char** argv)
 {
@@ -27,10 +27,7 @@ int main(int argc, char** argv)
         return 1;
     }
     
-    emu::emulator.init(std::span<std::byte, yolo_heap.size()>(
-        reinterpret_cast<std::byte*>(yolo_heap.data()),
-        reinterpret_cast<std::byte*>(yolo_heap.data() + yolo_heap.size())
-    ));
+    emu::emulator.init(yolo_heap);
 
     printf("Loading game from '%s'\n", argv[1]);
 

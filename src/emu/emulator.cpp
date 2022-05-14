@@ -8,7 +8,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-#include <tinyalloc.h>
+#include <umm_malloc.h>
 
 #include <emu/bindings/input.hpp>
 #include <emu/bindings/math.hpp>
@@ -40,15 +40,9 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     if (!memory_buffer.empty())
     {
-        _memory.fill(0);
-
-        ta_init(
+        umm_init_heap(
             _memory_buffer.data(),
-            _memory_buffer.data() + _memory_buffer.size(),
-            1024, // TODO: what value..?
-            16,
-            sizeof(std::uintptr_t)
-        );
+            _memory_buffer.size_bytes());
     }
     
     const auto default_palette = hal::get_default_palette();
@@ -376,7 +370,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 
         if (has_extra_heap && is_slow_heap())
         {
-            ta_free(ptr);
+            umm_free(ptr);
         }
         else
         {
@@ -387,7 +381,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
     };
 
     const auto auto_malloc = [&]() -> void* {
-        void* malloc_ptr = malloc(nsize);
+        void* malloc_ptr = umm_malloc(nsize);
 
         if (malloc_ptr != nullptr)
         {
@@ -405,7 +399,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return nullptr;
         }
 
-        return ta_alloc(nsize);
+        return umm_malloc(nsize);
     };
 
     const auto slow_realloc = [&]() -> void* {
@@ -446,7 +440,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return realloc(ptr, nsize);
         }
         
-        return slow_realloc();
+        return umm_realloc(ptr, nsize);
     }
     else
     {
