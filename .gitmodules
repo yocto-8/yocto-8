@@ -4,9 +4,6 @@
 [submodule "lua"]
 	path = vendor/lua
 	url = git@github.com:yocto-8/lua.git
-[submodule "tinyalloc"]
-	path = vendor/tinyalloc
-	url = git@github.com:thi-ng/tinyalloc.git
 [submodule "vendor/libfixmath"]
 	path = vendor/libfixmath
 	url = git@github.com:PetteriAimonen/libfixmath.git
