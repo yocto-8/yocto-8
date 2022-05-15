@@ -2,8 +2,10 @@
 
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
+#include "hardware/timer.h"
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 
 namespace arch::pico::extmem::spiram
 {
@@ -23,6 +25,8 @@ void setup()
     gpio_set_function(pin_rx, GPIO_FUNC_SPI);
     gpio_set_function(pin_sck, GPIO_FUNC_SPI);
     gpio_set_function(pin_tx, GPIO_FUNC_SPI);
+
+    gpio_set_slew_rate(pin_cs, GPIO_SLEW_RATE_FAST);
 
     gpio_init(pin_cs);
     gpio_set_dir(pin_cs, GPIO_OUT);
@@ -46,8 +50,44 @@ void setup()
     sleep_us(200);
     select(false);
     sleep_us(200);
+
+    /*// toggle burst size
+    std::array<std::uint8_t, 1> burst_size_cmd_buf = {
+        0xC0
+    };
+    
+    select(true);
+    spi_write_blocking(psram_spi, burst_size_cmd_buf.data(), burst_size_cmd_buf.size());
+    select(false);*/
+
+    if (!test_chip_presence_destructive())
+    {
+        exit(1);
+    }
 }
 
+bool test_chip_presence_destructive()
+{
+    std::array<std::uint8_t, page_size> test_page = {};
+    test_page.fill(0xC9);
+    write_page(0x00000000, test_page);
+
+    std::array<std::uint8_t, page_size> test_read_page = {};
+    read_page(0x00000000, test_read_page);
+
+    bool has_failed = false;
+
+    for (std::size_t i = 0; i < page_size; i++)
+    {
+        if (test_page[i] != test_read_page[i])
+        {
+            printf("SPI RAM test failed at byte %zu: expected %02X, got %02X\n", i, test_page[i], test_read_page[i]);
+            has_failed = true;
+        }
+    }
+
+    return !has_failed;
+}
 
 void select(bool chip_selected)
 {
@@ -60,6 +100,7 @@ void validate_address(std::uint32_t page_aligned_address)
     assert(page_aligned_address < ram_size);
 }
 
+[[gnu::flatten, gnu::noinline]]
 void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
@@ -75,36 +116,31 @@ void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> bu
 
     select(true);
     spi_write_blocking(psram_spi, read_header.data(), read_header.size());
-        
-    std::uint8_t wtf;
-    spi_read_blocking(psram_spi, 0, &wtf, 1);
-
+    spi_read_blocking(psram_spi, 0, buf.data(), 1); // dummy read -- necessary for some reason
     spi_read_blocking(psram_spi, 0, buf.data(), buf.size());
     select(false);
     //sleep_ms(1);
 }
 
+[[gnu::flatten, gnu::noinline]]
 void write_page(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
 
-    for (std::size_t i = 0; i < page_size / burst_size; ++i)
-    {
-        select(true);
-        std::size_t burst_address = page_address + i * burst_size;
+    select(true);
+    std::size_t burst_address = page_address;
 
-        const std::array<std::uint8_t, 4> write_header {
-            0x02,
-            std::uint8_t((burst_address >> 16) & 0xFF),
-            std::uint8_t((burst_address >> 8) & 0xFF),
-            std::uint8_t((burst_address >> 0) & 0xFF),
-        };
+    const std::array<std::uint8_t, 4> write_header {
+        0x02,
+        std::uint8_t((burst_address >> 16) & 0xFF),
+        std::uint8_t((burst_address >> 8) & 0xFF),
+        std::uint8_t((burst_address >> 0) & 0xFF),
+    };
 
-        spi_write_blocking(spi1, write_header.data(), write_header.size());
-        spi_write_blocking(spi1, buf.data() + i * burst_size, burst_size);
-        select(false);
-        //sleep_ms(1);
-    }
+    spi_write_blocking(spi1, write_header.data(), write_header.size());
+    spi_write_blocking(spi1, buf.data(), buf.size());
+    select(false);
+    //sleep_ms(1);
 }
 
 }
