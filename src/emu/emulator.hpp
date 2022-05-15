@@ -52,6 +52,10 @@ public:
         return _palette;
     }
 
+    std::uint64_t get_update_start_time() { return _update_start_time; }
+    std::uint64_t get_frame_start_time() { return _frame_start_time; }
+    std::uint64_t get_frame_target_time() { return _frame_target_time; }
+
     Emulator(const Emulator&) = delete;
     Emulator& operator=(const Emulator&) = delete;
 
@@ -61,6 +65,7 @@ private:
     std::array<std::uint32_t, 32> _palette = {};
     lua_State* _lua = nullptr;
 
+    std::uint64_t _update_start_time = 0;
     std::uint64_t _frame_start_time = 0;
     std::uint64_t _frame_target_time = 0;
 };

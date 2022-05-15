@@ -271,6 +271,8 @@ void Emulator::run()
         // we should clip to 30fps if between 30 and 60, to 15 if between 30 and 60
         // also, what about infinite loops (e.g. one drawing stuff constantly?) - does it still flip? (doubt it)
 
+        _update_start_time = hal::measure_time_us();
+
         if (run_hook("_update60") == HookResult::UNDEFINED)
         {
             run_hook("_update");

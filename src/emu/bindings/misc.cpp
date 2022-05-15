@@ -1,3 +1,4 @@
+#include "hal/hal.hpp"
 #include "input.hpp"
 
 #include <cstdlib>
@@ -62,6 +63,19 @@ int y8_stat(lua_State* state)
             const auto usage_kb_part = lua_gc(state, LUA_GCCOUNT, 0);
             const auto usage_b_part = lua_gc(state, LUA_GCCOUNTB, 0);
             lua_pushnumber(state, LuaFix16(std::int16_t(usage_kb_part), usage_b_part));
+            break;
+        }
+
+        case StatEntry::CPU_USAGE_SINCE_UPDATE:
+        {
+            const auto current_time = hal::measure_time_us();
+
+            // let's compute this with floats -- not sure if fixed point would overflow
+            const auto delta_time = float(current_time - emu::emulator.get_update_start_time());
+            const auto budget_spent = delta_time / float(emu::emulator.get_frame_target_time());
+
+            lua_pushnumber(state, LuaFix16(budget_spent));
+
             break;
         }
 
