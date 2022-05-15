@@ -604,12 +604,12 @@ int y8_rectfill(lua_State* state)
 
     top_left.x = std::max(top_left.x, int(clip.x_begin()));
     top_left.y = std::max(top_left.y, int(clip.y_begin()));
-    bottom_right.x = std::min(bottom_right.x, int(clip.x_end() + 1));
-    bottom_right.y = std::min(bottom_right.y, int(clip.y_end() + 1));
+    bottom_right.x = std::min(bottom_right.x, int(clip.x_end()));
+    bottom_right.y = std::min(bottom_right.y, int(clip.y_end()));
 
-    for (int y = top_left.y; y <= bottom_right.y; ++y)
+    for (int y = top_left.y; y < bottom_right.y; ++y)
     {
-        for (int x = top_left.x; x <= bottom_right.x; ++x)
+        for (int x = top_left.x; x < bottom_right.x; ++x)
         {
             detail::set_pixel_with_pattern(Point(x, y), raw_color);
         }
