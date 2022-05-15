@@ -471,6 +471,7 @@ int y8_cls(lua_State* state)
         palette_entry = luaL_checkunsigned(state, 1);
     }
 
+    device<devices::DrawStateMisc>.set_text_point({0, 0});
     device<devices::Framebuffer>.clear(palette_entry);
 
     return 0;
