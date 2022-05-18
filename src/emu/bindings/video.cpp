@@ -779,6 +779,24 @@ int y8_palt(lua_State* state)
     return 0;
 }
 
+int y8_fillp(lua_State* state)
+{
+    const auto draw_state_misc = device<devices::DrawStateMisc>;
+    
+    const auto argument_count = lua_gettop(state);
+
+    std::uint16_t pattern = 0;
+
+    if (argument_count >= 1)
+    {
+        pattern = lua_tounsigned(state, 1);
+    }
+
+    draw_state_misc.fill_pattern() = pattern;
+
+    return 0;
+}
+
 int y8_clip(lua_State* state)
 {
     std::uint8_t x = 0, y = 0;

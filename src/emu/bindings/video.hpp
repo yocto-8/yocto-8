@@ -20,6 +20,7 @@ int y8_spr(lua_State* state);
 int y8_sspr(lua_State* state);
 int y8_pal(lua_State* state);
 int y8_palt(lua_State* state);
+int y8_fillp(lua_State* state);
 int y8_clip(lua_State* state);
 int y8_mset(lua_State* state);
 int y8_mget(lua_State* state);

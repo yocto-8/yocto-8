@@ -19,7 +19,7 @@ struct DrawStateMisc : emu::MMIODevice<64>
         return data[0x25];
     }
 
-    std::uint16_t fill_pattern() const
+    auto fill_pattern() const
     {
         return get<std::uint16_t>(0x31);
     }
