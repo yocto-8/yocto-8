@@ -17,13 +17,13 @@ void Image::set_nibble(std::size_t i, std::uint8_t palette_entry) const
 
     if (i % 2 == 0) // lower pixel?
     {
-        pixel_pair_byte &= 0xF0; // clear lower byte
-        pixel_pair_byte |= palette_entry; // set lower byte
+        pixel_pair_byte &= 0xF0; // clear lower nibble
+        pixel_pair_byte |= palette_entry & 0x0F; // set lower nibble
     }
     else
     {
-        pixel_pair_byte &= 0x0F; // clear upper byte
-        pixel_pair_byte |= palette_entry << 4; // set upper byte
+        pixel_pair_byte &= 0x0F; // clear upper nibble
+        pixel_pair_byte |= palette_entry << 4; // set upper nibble
     }
 }
 
