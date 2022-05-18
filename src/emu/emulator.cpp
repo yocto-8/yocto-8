@@ -135,7 +135,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         {"time", bindings::y8_time},
     };
 
-    for (const auto [func, binding] : y8_std)
+    for (const auto& [func, binding] : y8_std)
     {
         lua_pushcfunction(_lua, binding);
         lua_setglobal(_lua, func.data());
