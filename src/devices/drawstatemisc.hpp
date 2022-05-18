@@ -14,6 +14,11 @@ struct DrawStateMisc : emu::MMIODevice<64>
 
     static constexpr std::uint16_t default_map_address = 0x5F00;
 
+    void reset() const
+    {
+        raw_pen_color() = 6; // light gray
+    }
+
     std::uint8_t& raw_pen_color() const
     {
         return data[0x25];
