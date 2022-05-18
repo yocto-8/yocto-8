@@ -545,7 +545,7 @@ int y8_circfill(lua_State* state)
 
     int radius = 4;
 
-    auto& raw_color = device<devices::DrawStateMisc>.raw_pen_color();
+    std::uint8_t raw_color = device<devices::DrawStateMisc>.raw_pen_color();
 
     if (argument_count >= 3)
     {

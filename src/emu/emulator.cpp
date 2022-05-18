@@ -56,6 +56,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     luaL_openlibs(_lua);
 
     device<devices::DrawPalette>.reset();
+    device<devices::DrawStateMisc>.reset();
     device<devices::ScreenPalette>.reset();
     device<devices::ClippingRectangle>.reset();
 
