@@ -8,6 +8,7 @@
 #include <emu/emulator.hpp>
 #include "../window.hpp"
 #include "devices/image.hpp"
+#include "devices/screenpalette.hpp"
 
 namespace hal
 {
@@ -24,7 +25,7 @@ std::uint16_t update_button_state()
 void present_frame()
 {
 #ifndef YOCTO8_DESKTOP_HEADLESS
-    arch::desktop::yolo_window.present_frame(emu::device<devices::Framebuffer>);
+    arch::desktop::yolo_window.present_frame(emu::device<devices::Framebuffer>, emu::device<devices::ScreenPalette>);
 #endif
 }
 

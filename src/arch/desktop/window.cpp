@@ -1,4 +1,5 @@
 #include "window.hpp"
+#include "devices/screenpalette.hpp"
 
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Window/Event.hpp>
@@ -16,7 +17,7 @@ Window::Window() :
     fb_texture.create(128, 128);
 }
 
-void Window::present_frame(devices::Framebuffer fb)
+void Window::present_frame(devices::Framebuffer fb, devices::ScreenPalette pal)
 {
     button_state =
         sf::Keyboard::isKeyPressed(sf::Keyboard::Left) << 0
@@ -36,7 +37,7 @@ void Window::present_frame(devices::Framebuffer fb)
     for (std::size_t i = 0; i < fb.frame_bytes * 2; ++i)
     {
         const auto palette_entry = fb.get_nibble(i);
-        const auto color_rgb8 = video::pico8_palette_rgb8[palette_entry];
+        const auto color_rgb8 = video::pico8_palette_rgb8[pal.get_color(palette_entry)];
         converted_fb[i * 4 + 0] = (color_rgb8 >> 16) & 0xFF;
         converted_fb[i * 4 + 1] = (color_rgb8 >> 8) & 0xFF;
         converted_fb[i * 4 + 2] = (color_rgb8 >> 0) & 0xFF;

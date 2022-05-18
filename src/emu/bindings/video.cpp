@@ -731,14 +731,14 @@ int y8_pal(lua_State* state)
     // - setting a pixel as transparent (draw palette)
     // - using the secret 16 colors (screen palette)
 
-    const auto c0 = luaL_checkunsigned(state, 1) & 0b0000'1111;
-    const auto c1 = luaL_checkunsigned(state, 2);
+    const auto c0 = lua_tounsigned(state, 1) & 0b0000'1111;
+    const auto c1 = lua_tounsigned(state, 2);
 
     std::uint8_t target_palette = 0;
 
     if (argument_count >= 3)
     {
-        target_palette = luaL_checkunsigned(state, 3);
+        target_palette = lua_tounsigned(state, 3);
     }
 
     switch (target_palette)
