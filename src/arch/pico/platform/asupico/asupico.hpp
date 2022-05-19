@@ -1,3 +1,5 @@
+#pragma once
+
 #include <video/ssd1351.hpp>
 #include <io/pushbutton.hpp>
 

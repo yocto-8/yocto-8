@@ -29,7 +29,14 @@ endif()
 
 project(yocto-8)
 
-add_compile_options("-fno-exceptions" $<$<CONFIG:RELWITHDEBINFO>:-Ofast>)
+add_compile_options(
+    "-fno-exceptions"
+    "-O3" "-ffast-math"
+
+    # NOTE: luaV_execute uses flatten which would be absurdly slow with LTO,
+    # and LTO doesn't really help us anyway, somehow. would be nice to figure this out
+    # "-flto"
+)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
@@ -136,6 +143,8 @@ if (Y8_ARCH STREQUAL "desktop")
         add_test(${testname} y8-headless "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/${testname}.p8")
     endfunction()
 
+    add_compile_definitions(FAST_FUNC_TARGET_SECTION=".text")
+
     y8_test(basic-assert)
     y8_test(lua-if)
 elseif (Y8_ARCH STREQUAL "pico")
@@ -179,8 +188,6 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     add_executable(y8 ${ARCH_SOURCES} ${PLATFORM_SOURCES})
     target_link_libraries(y8 PRIVATE y8-core)
-
-    set_property(TARGET y8 y8-core PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
     
     # Performs some checksum verification on SPI RAM when swapping pages in and out.
     # Use only for debugging; increases memory and CPU workload.
@@ -207,6 +214,8 @@ elseif (Y8_ARCH STREQUAL "pico")
         "${SDK_ROOT}/src/rp2_common/hardware_irq/irq.c"
         PROPERTIES COMPILE_FLAGS -fno-lto
     )
+
+    add_compile_definitions(FAST_FUNC_TARGET_SECTION=".time_critical.y8")
 endif()
 
 target_include_directories(y8-core PUBLIC ${ARCH_ROOT})
@@ -215,6 +224,14 @@ target_compile_options(y8-core
     PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wno-ignored-qualifiers>
 )
+
+# Causes issues with lua; when lua excluded, no significant gains
+# set_target_properties(y8 PROPERTIES
+#     UNITY_BUILD ON
+# )
+# foreach(FILE IN LISTS LUA_SOURCES)
+# 	set_property(SOURCE ${FILE} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
+# endforeach()
 
 target_include_directories(y8-core PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
