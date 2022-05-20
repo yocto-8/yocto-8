@@ -329,6 +329,36 @@ inline Point draw_text(
     return current_position;
 }
 
+enum class Palette
+{
+    PEN_PALETTE = 0,
+    SCREEN_PALETTE = 1,
+    SCREEN_SECRET_PALETTE = 2
+};
+
+inline void set_palette_color(
+    std::uint8_t source_color,
+    std::uint8_t target_color,
+    Palette palette
+)
+{
+    // source_color seems to be %16 on pico-8
+    
+    // target_color can have the higher nibble non-zero for
+    // - setting a pixel as transparent (draw palette)
+    // - using the secret 16 colors (screen palette)
+
+    source_color &= 0b0000'1111;
+
+    switch (palette)
+    {
+    case Palette::PEN_PALETTE: device<devices::DrawPalette>.set_color(source_color, target_color); break;
+    case Palette::SCREEN_PALETTE: device<devices::ScreenPalette>.set_raw_color(source_color, target_color); break;
+    // TODO: Palette::SCREEN_SECRET_PALETTE
+    default: break; // verified pico-8 behavior: other values do nothing
+    }
+}
+
 }
 
 int y8_camera(lua_State* state)
@@ -725,29 +755,38 @@ int y8_pal(lua_State* state)
         return 0;
     }
 
-    // c0 seems to be %16 on pico-8
-    
-    // c1 can have the higher nibble non-zero for
-    // - setting a pixel as transparent (draw palette)
-    // - using the secret 16 colors (screen palette)
-
-    const auto c0 = lua_tounsigned(state, 1) & 0b0000'1111;
-    const auto c1 = lua_tounsigned(state, 2);
-
     std::uint8_t target_palette = 0;
+
+    // first parameter is table? => pal(tbl, [target_palette])
+    if (lua_istable(state, 1))
+    {
+        if (argument_count >= 2)
+        {
+            target_palette = lua_tounsigned(state, 2);
+        }
+
+        const auto num_entries = lua_rawlen(state, 1);
+
+        for (std::size_t i = 0; i < num_entries; ++i)
+        {
+            lua_rawgeti(state, 1, int(i + 1));
+            const auto target_color = lua_tointeger(state, -1);
+            detail::set_palette_color(i, target_color, detail::Palette(target_palette));
+            lua_pop(state, 1);
+        }
+
+        return 0;
+    }
+
+    const auto source_color = lua_tounsigned(state, 1);
+    const auto target_color = lua_tounsigned(state, 2);
 
     if (argument_count >= 3)
     {
         target_palette = lua_tounsigned(state, 3);
     }
 
-    switch (target_palette)
-    {
-    case 0: device<devices::DrawPalette>.set_color(c0, c1); break;
-    case 1: device<devices::ScreenPalette>.set_raw_color(c0, c1); break;
-    // FIXME: case 2 should handle the 2ndary palette
-    default: break; // verified pico-8 behavior: other values do nothing
-    }
+    detail::set_palette_color(source_color, target_color, detail::Palette(target_palette));
 
     return 0;
 }
