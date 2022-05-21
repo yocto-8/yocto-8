@@ -3,9 +3,11 @@
 #include <pico/stdlib.h>
 #include <hardware/vreg.h>
 #include <hardware/clocks.h>
+#include <cstdio>
 
-#include <extmem/cachedinterface.hpp>
 #include <hardwarestate.hpp>
+#include <extmem/spiram.hpp>
+#include <extmem/faulthandler.hpp>
 
 namespace arch::pico::platform::asupico
 {
@@ -199,9 +201,9 @@ void init_spi_ram()
 
 void init_emulator()
 {
-    emu::emulator.init(std::span<std::byte, pico::extmem::bank_size>(
-        reinterpret_cast<std::byte*>(pico::extmem::bank_base),
-        reinterpret_cast<std::byte*>(pico::extmem::bank_base + pico::extmem::bank_size)
+    emu::emulator.init(std::span(
+        pico::extmem::bank_base,
+        pico::extmem::bank_size
     ));
 }
 

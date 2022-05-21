@@ -164,7 +164,6 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
     set(ARCH_SOURCES
-        ${ARCH_ROOT}/extmem/cachedinterface.cpp
         ${ARCH_ROOT}/extmem/faulthandler.cpp
         ${ARCH_ROOT}/extmem/spiram.cpp
         ${ARCH_ROOT}/hal/hal.cpp
@@ -189,7 +188,7 @@ elseif (Y8_ARCH STREQUAL "pico")
         message(FATAL_ERROR "Y8_PLATFORM not specified, illegal or not supported on the \"pico\" arch")
     endif()
 
-    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore)
+    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore cmsis_core)
     
     # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
     # 1. usage of the secondary memory pool requires us to handle failing allocs.

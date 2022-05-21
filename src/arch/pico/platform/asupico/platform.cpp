@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <platform/platform.hpp>
 #include <platform/asupico/asupico.hpp>
 
@@ -11,13 +12,21 @@ void init_hardware()
 {
     using namespace asupico;
 
+    printf("Configuring core frequency\n");
     init_default_frequency();
+    printf("Booting command thread\n");
     init_cmd_thread();
+    printf("Configuring stdio\n");
     init_stdio();
+    printf("Configuring buttons\n");
     init_buttons();
+    printf("Configuring SPI RAM\n");
     init_spi_ram();
+    printf("Configuring video\n");
     init_video_ssd1351();
+    printf("Configuring emulator\n");
     init_emulator();
+    printf("Hardware init done\n");
 }
 
 void present_frame(FrameCopiedCallback* callback)

@@ -1,13 +1,22 @@
 #include "faulthandler.hpp"
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <hardware/structs/xip_ctrl.h>
+#include <RP2040.h>
 
 #include "armdisassembler.hpp"
-#include "cachedinterface.hpp"
+#include "extmem/spiram.hpp"
+#include "hardware/timer.h"
+#include "pico/platform.h"
+#include "pico/time.h"
 
 namespace arch::pico::extmem
 {
+bool is_xip_mode = true;
+
 extern "C"
 {
 void isr_hardfault()
@@ -88,7 +97,18 @@ struct DispatchTableHelper
 void hard_fault_handler_c(std::uint32_t* args)
 {
     const auto*& pc = reinterpret_cast<const std::uint16_t*&>(args[PC]);
-    //printf("Trying to recover from fault for op @%p\n", instr_address);
+    //printf("Trying to recover from fault for op @%p\n", pc);
+
+    /*if (!is_xip_mode && std::uintptr_t(pc) >= XIP_BASE && std::uintptr_t(pc) < XIP_BASE + 0x01000000)
+    {
+        mpu_to_xip_mode();
+        return;
+    }*/
+
+    if (is_xip_mode)
+    {
+        mpu_to_ram_mode();
+    }
 
     const std::uint16_t first_word = *pc;
 
@@ -147,128 +167,106 @@ void hard_fault_handler_c(std::uint32_t* args)
     op_str_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_temporary_ref<std::uint32_t>(resolve_relative_address(op)) = get_low_register(op.rt);
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_strh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_temporary_ref<std::uint16_t>(resolve_relative_address(op)) = get_low_register(op.rt);
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_strb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_temporary_ref<std::uint8_t>(resolve_relative_address(op)) = get_low_register(op.rt);
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_ldrsb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = std::int32_t(get_temporary_ref<std::int8_t>(resolve_relative_address(op)));
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_ldr_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(resolve_relative_address(op));
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_ldrh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint16_t>(resolve_relative_address(op));
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
     
     op_ldrb_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint8_t>(resolve_relative_address(op));
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_ldrsh_reg:
     {
         const arm::RegisterMemoryOp op(first_word);
-        get_low_register(op.rt) = std::int32_t(get_temporary_ref<std::int16_t>(resolve_relative_address(op)));
-
-        pc += 1;
+        page_in(resolve_relative_address(op));
         return;
     }
 
     op_str_imm:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_temporary_ref<std::uint32_t>(resolve_address(op, 4)) = get_low_register(op.rt);
-
-        pc += 1;
+        page_in(resolve_address(op, 4));
         return;
     }
 
     op_ldr_imm:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_low_register(op.rt) = get_temporary_ref<std::uint32_t>(resolve_address(op, 4));
-
-        pc += 1;
+        page_in(resolve_address(op, 4));
         return;
     }
 
     op_strb_imm:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_temporary_ref<std::uint8_t>(resolve_address(op, 1)) = get_low_register(op.rt);
-
-        pc += 1;
+        page_in(resolve_address(op, 1));
         return;
     }
 
     op_ldrb_imm:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_low_register(op.rt) = std::uint32_t(get_temporary_ref<std::uint8_t>(resolve_address(op, 1)));
-
-        pc += 1;
+        page_in(resolve_address(op, 1));
         return;
     }
 
     op_strh_imm:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_temporary_ref<std::uint16_t>(resolve_address(op, 2)) = get_low_register(op.rt);
-
-        pc += 1;
+        page_in(resolve_address(op, 2));
         return;
     }
 
     op_ldrh_imm:
     {
         const arm::ImmediateMemoryOp op(first_word);
-        get_low_register(op.rt) = std::uint32_t(get_temporary_ref<std::uint16_t>(resolve_address(op, 2)));
-
-        pc += 1;
+        page_in(resolve_address(op, 2));
         return;
     }
+
+    // so...
+    // stm and ldm are kind of special. those are the only ops we need to emulate entirely
+    // the reason for this is that they may fail across the page boundary, unlike everything else
+    // there is no proper way to prevent that, as we cannot move the 16KiB boundary anyway
+    // however, if STM/LDM fail mid op, it _should_ not be a problem that we emulate them all over again
 
     op_stm:
     {
@@ -280,7 +278,12 @@ void hard_fault_handler_c(std::uint32_t* args)
         {
             if ((op.register_list >> i) & 0b1)
             {
-                get_temporary_ref<std::uint32_t>(current_address) = get_low_register(i);
+                if (!is_paged(current_address))
+                {
+                    page_in(current_address);
+                }
+
+                *reinterpret_cast<std::uint32_t*>(current_address) = get_low_register(i);
                 current_address += 4;
             }
         }
@@ -306,7 +309,12 @@ void hard_fault_handler_c(std::uint32_t* args)
             
             if ((op.register_list >> i) & 0b1)
             {
-                get_low_register(i) = get_temporary_ref<std::uint32_t>(current_address);
+                if (!is_paged(current_address))
+                {
+                    page_in(current_address);
+                }
+
+                get_low_register(i) = *reinterpret_cast<std::uint32_t*>(current_address);
                 current_address += 4;
             }
         }
@@ -329,4 +337,171 @@ void hard_fault_handler_c(std::uint32_t* args)
     }
 }
 }
+
+/// \brief Clock used to trigger a XIP enablement after some time
+/// We do this to prevent excessive thrashing.
+/// Swapping from XIP to RAM cache modes is very costly for now, more so than running XIP-free for a while.
+static constexpr unsigned xip_reenable_clock_num = 0;
+
+using Page = std::array<std::byte, 1024>;
+constexpr auto page_cache_size = 32;
+constexpr auto nonpresent_address = std::uintptr_t(-1);
+constexpr auto page_size = 1024;
+
+static std::array<Page, page_cache_size> page_cache;
+static std::array<std::uintptr_t, page_cache_size> cached_page_base_address = {};
+static std::uintptr_t active_base_address = nonpresent_address;
+
+void mpu_setup()
+{
+    cached_page_base_address.fill(nonpresent_address);
+
+    hardware_alarm_claim(xip_reenable_clock_num);
+
+    hardware_alarm_set_callback(xip_reenable_clock_num, +[](unsigned alarm_id) {
+        //ARM_MPU_SetRegionEx(7UL, XIP_BASE, ARM_MPU_RASR(0UL, ARM_MPU_AP_NONE, 0UL, 0UL, 1UL, 1UL, 0x00UL, ARM_MPU_REGION_SIZE_64MB));
+        mpu_to_xip_mode();
+        hardware_alarm_cancel(xip_reenable_clock_num);
+    });
+
+    // enable the MPU, keep it enabled during hardfaults, and use the background memory map
+    // https://www.keil.com/pack/doc/CMSIS_Dev/Core/html/group__mpu__functions.html#ga31406efd492ec9a091a70ffa2d8a42fb
+    ARM_MPU_Enable(MPU_CTRL_PRIVDEFENA_Msk);
+
+    // begin in a xip mode -- SRAM accesses will fault
+    // (the XIP kind of already does that because it would trigger a bus error to
+    // access the SRAM bank while the XIP cache is active - but whatever, let's be consistent)
+    ARM_MPU_SetRegionEx(0UL, std::uintptr_t(bank_base), ARM_MPU_RASR(0UL, ARM_MPU_AP_NONE, 0UL, 1UL, 1UL, 1UL, 0x00UL, ARM_MPU_REGION_SIZE_16MB));
+}
+
+void __not_in_flash_func(mpu_to_xip_mode)()
+{
+    //printf("==XIP\n");
+    
+    hardware_alarm_cancel(xip_reenable_clock_num);
+
+    page_out();
+
+    is_xip_mode = true;
+
+    // enable XIP
+    xip_ctrl_hw->ctrl = 0b0101;
+    xip_ctrl_hw->flush = 1;
+    xip_ctrl_hw->flush;
+
+    ARM_MPU_ClrRegion(7UL);
+}
+
+void __not_in_flash_func(mpu_to_ram_mode)()
+{
+    //printf("==RAM\n");
+
+    is_xip_mode = false;
+
+    // disable XIP. flash accesses still work, but are uncached
+    xip_ctrl_hw->ctrl = 0b0100;
+    xip_ctrl_hw->flush = 1;
+
+    // force read to wait for flush to complete.
+    // if we don't, it's possible we get corruption in the XIP-as-SRAM area
+    // while the XIP controller evicts cachelines.
+    xip_ctrl_hw->flush;
+
+    ARM_MPU_SetRegionEx(0UL, std::uintptr_t(bank_base), ARM_MPU_RASR(0UL, ARM_MPU_AP_NONE, 0UL, 1UL, 1UL, 1UL, 0x00UL, ARM_MPU_REGION_SIZE_16MB));
+}
+
+inline std::uintptr_t __not_in_flash_func(round_to_page_address)(std::uintptr_t address)
+{
+    return (address / page_size) * page_size;
+}
+
+bool __not_in_flash_func(is_paged)(std::uintptr_t unaligned_address)
+{
+    //printf("is paged? %p vs %p\n", active_base_address, round_to_page_address(unaligned_address));
+    return active_base_address == round_to_page_address(unaligned_address);
+}
+
+std::size_t resolve_page_cache_slot(std::uintptr_t base_address)
+{
+    return (base_address / page_size) % page_cache_size;
+}
+
+void __not_in_flash_func(page_out)()
+{
+    if (active_base_address == nonpresent_address)
+    {
+        //printf("region %d not eligible for eviction\n", region_index);
+        return;
+    }
+
+    const auto cache_slot = resolve_page_cache_slot(active_base_address);
+    const auto slot_current_page_address = cached_page_base_address[cache_slot];
+
+    if (slot_current_page_address != active_base_address
+        && slot_current_page_address != nonpresent_address)
+    {
+        // evict old cache page to SPI RAM
+        //printf("cacheslot %d->psram %p\n", cache_slot, slot_current_page_address - std::uintptr_t(bank_base));
+
+        spiram::write_page(
+            slot_current_page_address - std::uintptr_t(bank_base),
+            std::span<const std::uint8_t, page_size>(
+                reinterpret_cast<const std::uint8_t*>(page_cache[cache_slot].data()),
+                page_size));
+    }
+
+    // cache the page that we are evicting out of XIP RAM
+    //printf("xipram %p->cacheslot %d\n", active_base_address, cache_slot);
+    std::memcpy(page_cache[cache_slot].data(), reinterpret_cast<void*>(active_base_address), page_size);
+    
+    cached_page_base_address[cache_slot] = active_base_address;
+    active_base_address = nonpresent_address;
+}
+
+void __not_in_flash_func(page_in)(std::uintptr_t address)
+{
+    const auto base_address = round_to_page_address(address);
+
+    page_out();
+
+    const auto cache_slot = resolve_page_cache_slot(base_address);
+    const auto slot_current_page_address = cached_page_base_address[cache_slot];
+
+    // the region at index 0 traps all accesses to the bank area
+    // set up a region at index 1 (which is higher priority)
+    // that allows them for a 1KiB window, which is the "active page"
+    ARM_MPU_SetRegionEx(1UL, base_address, ARM_MPU_RASR(0UL, ARM_MPU_AP_FULL, 0UL, 0UL, 1UL, 1UL, 0x00UL, ARM_MPU_REGION_SIZE_1KB));
+
+    if (slot_current_page_address == nonpresent_address)
+    {
+        // skippable: if no cache was ever on this slot, it never was saved to
+        //printf("skip cacheslot %d for %p\n", cache_slot, base_address);
+    }
+    else if (slot_current_page_address == base_address)
+    {
+        // happy case: we have this page cached :)
+        //printf("cacheslot %d->xipram %p (fault on %p)\n", cache_slot, base_address, address);
+        std::memcpy(reinterpret_cast<void*>(base_address), page_cache[cache_slot].data(), page_size);
+    }
+    else
+    {
+        // sad case: we need to read from psram :(
+        //printf("psram %p->xipram %p (fault on %p)\n", base_address - std::uintptr_t(bank_base), base_address, address);
+        spiram::read_page(base_address - std::uintptr_t(bank_base),
+            std::span<std::uint8_t, 1024>(
+                reinterpret_cast<std::uint8_t*>(base_address),
+                1024
+            ));
+    }
+
+    // NOTE: the µs value is pretty janky, and was obtained through trial and error for the most part
+    //       it seems to trigger quite sooner than the said xµs, too
+    hardware_alarm_set_target(xip_reenable_clock_num, delayed_by_us(get_absolute_time(), 40));
+
+    // FIXME: multiple 1kib bank mapping
+
+    active_base_address = base_address;
+
+}
+
 }

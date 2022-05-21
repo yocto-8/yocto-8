@@ -1,8 +1,10 @@
 #include "spiram.hpp"
 
+#include "extmem/faulthandler.hpp"
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 #include "hardware/timer.h"
+#include "pico/platform.h"
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -64,6 +66,8 @@ void setup()
     {
         exit(1);
     }
+    
+    mpu_setup();
 }
 
 bool test_chip_presence_destructive()
@@ -101,7 +105,7 @@ void validate_address(std::uint32_t page_aligned_address)
 }
 
 [[gnu::flatten, gnu::noinline]]
-void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf)
+void __not_in_flash_func(read_page)(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
 
@@ -123,7 +127,7 @@ void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> bu
 }
 
 [[gnu::flatten, gnu::noinline]]
-void write_page(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf)
+void __not_in_flash_func(write_page)(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
 

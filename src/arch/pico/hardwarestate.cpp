@@ -6,7 +6,6 @@
 #include <hardware/clocks.h>
 
 #include <emu/emulator.hpp>
-#include <extmem/cachedinterface.hpp>
 #include <cmdthread.hpp>
 
 namespace arch::pico

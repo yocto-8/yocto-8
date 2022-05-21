@@ -105,12 +105,12 @@ class SSD1351
         channel_config_set_dreq(&dma_cfg, spi_get_index(spi_default) ? DREQ_SPI1_TX : DREQ_SPI0_TX);*/
     }
 
-    void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette)
+    void __not_in_flash_func(load_rgb_palette)(std::span<const std::uint32_t, 32> new_rgb_palette)
     {
         palette = util::make_r5g6b5_palette(new_rgb_palette, true);
     }
 
-    void reset_blocking()
+    void __not_in_flash_func(reset_blocking)()
     {
         gpio_put(_pinout.rst, 1);
         sleep_ms(1);
@@ -124,11 +124,12 @@ class SSD1351
     using DataBuffer = std::array<std::uint8_t, N>;
 
     // scale 0x0..0xF
-    void set_brightness(std::uint8_t scale)
+    void __not_in_flash_func(set_brightness)(std::uint8_t scale)
     {
         write(Command::SET_GLOBAL_CONTRAST, DataBuffer<1>{scale});
     }
 
+    [[gnu::optimize("Os")]]
     void submit_init_sequence()
     {
         // Enable MCU interface (else some commands will be dropped)
@@ -191,7 +192,7 @@ class SSD1351
         write(Command::DISPLAY_ON);
     }
 
-    void write(Command command, std::span<const std::uint8_t> data = {})
+    inline void write(Command command, std::span<const std::uint8_t> data = {})
     {
         gpio_put(_pinout.dc, 0);
         gpio_put(_pinout.cs, 0);
@@ -205,7 +206,7 @@ class SSD1351
         gpio_put(_pinout.cs, 1);
     }
 
-    void update_frame(devices::Framebuffer view, devices::ScreenPalette screen_palette)
+    void __not_in_flash_func(update_frame)(devices::Framebuffer view, devices::ScreenPalette screen_palette)
     {
         //const auto time_start = get_absolute_time();
 

@@ -9,7 +9,6 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-#include <umm_malloc.h>
 #include <frozen/string.h>
 #include <frozen/unordered_map.h>
 #include <frozen/set.h>
@@ -44,9 +43,9 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     if (!memory_buffer.empty())
     {
-        umm_init_heap(
+        /*umm_init_heap(
             _memory_buffer.data(),
-            _memory_buffer.size_bytes());
+            _memory_buffer.size_bytes());*/
     }
     
     const auto default_palette = hal::get_default_palette();
@@ -353,9 +352,19 @@ void Emulator::panic(const char* message)
     exit(1);
 }
 
-void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
+#include "tinyalloc.hpp"
+
+[[gnu::flatten]]
+void* __not_in_flash_func(lua_alloc)(void* ud, void* ptr, size_t osize, size_t nsize)
 {
     (void)ud;
+
+    static bool fuck = false;
+    if (!fuck)
+    {
+        ta_init();
+        fuck = true;
+    }
 
     // This is a Lua allocation function that uses standard malloc and realloc,
     // but can make use of a secondary memory pool as a fallback using umm_malloc.
@@ -399,7 +408,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 
         if (is_ptr_on_slow_heap())
         {
-            umm_free(ptr);
+            ta_free(ptr);
         }
         else
         {
@@ -433,7 +442,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return nullptr;
         }
 
-        return umm_malloc(nsize);
+        return ta_alloc(nsize);
     };
 
     const auto realloc_from_main_to_extra_heap = [&]() -> void* {
@@ -442,7 +451,21 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return nullptr;
         }
 
-        const auto new_ptr = umm_malloc(nsize);
+        const auto new_ptr = ta_alloc(nsize);
+
+        if (new_ptr == nullptr)
+        {
+            printf("slow heap exhausted!!\n");
+            return nullptr;
+        }
+
+        std::memcpy(new_ptr, ptr, std::min(osize, nsize));
+        free(ptr);
+        return new_ptr;
+    };
+    
+    const auto slow_realloc = [&]() -> void* {
+        const auto new_ptr = auto_malloc();
 
         if (new_ptr == nullptr)
         {
@@ -450,7 +473,7 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
         }
 
         std::memcpy(new_ptr, ptr, std::min(osize, nsize));
-        free(ptr);
+        auto_free();
         return new_ptr;
     };
 
@@ -483,28 +506,11 @@ void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
             return realloc_from_main_to_extra_heap();
         }
         
-        return umm_realloc(ptr, nsize);
+        return slow_realloc();
     }
     else // nsize > osize
     {
-        if (is_ptr_on_slow_heap())
-        {
-            // it is possible, but rare that this would fail in the extra heap
-            // even though the realloc could fit in the main heap.
-            // so let's ignore that usecase.
-            return umm_realloc(ptr, nsize);
-        }
-        
-        const auto nptr = realloc(ptr, nsize);
-
-        if (nptr != nullptr)
-        {
-            has_alloc_succeeded_since_egc = true;
-            return nptr;
-        }
-
-        // main heap exhausted
-        return realloc_from_main_to_extra_heap();
+        return slow_realloc();
     }
 }
 

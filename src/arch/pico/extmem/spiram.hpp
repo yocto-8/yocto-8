@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <pico/platform.h>
 
 namespace arch::pico::extmem::spiram
 {
@@ -21,7 +22,7 @@ void select(bool chip_selected);
 
 void validate_address(std::uint32_t page_aligned_address);
 
-void read_page(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf);
-void write_page(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf);
+void __not_in_flash_func(read_page)(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf);
+void __not_in_flash_func(write_page)(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf);
 
 }
