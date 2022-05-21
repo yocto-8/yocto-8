@@ -1,3 +1,4 @@
+#include "video/palette.hpp"
 #include <hal/hal.hpp>
 
 #include <hardwarestate.hpp>
@@ -25,6 +26,11 @@ std::uint16_t update_button_state()
 void load_rgb_palette(std::span<std::uint32_t, 32> new_palette)
 {
     picosystem::hw.st7789.load_rgb_palette(new_palette);
+}
+
+std::span<const std::uint32_t, 32> get_default_palette()
+{
+    return video::pico8_palette_rgb8;
 }
 
 }

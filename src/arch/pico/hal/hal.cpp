@@ -33,9 +33,4 @@ void delay_time_us(std::uint64_t time)
     sleep_us(time);
 }
 
-std::span<const std::uint32_t, 32> get_default_palette()
-{
-    return video::pico8_palette_rgb8;
-}
-
 }
