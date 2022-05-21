@@ -56,14 +56,14 @@ int y8_max(lua_State* state)
 int y8_sin(lua_State* state)
 {
     const auto x = luaL_checknumber(state, 1);
-    lua_pushnumber(state, -(x * (LuaFix16::from_fix16(fix16_pi) * 2)).sin());
+    lua_pushnumber(state, -(x * (LuaFix16::from_fix16(TWO_PI))).sin());
     return 1;
 }
 
 int y8_cos(lua_State* state)
 {
     const auto x = luaL_checknumber(state, 1);
-    lua_pushnumber(state, (x * (LuaFix16::from_fix16(fix16_pi) * 2)).cos());
+    lua_pushnumber(state, (x * (LuaFix16::from_fix16(TWO_PI))).cos());
     return 1;
 }
 
