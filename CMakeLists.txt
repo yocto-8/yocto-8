@@ -95,6 +95,17 @@ set(LUA_SOURCES
 )
 # compile Lua as C++ - we need this for the fixmath black magic
 set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
+
+# we care more about code size than about performance for some functionality.
+# for these, use lighter optimization levels
+set_source_files_properties(
+    ${LUA_ROOT}/llex.c
+    ${LUA_ROOT}/lparser.c
+    ${LUA_ROOT}/lcode.c
+    ${LUA_ROOT}/lundump.c
+    ${LUA_ROOT}/ldebug.c
+
+    PROPERTIES COMPILE_FLAGS "-Os")
 add_compile_definitions(LUA_USE_LONGJMP)
 target_sources(y8-core PUBLIC ${LUA_SOURCES})
 
