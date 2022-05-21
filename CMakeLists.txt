@@ -117,6 +117,7 @@ set(FIXMATH_SOURCES
     ${FIXMATH_ROOT}/fix16_trig.c
     ${FIXMATH_ROOT}/fix16.c
 )
+set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 target_sources(y8-core PUBLIC ${FIXMATH_SOURCES})
 
 set(ALLOC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/umm_malloc/src/")
