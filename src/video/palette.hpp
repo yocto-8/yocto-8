@@ -42,7 +42,13 @@ constexpr std::array<std::uint32_t, 32> ssd1351_precal_palette_rgb8 {
     pack_rgb(70, 123, 255),
     pack_rgb(127, 88, 165),
     pack_rgb(238, 25, 159),
-    pack_rgb(240, 179, 133)
+    pack_rgb(240, 179, 133),
+
+    // undocumented extra colors, uncalibrated
+    0x291814, 0x111D35, 0x422136, 0x125359,
+    0x742F29, 0x49333B, 0xA28879, 0xF3EF7D,
+    0xBE1250, 0xFF6C24, 0xA8E72E, 0x00B543,
+    0x065AB5, 0x754665, 0xFF6E59, 0xFF9D81
 };
 
 }
