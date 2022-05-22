@@ -767,9 +767,9 @@ int y8_pal(lua_State* state)
 
         const auto num_entries = lua_rawlen(state, 1);
 
-        for (std::size_t i = 0; i < num_entries; ++i)
+        for (std::size_t i = 1; i <= num_entries; ++i)
         {
-            lua_rawgeti(state, 1, int(i + 1));
+            lua_rawgeti(state, 1, int(i));
             const auto target_color = lua_tointeger(state, -1);
             detail::set_palette_color(i, target_color, detail::Palette(target_palette));
             lua_pop(state, 1);
