@@ -353,6 +353,7 @@ void Emulator::panic(const char* message)
 }
 
 #include "tinyalloc.hpp"
+#include <pico/platform.h>
 
 [[gnu::flatten]]
 void* __not_in_flash_func(lua_alloc)(void* ud, void* ptr, size_t osize, size_t nsize)

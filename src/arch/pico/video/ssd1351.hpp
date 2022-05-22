@@ -206,6 +206,7 @@ class SSD1351
         gpio_put(_pinout.cs, 1);
     }
 
+    [[gnu::flatten]]
     void __not_in_flash_func(update_frame)(devices::Framebuffer view, devices::ScreenPalette screen_palette)
     {
         //const auto time_start = get_absolute_time();

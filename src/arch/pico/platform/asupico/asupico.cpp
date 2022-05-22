@@ -7,7 +7,7 @@
 
 #include <hardwarestate.hpp>
 #include <extmem/spiram.hpp>
-#include <extmem/faulthandler.hpp>
+#include <extmem/paging.hpp>
 
 namespace arch::pico::platform::asupico
 {

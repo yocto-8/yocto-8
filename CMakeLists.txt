@@ -164,6 +164,7 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
     set(ARCH_SOURCES
+        ${ARCH_ROOT}/extmem/paging.cpp
         ${ARCH_ROOT}/extmem/faulthandler.cpp
         ${ARCH_ROOT}/extmem/spiram.cpp
         ${ARCH_ROOT}/hal/hal.cpp

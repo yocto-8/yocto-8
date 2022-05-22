@@ -1,6 +1,6 @@
 #include "spiram.hpp"
 
-#include "extmem/faulthandler.hpp"
+#include "extmem/paging.hpp"
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 #include "hardware/timer.h"
@@ -67,7 +67,7 @@ void setup()
         exit(1);
     }
     
-    mpu_setup();
+    init_xipram();
 }
 
 bool test_chip_presence_destructive()

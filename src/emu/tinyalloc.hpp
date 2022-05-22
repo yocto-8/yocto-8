@@ -1,6 +1,6 @@
 #pragma once
 
-#include "extmem/faulthandler.hpp"
+#include "extmem/paging.hpp"
 #include <cstdint>
 #include <cstddef>
 
