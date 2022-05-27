@@ -101,6 +101,7 @@ void page_in(std::uintptr_t address);
 /// \brief Configures region \p xipram_protection_mpu_region to fault on accesses to the XIP RAM.
 void mpu_enable_fault_on_xipram();
 
+MpuRegionIndex region_index_from_page_index(PageIndex page_index);
 PageCacheSlot cache_slot_from_page_index(PageIndex page_index);
 PageIndex page_index_from_address(std::byte* xipram_address);
 std::byte* address_from_page_index(PageIndex page_index);

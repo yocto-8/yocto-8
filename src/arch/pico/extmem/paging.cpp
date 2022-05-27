@@ -190,11 +190,10 @@ bool __not_in_flash_func(try_load_page_from_cache)(PageIndex page, std::byte* ta
     return true;
 }
 
-void __not_in_flash_func(reclaim_mpu_region_for)(PageIndex page)
+void __not_in_flash_func(reclaim_mpu_region_for)(PageIndex page_index)
 {
-    const auto index_within_16kb_region = page % (16384 / page_size);
-    const auto region_index = index_within_16kb_region % used_mpu_regions.size();
-    const auto base_address = address_from_page_index(page);
+    const auto region_index = region_index_from_page_index(page_index);
+    const auto base_address = address_from_page_index(page_index);
     const auto previous_occupant = mpu_region_occupants[region_index];
 
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
@@ -214,7 +213,7 @@ void __not_in_flash_func(reclaim_mpu_region_for)(PageIndex page)
         std::uintptr_t(base_address),
         ARM_MPU_RASR(0UL, ARM_MPU_AP_FULL, 0UL, 0UL, 1UL, 1UL, 0x00UL, mpu_page_size));
 
-    mpu_region_occupants[region_index] = page;
+    mpu_region_occupants[region_index] = page_index;
 }
 
 void __not_in_flash_func(unclaim_mpu_region)(MpuRegionIndex region_index)
@@ -225,16 +224,8 @@ void __not_in_flash_func(unclaim_mpu_region)(MpuRegionIndex region_index)
 bool __not_in_flash_func(is_paged)(std::uintptr_t address)
 {
     const auto page_index = page_index_from_address(reinterpret_cast<std::byte*>(address));
-
-    for (MpuRegionIndex i = 0; i < used_mpu_regions.size(); ++i)
-    {
-        if (mpu_region_occupants[i] == page_index)
-        {
-            return true;
-        }
-    }
-
-    return false;
+    const auto region_index = region_index_from_page_index(page_index);
+    return mpu_region_occupants[region_index] == page_index;
 }
 
 void __not_in_flash_func(page_in)(std::uintptr_t address)
@@ -288,6 +279,12 @@ void __not_in_flash_func(mpu_enable_fault_on_xipram)()
         xipram_protection_mpu_region,
         std::uintptr_t(bank_base),
         ARM_MPU_RASR(0UL, ARM_MPU_AP_NONE, 0UL, 1UL, 1UL, 1UL, 0x00UL, ARM_MPU_REGION_SIZE_16MB));
+}
+
+MpuRegionIndex region_index_from_page_index(PageIndex page_index)
+{
+    const auto index_within_16kb_region = page_index % (16384 / page_size);
+    return index_within_16kb_region % used_mpu_regions.size();
 }
 
 PageCacheSlot __not_in_flash_func(cache_slot_from_page_index)(PageIndex page_index)
