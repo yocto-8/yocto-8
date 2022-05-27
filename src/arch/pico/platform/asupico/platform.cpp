@@ -29,7 +29,7 @@ void init_hardware()
     printf("Hardware init done\n");
 }
 
-void present_frame(FrameCopiedCallback* callback)
+void __not_in_flash_func(present_frame)(FrameCopiedCallback* callback)
 {
     emu::device<devices::Framebuffer>.clone_into(asupico::hw.fb_copy);
 

@@ -66,8 +66,6 @@ void setup()
     gpio_set_function(pin_sck, GPIO_FUNC_SPI);
     gpio_set_function(pin_tx, GPIO_FUNC_SPI);
 
-    gpio_set_slew_rate(pin_cs, GPIO_SLEW_RATE_FAST);
-
     gpio_init(pin_cs);
     gpio_set_dir(pin_cs, GPIO_OUT);
     select(false);
@@ -146,10 +144,12 @@ void validate_address(std::uint32_t page_aligned_address)
     assert(page_aligned_address < ram_size);
 }
 
-[[gnu::flatten, gnu::noinline]]
+[[gnu::flatten, gnu::always_inline]]
 void __not_in_flash_func(read_page)(std::uint32_t page_address, std::span<std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
+
+    switch_to_baudrate(spi1, low_freq_params);
 
     // 1K page burst read: no need for 32-byte burst reads
 
@@ -168,7 +168,7 @@ void __not_in_flash_func(read_page)(std::uint32_t page_address, std::span<std::u
     //sleep_ms(1);
 }
 
-[[gnu::flatten, gnu::noinline]]
+[[gnu::flatten, gnu::always_inline]]
 void __not_in_flash_func(write_page)(std::uint32_t page_address, std::span<const std::uint8_t, page_size> buf)
 {
     validate_address(page_address);
@@ -189,8 +189,6 @@ void __not_in_flash_func(write_page)(std::uint32_t page_address, std::span<const
     spi_write_blocking(spi1, buf.data(), buf.size());
     select(false);
     //sleep_ms(1);
-
-    switch_to_baudrate(spi1, low_freq_params);
 }
 
 }

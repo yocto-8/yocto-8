@@ -6,6 +6,7 @@
 #include <cstring>
 #include <hardware/structs/xip_ctrl.h>
 #include <RP2040.h>
+#include "hardware/sync.h"
 #include "hardware/timer.h"
 #include "pico/platform.h"
 #include "pico/time.h"
@@ -103,6 +104,11 @@ void hard_fault_handler_c(std::uint32_t* args)
         mpu_to_xip_mode();
         return;
     }*/
+
+    if (get_core_num() != 0)
+    {
+        __breakpoint();
+    }
 
     if (!is_in_ram_mode())
     {
@@ -331,7 +337,7 @@ void hard_fault_handler_c(std::uint32_t* args)
 
     default_case: [[unlikely]]
     {
-        printf("Hard fault handler failed to recover (instr 0x%02x)\n", first_word);
+        printf("Hard fault handler failed to recover (instr 0x%04x)\n", first_word);
         __breakpoint();
         for (;;)
             ;

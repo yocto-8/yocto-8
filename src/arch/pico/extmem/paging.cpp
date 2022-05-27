@@ -11,6 +11,7 @@
 #include <RP2040.h>
 
 //#define FILL_MY_STDIO_WITH_DEBUG_UWU
+//#define DUMP_PERF_COUNTERS
 
 namespace arch::pico::extmem
 {
@@ -53,7 +54,6 @@ bool __not_in_flash_func(is_in_ram_mode)()
     return !xip_enabled;
 }
 
-[[gnu::noinline]]
 void __not_in_flash_func(enable_xip_mode)()
 {
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
@@ -68,7 +68,7 @@ void __not_in_flash_func(enable_xip_mode)()
     xip_ctrl_hw->ctrl = 0b0101;
     xip_ctrl_hw->flush = 1;
     xip_ctrl_hw->flush;
-    
+
     xip_enabled = true;
 
     ++perf_counters.xip_swaps;
@@ -78,7 +78,6 @@ void __not_in_flash_func(enable_xip_mode)()
 #endif
 }
 
-[[gnu::noinline]]
 void __not_in_flash_func(enable_ram_mode)()
 {
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
@@ -197,7 +196,7 @@ void __not_in_flash_func(reclaim_mpu_region_for)(PageIndex page_index)
     const auto previous_occupant = mpu_region_occupants[region_index];
 
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
-    printf("--- reclaim region %d for page %d\n", region_index, page);
+    printf("--- reclaim region %d for page %d\n", region_index, page_index);
 #endif
 
     if (previous_occupant != nonpresent_page)
@@ -261,6 +260,7 @@ void __not_in_flash_func(page_in)(std::uintptr_t address)
     perf_counters.ticks_in_page_load += 0x00FFFFFF - systick_hw->cvr;
     ++perf_counters.page_loads;
 
+#ifdef DUMP_PERF_COUNTERS
     if (perf_counters.page_cache_evicts % 400 == 0)
     {
         printf("perf: %d/%d pagecache hits, %d pagecache evicts, %d region evicts, %d XIP swaps, avg %d ticks/page load\n",
@@ -271,6 +271,7 @@ void __not_in_flash_func(page_in)(std::uintptr_t address)
             perf_counters.xip_swaps,
             int(perf_counters.ticks_in_page_load / perf_counters.page_loads));
     }
+#endif
 }
 
 void __not_in_flash_func(mpu_enable_fault_on_xipram)()

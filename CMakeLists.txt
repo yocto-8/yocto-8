@@ -29,17 +29,22 @@ endif()
 
 project(yocto-8)
 
+set(PERF_FLAGS
+    "-Os"
+    "-flto"
+
+    # is a net gain, for some reason
+    "-ffast-math")
+
 # FIXME: this really shouldn't be duplicated :)
 add_link_options(
     "-fno-exceptions"
-    "-Os" "-ffast-math"
-    "-flto"
+    ${PERF_FLAGS}
 )
 
 add_compile_options(
     "-fno-exceptions"
-    "-Os" "-ffast-math"
-    "-flto"
+    ${PERF_FLAGS}
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
@@ -213,6 +218,7 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     if (Y8_PLATFORM STREQUAL "asupico")
         target_link_libraries(y8-core PUBLIC hardware_spi hardware_dma)
+        target_compile_definitions(y8-core PUBLIC PICO_CMSIS_RENAME_EXCEPTIONS=0)
     elseif (Y8_PLATFORM STREQUAL "picosystem")
         #target_link_libraries(y8-core PUBLIC hardware_spi hardware_pio hardware_dma)
         target_link_libraries(y8-core PUBLIC hardware_spi hardware_dma)
