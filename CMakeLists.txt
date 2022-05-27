@@ -29,13 +29,17 @@ endif()
 
 project(yocto-8)
 
+# FIXME: this really shouldn't be duplicated :)
+add_link_options(
+    "-fno-exceptions"
+    "-Os" "-ffast-math"
+    "-flto"
+)
+
 add_compile_options(
     "-fno-exceptions"
-    "-O3" "-ffast-math"
-
-    # NOTE: luaV_execute uses flatten which would be absurdly slow with LTO,
-    # and LTO doesn't really help us anyway, somehow. would be nice to figure this out
-    # "-flto"
+    "-Os" "-ffast-math"
+    "-flto"
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")

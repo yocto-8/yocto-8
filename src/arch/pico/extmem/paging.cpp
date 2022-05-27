@@ -7,6 +7,7 @@
 
 #include <hardware/structs/xip_ctrl.h>
 #include <hardware/timer.h>
+#include <hardware/structs/systick.h>
 #include <RP2040.h>
 
 //#define FILL_MY_STDIO_WITH_DEBUG_UWU
@@ -19,7 +20,7 @@ std::array<Page, page_cache_size> page_cache;
 std::array<PageIndex, page_cache_size> page_cache_occupants;
 std::array<PageIndex, used_mpu_regions.size()> mpu_region_occupants;
 
-MpuRegionIndex last_mpu_index;
+PerfCounters perf_counters;
 
 static bool xip_enabled;
 
@@ -27,8 +28,8 @@ void __not_in_flash_func(init_xipram)()
 {
     page_cache_occupants.fill(nonpresent_page);
     mpu_region_occupants.fill(nonpresent_page);
-    last_mpu_index = 0;
     xip_enabled = true;
+    perf_counters = {};
 
     // enable the MPU, keep it enabled during hardfaults, and use the background memory map
     // https://www.keil.com/pack/doc/CMSIS_Dev/Core/html/group__mpu__functions.html#ga31406efd492ec9a091a70ffa2d8a42fb
@@ -69,6 +70,8 @@ void __not_in_flash_func(enable_xip_mode)()
     xip_ctrl_hw->flush;
     
     xip_enabled = true;
+
+    ++perf_counters.xip_swaps;
 
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
     printf("=== XIP OK\n");
@@ -127,6 +130,8 @@ void __not_in_flash_func(evict_from_cache_slot)(PageCacheSlot slot)
             page_size));
 
     page_cache_occupants[slot] = nonpresent_page;
+
+    ++perf_counters.page_cache_evicts;
 }
 
 PageCacheSlot __not_in_flash_func(evict_from_xipram)(MpuRegionIndex region)
@@ -139,6 +144,8 @@ PageCacheSlot __not_in_flash_func(evict_from_xipram)(MpuRegionIndex region)
     {
         evict_from_cache_slot(cache_slot);
     }
+
+    ++perf_counters.region_evicts;
 
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
     printf("--> evicting region %d (holds page %d) from %p to slot %d\n", region, page_index, base_address, cache_slot);
@@ -170,6 +177,7 @@ bool __not_in_flash_func(try_load_page_from_cache)(PageIndex page, std::byte* ta
 
     if (page != page_cache_occupants[cache_slot])
     {
+        ++perf_counters.page_cache_misses;
         return false;
     }
     
@@ -178,20 +186,14 @@ bool __not_in_flash_func(try_load_page_from_cache)(PageIndex page, std::byte* ta
 #endif
 
     std::memcpy(target, page_cache[cache_slot].data(), page_size);
+    ++perf_counters.page_cache_hits;
     return true;
 }
 
-MpuRegionIndex __not_in_flash_func(reclaim_any_mpu_region_for)(PageIndex page)
+void __not_in_flash_func(reclaim_mpu_region_for)(PageIndex page)
 {
-    const auto used_mpu_index = last_mpu_index;
-
-    reclaim_mpu_region_for(used_mpu_index, page);
-    last_mpu_index = (used_mpu_index + 1) % used_mpu_regions.size();
-    return used_mpu_index;
-}
-
-void __not_in_flash_func(reclaim_mpu_region_for)(MpuRegionIndex region_index, PageIndex page)
-{
+    const auto index_within_16kb_region = page % (16384 / page_size);
+    const auto region_index = index_within_16kb_region % used_mpu_regions.size();
     const auto base_address = address_from_page_index(page);
     const auto previous_occupant = mpu_region_occupants[region_index];
 
@@ -210,7 +212,7 @@ void __not_in_flash_func(reclaim_mpu_region_for)(MpuRegionIndex region_index, Pa
     ARM_MPU_SetRegionEx(
         used_mpu_regions[region_index],
         std::uintptr_t(base_address),
-        ARM_MPU_RASR(0UL, ARM_MPU_AP_FULL, 0UL, 0UL, 1UL, 1UL, 0x00UL, ARM_MPU_REGION_SIZE_1KB));
+        ARM_MPU_RASR(0UL, ARM_MPU_AP_FULL, 0UL, 0UL, 1UL, 1UL, 0x00UL, mpu_page_size));
 
     mpu_region_occupants[region_index] = page;
 }
@@ -237,14 +239,23 @@ bool __not_in_flash_func(is_paged)(std::uintptr_t address)
 
 void __not_in_flash_func(page_in)(std::uintptr_t address)
 {
+    systick_hw->csr = 0b101; // enable systick timer, no exception request, processor clock
+    systick_hw->rvr = 0x00FFFFFF; // reset value when counter reaches 0
+    systick_hw->cvr = 0;
+
     const auto page_index = page_index_from_address(reinterpret_cast<std::byte*>(address));
     const auto base_address = address_from_page_index(page_index);
 
 #ifdef FILL_MY_STDIO_WITH_DEBUG_UWU
+    if (page_index >= bank_size / page_size)
+    {
+        printf("!!! tried to page_in() out of bounds page: %d, fault at address %p\n", page_index, base_address);
+        __breakpoint();
+    }
+
     printf("~~~ page in %p, base address %p\n", page_index, base_address);
 #endif
-
-    [[maybe_unused]] const auto region_index = reclaim_any_mpu_region_for(page_index);
+    reclaim_mpu_region_for(page_index);
 
     if (!try_load_page_from_cache(page_index, base_address))
     {
@@ -254,7 +265,21 @@ void __not_in_flash_func(page_in)(std::uintptr_t address)
     // NOTE: the µs value is pretty janky, and was obtained through trial and error for the most part
     //       it seems to trigger quite sooner than the said xµs, too
     // TODO: raw logic; bc this is unnecessarily slow for this usecase
-    //hardware_alarm_set_target(xip_reenable_clock_num, delayed_by_us(get_absolute_time(), 60));
+    hardware_alarm_set_target(xip_reenable_clock_num, delayed_by_us(get_absolute_time(), 500));
+    
+    perf_counters.ticks_in_page_load += 0x00FFFFFF - systick_hw->cvr;
+    ++perf_counters.page_loads;
+
+    if (perf_counters.page_cache_evicts % 400 == 0)
+    {
+        printf("perf: %d/%d pagecache hits, %d pagecache evicts, %d region evicts, %d XIP swaps, avg %d ticks/page load\n",
+            perf_counters.page_cache_hits,
+            perf_counters.page_cache_misses + perf_counters.page_cache_hits,
+            perf_counters.page_cache_evicts,
+            perf_counters.region_evicts,
+            perf_counters.xip_swaps,
+            int(perf_counters.ticks_in_page_load / perf_counters.page_loads));
+    }
 }
 
 void __not_in_flash_func(mpu_enable_fault_on_xipram)()

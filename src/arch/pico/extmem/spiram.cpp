@@ -14,6 +14,44 @@ namespace arch::pico::extmem::spiram
 
 static spi_inst_t *const psram_spi = spi1;
 
+struct SpiFrequencyParams
+{
+    std::uint32_t cpsr, cr0;
+};
+
+// FIXME: freq must be 250MHz
+constexpr SpiFrequencyParams compute_spi_baudrate_params(uint64_t baudrate)
+{
+    uint freq_in = 250'000'000;
+    uint prescale, postdiv;
+
+    // Find smallest prescale value which puts output frequency in range of
+    // post-divide. Prescale is an even number from 2 to 254 inclusive.
+    for (prescale = 2; prescale <= 254; prescale += 2) {
+        if (freq_in < (prescale + 2) * 256 * (uint64_t) baudrate)
+            break;
+    }
+    invalid_params_if(SPI, prescale > 254); // Frequency too low
+
+    // Find largest post-divide which makes output <= baudrate. Post-divide is
+    // an integer in the range 1 to 256 inclusive.
+    for (postdiv = 256; postdiv > 1; --postdiv) {
+        if (freq_in / (prescale * (postdiv - 1)) > baudrate)
+            break;
+    }
+
+    return {prescale, (postdiv - 1) << SPI_SSPCR0_SCR_LSB};
+}
+
+void switch_to_baudrate(spi_inst_t* spi, SpiFrequencyParams params)
+{
+    spi_get_hw(spi)->cpsr = params.cpsr;
+    hw_write_masked(&spi_get_hw(spi)->cr0, params.cr0, SPI_SSPCR0_SCR_BITS);
+}
+
+constexpr auto low_freq_params = compute_spi_baudrate_params(25'000'000);
+constexpr auto high_freq_params = compute_spi_baudrate_params(100'000'000);
+
 void setup()
 {
     // FIXME: higher freqs seem to be borked
@@ -22,7 +60,7 @@ void setup()
     // - fast reads are not actually used and we're running out of spec at high freqs
     // never noticed this before because the freq calculation made it so it ran at 25MHz when running at 250MHz...
     // so it was broken at the default 125MHz and 350MHz somehow
-    spi_init(psram_spi, 25 * 1000 * 1000);
+    spi_init(psram_spi, 25'000'000);
     printf("SPI RAM baudrate: %d\n", spi_get_baudrate(psram_spi));
     gpio_set_function(pin_rx, GPIO_FUNC_SPI);
     gpio_set_function(pin_sck, GPIO_FUNC_SPI);
@@ -53,8 +91,8 @@ void setup()
     select(false);
     sleep_us(200);
 
-    /*// toggle burst size
-    std::array<std::uint8_t, 1> burst_size_cmd_buf = {
+    // toggle burst size
+    /*std::array<std::uint8_t, 1> burst_size_cmd_buf = {
         0xC0
     };
     
@@ -77,6 +115,10 @@ bool test_chip_presence_destructive()
     write_page(0x00000000, test_page);
 
     std::array<std::uint8_t, page_size> test_read_page = {};
+    read_page(0x00000000, test_read_page);
+
+    test_page.fill(0xAB);
+    write_page(0x00000000, test_page);
     read_page(0x00000000, test_read_page);
 
     bool has_failed = false;
@@ -131,6 +173,8 @@ void __not_in_flash_func(write_page)(std::uint32_t page_address, std::span<const
 {
     validate_address(page_address);
 
+    switch_to_baudrate(spi1, high_freq_params);
+
     select(true);
     std::size_t burst_address = page_address;
 
@@ -145,6 +189,8 @@ void __not_in_flash_func(write_page)(std::uint32_t page_address, std::span<const
     spi_write_blocking(spi1, buf.data(), buf.size());
     select(false);
     //sleep_ms(1);
+
+    switch_to_baudrate(spi1, low_freq_params);
 }
 
 }

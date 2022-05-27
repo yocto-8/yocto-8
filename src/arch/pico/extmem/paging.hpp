@@ -1,28 +1,45 @@
 #pragma once
 
+#include "extmem/spiram.hpp"
 #include "hardware/regs/addressmap.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <RP2040.h>
 
 namespace arch::pico::extmem
 {
 
-using Page = std::array<std::byte, 1024>;
-using PageIndex = unsigned;
-using PageCacheSlot = unsigned;
-using MpuRegionIndex = unsigned;
+struct PerfCounters
+{
+    std::uint32_t page_cache_hits;
+    std::uint32_t page_cache_misses;
+    std::uint32_t page_cache_evicts;
+    std::uint32_t region_evicts;
+    std::uint32_t xip_swaps;
+
+    std::uint64_t page_loads;
+    std::uint64_t ticks_in_page_load;
+};
+
+constexpr auto page_cache_size = 36;
+constexpr auto page_size = spiram::page_size;
+
+static_assert(page_size == 1024); // NOTE: before changing this, make sure you update mpu_page_size
+constexpr auto mpu_page_size = ARM_MPU_REGION_SIZE_1KB;
 
 /// \brief Clock used to trigger a XIP enablement after some time
 /// We do this to prevent excessive thrashing.
 /// Swapping from XIP to RAM cache modes is very costly for now, more so than running XIP-free for a while.
 constexpr unsigned xip_reenable_clock_num = 0;
 
-constexpr auto page_cache_size = 128;
-constexpr auto page_size = 1024;
-
 constexpr std::uint8_t xipram_protection_mpu_region = 0;
 constexpr std::array<std::uint8_t, 7> used_mpu_regions = {1, 2, 3, 4, 5, 6, 7};
+
+using Page = std::array<std::byte, page_size>;
+using PageIndex = unsigned;
+using PageCacheSlot = unsigned;
+using MpuRegionIndex = unsigned;
 
 constexpr PageIndex nonpresent_page = PageIndex(-1);
 
@@ -34,7 +51,7 @@ extern std::array<Page, page_cache_size> page_cache;
 extern std::array<PageIndex, page_cache_size> page_cache_occupants;
 extern std::array<PageIndex, used_mpu_regions.size()> mpu_region_occupants;
 
-extern MpuRegionIndex last_mpu_index;
+extern PerfCounters perf_counters;
 
 /// \brief Initializes the MPU mechanism. Defaults to XIP flash mode.
 void init_xipram();
@@ -65,12 +82,9 @@ void load_page_from_extmem(PageIndex page, std::byte* target);
 /// \returns true if the page was successfully loaded and \p target was written to, false otherwise.
 bool try_load_page_from_cache(PageIndex page, std::byte* target);
 
-/// \brief Claims (or reclaims if necessary) any MPU region for a given page.
-MpuRegionIndex reclaim_any_mpu_region_for(PageIndex page);
-
-/// \brief Claims a MPU region for a given page.
+/// \brief Claims the MPU region region bound to a given page.
 /// If said MPU region is claimed already, its contents will be evicted, updating metadata.
-void reclaim_mpu_region_for(MpuRegionIndex region_index, PageIndex page);
+void reclaim_mpu_region_for(PageIndex page);
 
 /// \brief Unclaims a mapped MPU region.
 /// This does not evict the pointed memory, which is assumed to be handled by the caller.
