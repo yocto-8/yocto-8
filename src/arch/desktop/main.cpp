@@ -47,6 +47,8 @@ int main(int argc, char** argv)
 
     printf("Opened %d byte cartridge\n", int(source.size()));
 
+    printf("RUNNING CARTRIDGE\n");
+
     while (parser.parse_line())
         ;
     
