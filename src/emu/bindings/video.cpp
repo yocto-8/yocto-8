@@ -492,8 +492,6 @@ int y8_cls(lua_State* state)
 {
     std::uint8_t palette_entry = 0;
 
-    // FIXME: should reset text cursor pos to (0, 0)
-
     const auto argument_count = lua_gettop(state);
 
     if (argument_count >= 1)

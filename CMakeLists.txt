@@ -129,15 +129,6 @@ set(FIXMATH_SOURCES
 set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 target_sources(y8-core PUBLIC ${FIXMATH_SOURCES})
 
-set(ALLOC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/umm_malloc/src/")
-set(ALLOC_SOURCES
-    ${ALLOC_ROOT}/umm_info.c
-    ${ALLOC_ROOT}/umm_integrity.c
-    ${ALLOC_ROOT}/umm_malloc.c
-    ${ALLOC_ROOT}/umm_poison.c)
-target_sources(y8-core PUBLIC ${ALLOC_SOURCES})
-target_include_directories(y8-core PRIVATE ${ALLOC_ROOT})
-
 if (Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
@@ -188,6 +179,7 @@ elseif (Y8_ARCH STREQUAL "pico")
             ${PLATFORM_ROOT}/asupico.cpp
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp)
+        add_compile_definitions(Y8_USE_EXTMEM)
     elseif (Y8_PLATFORM STREQUAL "picosystem")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/picosystem")
         set(PLATFORM_SOURCES

@@ -352,8 +352,8 @@ void Emulator::panic(const char* message)
     exit(1);
 }
 
+#ifdef Y8_USE_EXTMEM
 #include "tinyalloc.hpp"
-#include <pico/platform.h>
 
 [[gnu::flatten]]
 void* __not_in_flash_func(lua_alloc)(void* ud, void* ptr, size_t osize, size_t nsize)
@@ -514,6 +514,30 @@ void* __not_in_flash_func(lua_alloc)(void* ud, void* ptr, size_t osize, size_t n
         return slow_realloc();
     }
 }
+#else
+void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
+{
+    (void)ud;
+
+    if (nsize == 0)
+    {
+        free(ptr);
+        return nullptr;
+    }
+    else if (ptr == nullptr)
+    {
+        return malloc(nsize);
+    }
+    else if (nsize == osize)
+    {
+        return ptr;
+    }
+    else // (nsize < osize) || (nsize > osize)
+    {
+        return realloc(ptr, nsize);
+    }
+}
+#endif
 
 constinit Emulator emulator;
 
