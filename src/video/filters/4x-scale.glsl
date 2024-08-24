@@ -22,7 +22,7 @@ void main()
     vec3 colorMult = mix(
         texelFetch(pixelGridFilter, offset, 0).rgb,
         vec3(1.0),
-        0.3 // higher value = closer to original
+        0.0 // higher value = closer to original
     );
 
     gl_FragColor.rgb = vec3(r, g, b) * colorMult;
