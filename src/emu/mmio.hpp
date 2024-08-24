@@ -27,17 +27,22 @@ struct MMIODevice
     }
 
     template<std::size_t Size>
-    std::span<std::uint8_t, Size> sized_subspan(std::size_t from_offset) const
+    std::span<std::uint8_t, Size> sized_subspan(std::size_t byte_offset) const
     {
-        return std::span<std::uint8_t, Size>(data.subspan(from_offset, Size));
+        return std::span<std::uint8_t, Size>(data.subspan(byte_offset, Size));
     }
 
-    template<class T>
-    util::UnalignedLEWrapper<T> get(std::uint16_t addr) const
+    template<class T = std::uint8_t>
+    util::UnalignedLEWrapper<T> get(std::uint16_t byte_offset) const
     {
-        return {sized_subspan<sizeof(T)>(addr)};
+        return {sized_subspan<sizeof(T)>(byte_offset)};
     }
 
+    template<class T = std::uint8_t>
+    T get_raw(std::uint16_t byte_offset) const
+    {
+        return T(get<T>(byte_offset));
+    }
 
     View data;
 };

@@ -1,6 +1,7 @@
 #include "emulator.hpp"
 #include "devices/drawstatemisc.hpp"
 #include "devices/image.hpp"
+#include "devices/random.hpp"
 
 #include <cstddef>
 #include <cstdio>
@@ -58,6 +59,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
     device<devices::DrawStateMisc>.reset();
     device<devices::ScreenPalette>.reset();
     device<devices::ClippingRectangle>.reset();
+    device<devices::Random>.set_seed(rand());
 
     const auto bind = [&](const char* name, const auto& func) {
         lua_pushcfunction(_lua, func);
@@ -73,7 +75,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     // TODO: make lua use this directly; and define a const string table
     using Binding = int(lua_State*);
-    constexpr frozen::unordered_map<frozen::string, Binding*, 52> y8_std = {
+    constexpr frozen::unordered_map<frozen::string, Binding*, 53> y8_std = {
         {"camera", bindings::y8_camera},
         {"color", bindings::y8_color},
         {"pset", bindings::y8_pset},
@@ -129,6 +131,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         {"_exit", bindings::y8_exit},
 
         {"rnd", bindings::y8_rnd},
+        {"srand", bindings::y8_srand},
 
         {"t", bindings::y8_time},
         {"time", bindings::y8_time},
