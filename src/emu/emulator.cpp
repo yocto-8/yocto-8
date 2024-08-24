@@ -125,7 +125,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
         {"cursor", bindings::y8_cursor},
         {"printh", bindings::y8_printh},
         {"stat", bindings::y8_stat},
-        {"sub", bindings::y8_sub}, // OwO
+        {"sub", bindings::y8_sub},
         {"_exit", bindings::y8_exit},
 
         {"rnd", bindings::y8_rnd},
