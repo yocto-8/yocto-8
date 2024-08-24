@@ -31,10 +31,14 @@ project(yocto-8)
 
 set(PERF_FLAGS
     "-Os"
-    "-flto"
 
     # is a net gain, for some reason
+    # TODO: recheck performance, maybe it's not relevant
     "-ffast-math")
+
+if (Y8_ARCH STREQUAL "pico")
+    set(PERF_FLAGS ${PERF_FLAGS} "-flto")
+endif()
 
 # FIXME: this really shouldn't be duplicated :)
 add_link_options(
