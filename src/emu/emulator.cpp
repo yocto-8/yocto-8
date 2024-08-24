@@ -274,6 +274,13 @@ void Emulator::run()
     {
         has_any_hook_defined = false;
 
+        /// execute a hook and updates has_any_hook_defined for this iteration
+        const auto run_loop_hook = [&](const char* name) {
+            const auto hook_result = run_hook(name);
+            has_any_hook_defined |= hook_result != HookResult::UNDEFINED;
+            return hook_result;
+        };
+
         // this _update behavior matches pico-8's: if _update60 is defined, _update is ignored
         // when both are unspecified, flipping will occur at 30Hz regardless
         //
@@ -283,15 +290,12 @@ void Emulator::run()
 
         _update_start_time = hal::measure_time_us();
 
-        const bool has_60fps_loop = run_hook("_update60") != HookResult::UNDEFINED;
-        has_any_hook_defined |= has_60fps_loop;
-
-        if (!has_60fps_loop)
+        if (run_loop_hook("_update60") != HookResult::UNDEFINED)
         {
-            has_any_hook_defined |= (run_hook("_update") != HookResult::UNDEFINED);
+            run_loop_hook("_update");
         }
 
-        has_any_hook_defined |= (run_hook("_draw") != HookResult::UNDEFINED);
+        run_loop_hook("_draw");
 
         flip();
     } while (has_any_hook_defined);
