@@ -134,7 +134,7 @@ set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 target_sources(y8-core PUBLIC ${FIXMATH_SOURCES})
 
 if (Y8_ARCH STREQUAL "desktop")
-    set(SANITIZER_FLAGS "-fsanitize=address,undefined")
+    set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
