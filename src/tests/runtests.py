@@ -12,7 +12,10 @@ TEST_ROOT = Path(os.path.dirname(os.path.realpath(__file__)))
 TEST_ROMS = [
     "basic-assert.p8",
     "lua-if.p8",
-    "trig.p8"
+    "trig.p8",
+    "rng/limit.p8",
+    "rng/seeds.p8",
+    "rng/table.p8",
 ]
 
 
