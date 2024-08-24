@@ -9,7 +9,7 @@ set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevan
 
 if (Y8_ARCH STREQUAL "desktop")
     enable_testing()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
 elseif(Y8_ARCH STREQUAL "pico")
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 
