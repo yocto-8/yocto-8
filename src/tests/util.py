@@ -1,5 +1,6 @@
 import subprocess
 import re
+import sys
 
 Y8_PATH = "./y8-headless"
 PICO8_PATH = "./pico8"
@@ -64,8 +65,6 @@ def execute_test_rom_pico8(rom_path):
 def compare_p8_y8_outputs(p8_output, y8_output):
     # compute diff, just import the libs here lol
     import difflib
-    diff = difflib.ndiff(p8_output.splitlines(keepends=True), y8_output.splitlines(keepends=True))
-    if len(list(diff)) > 0:
-        print(f"Found difference between p8 and y8:\n{''.join(diff)}")
+    diff = list(difflib.ndiff(p8_output.splitlines(keepends=True), y8_output.splitlines(keepends=True)))
 
-    assert p8_output == y8_output
+    assert p8_output == y8_output, f"y8 erroneously caused this diff:\n{''.join(diff)}"

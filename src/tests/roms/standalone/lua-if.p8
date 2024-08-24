@@ -20,4 +20,3 @@ end
 
 test(123)
 printh("====DONE====")
-_exit(0)
