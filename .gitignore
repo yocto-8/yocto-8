@@ -11,3 +11,5 @@ build/
 build.desktop/
 
 .cache/
+
+pico8
