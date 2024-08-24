@@ -6,7 +6,7 @@ PICO8_PATH = "./pico8"
 
 Y8_BOOT_FOOTER = "RUNNING CARTRIDGE\n"
 
-def execute_test_rom(rom_path):
+def execute_test_rom_y8(rom_path):
     try:
         # Get the output of the test rom for `./y8-headless rom_path`
         # This is the output that would be printed to the terminal

@@ -155,14 +155,17 @@ if (Y8_ARCH STREQUAL "desktop")
     target_compile_definitions(y8-headless PRIVATE YOCTO8_DESKTOP_HEADLESS)
     target_link_libraries(y8-headless PRIVATE y8-core)
 
-    function(y8_test testname)
-        add_test(${testname} y8-headless "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/${testname}.p8")
-    endfunction()
-
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".text")
 
-    y8_test(basic-assert)
-    y8_test(lua-if)
+    find_package(PythonInterp)
+    find_package(Python)
+
+    if (Python_FOUND)
+        add_test(NAME romtests
+            COMMAND ${PYTHON_EXECUTABLE} -m pytest ./runtests.py
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/tests/
+        )
+    endif()
 elseif (Y8_ARCH STREQUAL "pico")
     pico_sdk_init()
 
