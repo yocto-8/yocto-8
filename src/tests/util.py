@@ -1,4 +1,5 @@
 import subprocess
+import re
 
 Y8_PATH = "./y8-headless"
 PICO8_PATH = "./pico8"
@@ -37,7 +38,7 @@ def execute_test_rom_pico8(rom_path):
             "-windowed", "1", 
             "-sound", "0",
             "-music", "0",
-            "-run",
+            "-x",
             str(rom_path)
         ],
         stdout=subprocess.PIPE,
@@ -52,6 +53,10 @@ def execute_test_rom_pico8(rom_path):
             break
 
         output += line
+
+    # first line in headless mode is `RUNNING: <rom_path>`
+    # remove it
+    output = re.sub(r"^RUNNING: .*\n", "", output)
 
     return output
 
