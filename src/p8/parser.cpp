@@ -83,7 +83,7 @@ bool Parser::parse_line()
     }
 
     const auto match_block = [&](const auto magic, State associated_state) {
-        if (current_line == magic)
+        if (current_line.starts_with(magic))
         {
             end_block();
             _current_block_offset = _current_offset;
