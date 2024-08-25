@@ -8,7 +8,7 @@ src/arch/pico/main/cartridges/celeste.hpp
 src/arch/pico/main/cartridges/badapple.hpp
 
 build/
-build.desktop/
+build.*/
 
 .cache/
 
