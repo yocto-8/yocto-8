@@ -4,6 +4,7 @@ __lua__
 function assert_isclose(x, y)
     -- TODO: the epsilon here is rather high
     -- work towards reducing it to better match PICO-8
+    -- presumably a LUT solution could work and might need less memory than the stock libfixmath LUT?
     eps = 0.01
     if x >= y - eps and x <= y + eps then
         printh(y)  -- print expected value so diff doesn't fail
