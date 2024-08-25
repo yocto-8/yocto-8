@@ -55,7 +55,7 @@ bool Parser::parse_line()
         {
         case State::PARSING_LUA:
         {
-            _lua_block = _source.substr(_current_block_offset, last_line_offset - _current_block_offset);
+            _lua_block = _source.substr(_current_block_offset, last_line_offset - _current_block_offset + 1);
             break;
         }
 
