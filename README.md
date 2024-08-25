@@ -2,10 +2,10 @@
 
 <img align="left" src="assets/logo-v2-readme.png">
 
-## An incomplete PICO-8 cartridge runner for the Raspberry Pi Pico 2.
+## (WIP) PICO-8 cartridge runner for the Raspberry Pi Pico 2.
 
-[PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.  
-yocto-8 is a PICO-8 implementation that aims to run unmodified games.
+yocto-8 is a high-performance PICO-8 implementation that aims to run unmodified games.  
+[PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.
 
 That's the plan anyway -- see [the current progress](#plans).
 
@@ -16,8 +16,8 @@ That's the plan anyway -- see [the current progress](#plans).
 
 The main implementation goals are:
 - To reach good PICO-8 compatibility
-- To be as fast as possible, and to minimize the RAM footprint as much as reasonably possible
-- To be generally portable to platforms with a high quality C++20 toolchain
+- To be as fast as possible and to reduce the dynamic memory footprint as much as possible
+- To be generally portable to platforms with a high quality C++20 toolchain (it's _not great_ yet, but the plumbing is there for porting)
 
 The current plan is not to be a PICO-8 devkit, that is, it will not provide any editor tools.
 
@@ -27,7 +27,9 @@ yocto = pico².
 
 With some modifications, **some** demos and games run. **Don't expect it to run much of anything,** manual intervention is often needed to get a cartridge to work (but hopefully fewer as time goes on).
 
-Audio support is completely non-existent currently.
+- Many APIs are left unimplemented.
+- Audio support is completely non-existent currently.
+- There is no UI (yet).
 
 It is possible to build and run yocto-8 on the desktop which is currently the preferred way for implementing new API features due to facilitated debugging and allowing a faster development cycle in general. The main target remains the embedded implementation.
 
