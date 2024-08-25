@@ -186,8 +186,8 @@ void format_number(std::span<char> buffer, LuaFix16 number, bool as_hex, bool as
     {
         if (number.decimal_bits() != 0)
         {
-            // FIXME decimal bits
-            assert(std::snprintf(buffer.data(), buffer.size(), "%d.%d", number.signed_integral_bits(), number.decimal_bits()) > 0);
+            // TODO: maybe move this out of the fix16 lib
+            fix16_to_str(number.value, buffer.data(), 4);
         }
         else
         {
