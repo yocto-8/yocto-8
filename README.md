@@ -27,8 +27,11 @@ yocto = pico².
 
 With some modifications, **some** demos and games run. **Don't expect it to run much of anything,** manual intervention is often needed to get a cartridge to work (but hopefully fewer as time goes on).
 
+- PICO-8 Lua extensions are not fully tested and complete yet.
 - Many APIs are left unimplemented.
+- Many APIs are not fully tested and may be incorrect.
 - Audio support is completely non-existent currently.
+- No filesystem support available yet (on either desktop or embedded).
 - There is no UI (yet).
 
 It is possible to build and run yocto-8 on the desktop which is currently the preferred way for implementing new API features due to facilitated debugging and allowing a faster development cycle in general. The main target remains the embedded implementation.
