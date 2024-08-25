@@ -130,4 +130,3 @@ printh(tostr(0xAB, 0b10))
 printh(tostr(0xAB, 0b11))
 
 printh("====DONE====")
-_exit(0)
