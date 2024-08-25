@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
-#include <limits>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
