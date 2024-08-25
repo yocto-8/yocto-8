@@ -32,6 +32,7 @@ SOFTWARE.
 
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
+#include <pico/time.h>
 #include <cstdint>
 #include <span>
 
