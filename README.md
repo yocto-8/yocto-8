@@ -45,7 +45,7 @@ There is a lot of room for optimization for the RAM hack routine. It is currentl
 
 There are (uncertain) plans to design a real handheld. The main two contenders are the RP2040 and the ESP32-S3 (which supports QSPI RAM), but there are drawbacks to both of these.
 
-</summary>
+</details>
 
 # Limitations
 
