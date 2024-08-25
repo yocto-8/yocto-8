@@ -54,6 +54,9 @@ yocto-8 running [Celeste Classic](https://mattmakesgames.itch.io/celesteclassic)
 </div>
 
 - `Y8_ARCH=desktop`: Desktop (both with a SFML frontend and headless)
+
+## Abandoned & incomplete, tag [`rp2040-obsoleted`](https://github.com/yocto-8/yocto-8/tree/rp2040-obsoleted)
+
 - `Y8_ARCH=pico`: Raspberry Pi Pico based platforms
     - `Y8_PLATFORM=asupico`: My setup (Pico+SSD1351 display+8MB PSRAM+push buttons)
     - `Y8_PLATFORM=picosystem`: [Pimoroni PicoSystem](https://shop.pimoroni.com/products/picosystem)
