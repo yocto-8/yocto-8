@@ -290,7 +290,7 @@ void Emulator::run()
 
         _update_start_time = hal::measure_time_us();
 
-        if (run_loop_hook("_update60") != HookResult::UNDEFINED)
+        if (run_loop_hook("_update60") == HookResult::UNDEFINED)
         {
             run_loop_hook("_update");
         }
