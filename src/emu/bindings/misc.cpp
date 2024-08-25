@@ -168,7 +168,7 @@ void format_number(std::span<char> buffer, LuaFix16 number, bool as_hex, bool as
     {
         if (as_hex)
         {
-            assert(std::snprintf(buffer.data(), buffer.size(), "0x%x", number.value) > 0);
+            assert(std::snprintf(buffer.data(), buffer.size(), "0x%08x", number.value) > 0);
         }
         else
         {
