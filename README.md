@@ -2,12 +2,17 @@
 
 <img align="left" src="assets/logo-v2-readme.png">
 
-## A (WIP) open-source PICO-8 cartridge runner for the Raspberry Pi Pico.
+## An experimental PICO-8 cartridge runner for the Raspberry Pi Pico.
 
 [PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.  
 yocto-8 is a PICO-8 implementation that aims to run unmodified games.
 
 That's the plan anyway -- see [the current progress](#plans).
+
+> [!IMPORTANT]
+> See the tag [`rp2040-obsoleted`](https://github.com/yocto-8/yocto-8/tree/rp2040-obsoleted) for the branch used for the RP2040/PicoSystem ports of yocto-8.
+>
+> The project should start moving away to RP2350-based design for performance and PSRAM interfacing reasons.
 
 The main implementation goals are:
 - To reach good PICO-8 compatibility
