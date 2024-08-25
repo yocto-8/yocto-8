@@ -243,7 +243,14 @@ int y8_tostr(lua_State* state)
 
     if (argument_count >= 2)
     {
-        flags = lua_tounsigned(state, 2);
+        if (lua_isboolean(state, 2))
+        {
+            flags = lua_toboolean(state, 2) ? 0b1 : 0;
+        }
+        else
+        {
+            flags = lua_tounsigned(state, 2);
+        }
         has_flags_specified = true;
     }
 
