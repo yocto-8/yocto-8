@@ -1,6 +1,5 @@
 import subprocess
 import re
-import sys
 
 Y8_PATH = "./y8-headless"
 PICO8_PATH = "./pico8"
@@ -68,3 +67,7 @@ def compare_p8_y8_outputs(p8_output, y8_output):
     diff = list(difflib.ndiff(p8_output.splitlines(keepends=True), y8_output.splitlines(keepends=True)))
 
     assert p8_output == y8_output, f"y8 erroneously caused this diff:\n{''.join(diff)}"
+
+
+def check_sanitizer_issues(output):
+    assert "runtime error" not in output, "Sanitizer errors encountered during execution"
