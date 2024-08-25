@@ -75,7 +75,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
     // TODO: make lua use this directly; and define a const string table
     using Binding = int(lua_State*);
-    constexpr frozen::unordered_map<frozen::string, Binding*, 53> y8_std = {
+    constexpr frozen::unordered_map<frozen::string, Binding*, 54> y8_std = {
         {"camera", bindings::y8_camera},
         {"color", bindings::y8_color},
         {"pset", bindings::y8_pset},
@@ -126,6 +126,7 @@ void Emulator::init(std::span<std::byte> memory_buffer)
 
         {"cursor", bindings::y8_cursor},
         {"printh", bindings::y8_printh},
+        {"tostr", bindings::y8_tostr},
         {"stat", bindings::y8_stat},
         {"sub", bindings::y8_sub},
         {"_exit", bindings::y8_exit},

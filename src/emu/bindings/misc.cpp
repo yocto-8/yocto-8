@@ -1,6 +1,9 @@
+#include "fix16.h"
 #include "hal/hal.hpp"
-#include "input.hpp"
 
+#include <cassert>
+#include <cinttypes>
+#include <cstdio>
 #include <cstdlib>
 #include <emu/emulator.hpp>
 #include <lua.h>
@@ -125,6 +128,157 @@ int y8_printh(lua_State* state)
     }
     printf("\n");
     return 0;
+}
+
+enum class ToStrFlagOffsets
+{
+    HEX_OR_ID = 0,
+    AS_PLAIN_INTEGER = 1,
+};
+
+/// \brief Format unique hex address with PICO-8 `tostr` semantics, given a prefix
+void format_address(std::span<char> buffer, std::string_view prefix, const void* address)
+{
+    std::memcpy(buffer.data(), prefix.data(), prefix.size());
+    const auto output_span = buffer.subspan(prefix.size());
+
+    assert(std::snprintf(output_span.data(), output_span.size(), "0x%" PRIxPTR, std::uintptr_t(address)) > 0);
+}
+
+int tostr_handle_optional_address_mode(lua_State* state, const char* on_normal_literal, std::string_view on_address_str, bool should_use_address_format)
+{
+    if (!should_use_address_format)
+    {
+        lua_pushstring(state, on_normal_literal);
+        return 1;
+    }
+
+    // address format
+    std::array<char, 32> char_buffer;
+    format_address(char_buffer, on_address_str, lua_topointer(state, 1));
+    lua_pushstring(state, char_buffer.data());
+    return 1;
+}
+
+void format_number(std::span<char> buffer, LuaFix16 number, bool as_hex, bool as_integral)
+{
+    assert(buffer.size() > 16); // rough sanity check
+
+    if (as_integral)
+    {
+        if (as_hex)
+        {
+            assert(std::snprintf(buffer.data(), buffer.size(), "0x%x", number.value) > 0);
+        }
+        else
+        {
+            assert(std::snprintf(buffer.data(), buffer.size(), "%d", number.value) > 0);
+        }
+
+        return;
+    }
+
+    if (as_hex)
+    {
+        assert(std::snprintf(buffer.data(), buffer.size(), "0x%04x.%04x", number.unsigned_integral_bits(), number.decimal_bits()) > 0);
+    }
+    else
+    {
+        if (number.decimal_bits() != 0)
+        {
+            // FIXME decimal bits
+            assert(std::snprintf(buffer.data(), buffer.size(), "%d.%d", number.signed_integral_bits(), number.decimal_bits()) > 0);
+        }
+        else
+        {
+            assert(std::snprintf(buffer.data(), buffer.size(), "%d", number.signed_integral_bits()) > 0);
+        }
+    }
+}
+
+int y8_tostr(lua_State* state)
+{
+    const auto argument_count = lua_gettop(state);
+
+    // PICO-8 just returns an empty string when no arg is passed
+    if (argument_count == 0)
+    {
+        lua_pushliteral(state, "");
+        return 1;
+    }
+
+    // boolean doesn't care about flags whatsoever: always false or true
+    if (lua_isboolean(state, 1))
+    {
+        // can't be a ternary operator as it cares about the literal length
+        if (lua_toboolean(state, 1))
+        {
+            lua_pushliteral(state, "true");
+        }
+        else
+        {
+            lua_pushliteral(state, "false");
+        }
+        return 1;
+    }
+
+    // string doesn't care about flags whatsoever, return itself
+    // lua_isstring returns true for numbers, which are implicitly convertible
+    if (lua_type(state, 1) == LUA_TSTRING)
+    {
+        // TODO: can this possibly be returned directly instead?
+        lua_pushstring(state, lua_tostring(state, 1));
+        return 1;
+    }
+
+    // nil doesn't care about flags whatsoever: always [nil]
+    if (lua_isnil(state, 1))
+    {
+        lua_pushliteral(state, "[nil]");
+        return 1;
+    }
+
+    int flags = 0;
+    bool has_flags_specified = false;
+
+    if (argument_count >= 2)
+    {
+        flags = lua_tounsigned(state, 2);
+        has_flags_specified = true;
+    }
+
+    // the current PICO-8 behavior is that whenever the flags argument is
+    // passed, then functions/tables/etc. switch to the address syntax,
+    // regardless of the value (not just & 0b01).
+    const bool should_use_address_format = has_flags_specified;
+
+    const bool hex_or_id_mode = (flags >> int(ToStrFlagOffsets::HEX_OR_ID)) & 0b1;
+    const bool as_plain_integer_mode = (flags >> int(ToStrFlagOffsets::AS_PLAIN_INTEGER)) & 0b1;
+
+    if (lua_isfunction(state, 1))
+    {
+        return tostr_handle_optional_address_mode(state, "[function]", "function: ", should_use_address_format);
+    }
+
+    if (lua_istable(state, 1))
+    {
+        return tostr_handle_optional_address_mode(state, "[table]", "table: ", should_use_address_format);
+    }
+
+    if (lua_isthread(state, 1))
+    {
+        return tostr_handle_optional_address_mode(state, "[thread]", "thread: ", should_use_address_format);
+    }
+
+    if (lua_isnumber(state, 1))
+    {
+        std::array<char, 32> number_buffer;
+        format_number(number_buffer, lua_tonumber(state, 1), hex_or_id_mode, as_plain_integer_mode);
+        lua_pushstring(state, number_buffer.data());
+        return 1;
+    }
+
+    return luaL_error(state, "Unexpected input to tostr()");
 }
 
 // based on lua standard sub()

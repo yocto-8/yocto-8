@@ -1,6 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
+-- FWIW, these tests also test for number parsing relatively well
+
 function dummy_func() end
 
 printh("empty check")
@@ -50,12 +52,33 @@ printh(tostr(true, 0b01))
 printh(tostr(true, 0b10))
 printh(tostr(true, 0b11))
 
+printh("negative 0 checks")
+printh(tostr(0xFFFF.FFFF))
+printh(tostr(0xFFFF.FFFF, true))
+printh(tostr(0xFFFF.FFFF, 0b01))
+printh(tostr(0xFFFF.FFFF, 0b10))
+printh(tostr(0xFFFF.FFFF, 0b11))
+
 printh("hex fixed-point checks")
 printh(tostr(0xDEAD.BEEF))
 printh(tostr(0xDEAD.BEEF, true))
 printh(tostr(0xDEAD.BEEF, 0b01))
 printh(tostr(0xDEAD.BEEF, 0b10))
 printh(tostr(0xDEAD.BEEF, 0b11))
+
+printh("no decimal check")
+printh(tostr(0xDEAD))
+printh(tostr(0xDEAD, true))
+printh(tostr(0xDEAD, 0b01))
+printh(tostr(0xDEAD, 0b10))
+printh(tostr(0xDEAD, 0b11))
+
+printh("only decimal check")
+printh(tostr(0x0.BEEF))
+printh(tostr(0x0.BEEF, true))
+printh(tostr(0x0.BEEF, 0b01))
+printh(tostr(0x0.BEEF, 0b10))
+printh(tostr(0x0.BEEF, 0b11))
 
 printh("negative fixed-point checks")
 printh(tostr(-1234.5678))
