@@ -73,6 +73,13 @@ printh(tostr(-1, 0b01))
 printh(tostr(-1, 0b10))
 printh(tostr(-1, 0b11))
 
+printh("0.5 check")
+printh(tostr(0.5))
+printh(tostr(0.5, true))
+printh(tostr(0.5, 0b01))
+printh(tostr(0.5, 0b10))
+printh(tostr(0.5, 0b11))
+
 printh("negative 0 checks")
 printh(tostr(0xFFFF.FFFF))
 printh(tostr(0xFFFF.FFFF, true))
