@@ -20,8 +20,8 @@ void init_hardware()
     init_stdio();
     printf("Configuring buttons\n");
     init_buttons();
-    printf("Configuring SPI RAM\n");
-    init_spi_ram();
+    // printf("Configuring SPI RAM\n");
+    // init_spi_ram();
     printf("Configuring video\n");
     init_video_ssd1351();
     printf("Configuring emulator\n");

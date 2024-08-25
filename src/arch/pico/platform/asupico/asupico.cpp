@@ -201,10 +201,11 @@ void init_spi_ram()
 
 void init_emulator()
 {
-    emu::emulator.init(std::span(
-        pico::extmem::bank_base,
-        pico::extmem::bank_size
-    ));
+    // emu::emulator.init(std::span(
+    //     pico::extmem::bank_base,
+    //     pico::extmem::bank_size
+    // ));
+    emu::emulator.init(std::span<std::byte, 0>());
 }
 
 void init_video_ssd1351()

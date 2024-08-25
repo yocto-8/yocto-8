@@ -8,14 +8,9 @@ set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
 set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
 
 if (Y8_ARCH STREQUAL "desktop")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold -Wl,--thinlto-cache-dir=./llvmcache")
 elseif(Y8_ARCH STREQUAL "pico")
     include(vendor/pico-sdk/pico_sdk_init.cmake)
-
-    # FIXME: this is a horrible workaround for clangd in vscode
-    set(CLANGD_WORKAROUND_FLAGS "-isystem /usr/arm-none-eabi/include/c++/12.1.0/arm-none-eabi -isystem /usr/arm-none-eabi/include/c++/12.1.0/ -isystem /usr/arm-none-eabi/include/")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANGD_WORKAROUND_FLAGS}")
 
     # Higher frequencies mean we need a higher SPI clock divisor.
     # Past 200MHz, we are way out of spec for the Flash and everything crashes.
@@ -36,7 +31,7 @@ set(PERF_FLAGS
     "-ffast-math")
 
 if (Y8_ARCH STREQUAL "pico")
-    set(PERF_FLAGS ${PERF_FLAGS} "-flto")
+    set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
 endif()
 
 # FIXME: this really shouldn't be duplicated :)
@@ -133,7 +128,7 @@ set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 target_sources(y8-core PUBLIC ${FIXMATH_SOURCES})
 
 if (Y8_ARCH STREQUAL "desktop")
-    set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb -gsplit-dwarf")
+    set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
@@ -175,7 +170,7 @@ elseif (Y8_ARCH STREQUAL "pico")
             ${PLATFORM_ROOT}/asupico.cpp
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp)
-        add_compile_definitions(Y8_USE_EXTMEM)
+        # add_compile_definitions(Y8_USE_EXTMEM)
     elseif (Y8_PLATFORM STREQUAL "picosystem")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/picosystem")
         set(PLATFORM_SOURCES
