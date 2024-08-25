@@ -4,7 +4,7 @@
 #include "hardware/spi.h"
 #include "hardware/gpio.h"
 #include "hardware/timer.h"
-#include "pico/platform.h"
+#include <pico/time.h>
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -31,7 +31,7 @@ constexpr SpiFrequencyParams compute_spi_baudrate_params(uint64_t baudrate)
         if (freq_in < (prescale + 2) * 256 * (uint64_t) baudrate)
             break;
     }
-    invalid_params_if(SPI, prescale > 254); // Frequency too low
+    // invalid_params_if(SPI, prescale > 254); // Frequency too low
 
     // Find largest post-divide which makes output <= baudrate. Post-divide is
     // an integer in the range 1 to 256 inclusive.

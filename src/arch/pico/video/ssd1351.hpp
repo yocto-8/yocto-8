@@ -2,6 +2,7 @@
 
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
+#include <pico/time.h>
 #include <array>
 #include <cstdint>
 #include <cmath>
@@ -11,6 +12,14 @@
 #include <devices/image.hpp>
 #include <devices/screenpalette.hpp>
 #include <util/colors.hpp>
+
+// std::pow isn't constexpr as of C++20
+// let's just hardcode the table
+// gamma = 1.25; values = [round(180*pow(i/63, gamma)) for i in range(63)]; print(values)
+
+constexpr std::array<std::uint8_t, 63> gamma_lut = {
+    0, 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23, 25, 27, 30, 32, 35, 38, 40, 43, 46, 48, 51, 54, 57, 60, 62, 65, 68, 71, 74, 77, 80, 83, 86, 89, 93, 96, 99, 102, 105, 108, 112, 115, 118, 121, 125, 128, 131, 135, 138, 142, 145, 148, 152, 155, 159, 162, 166, 169, 173, 176
+};
 
 namespace arch::pico::video
 {
@@ -181,11 +190,6 @@ class SSD1351
         // Set cryptic command from the datasheet that does fuck knows
         write(Command::SET_VSL, DataBuffer<3>{0xA0, 0xB5, 0x55});
 
-        DataBuffer<63> gamma_lut;
-        for (std::size_t i = 0; i < gamma_lut.size(); ++i)
-        {
-            gamma_lut[i] = round(180.0f * pow(i/63.0f, gamma));
-        }
         write(Command::SET_GRAYSCALE_LUT, gamma_lut);
 
         // Start display

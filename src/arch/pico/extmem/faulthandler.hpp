@@ -1,9 +1,7 @@
 #pragma once
 
-#include "hardware/regs/addressmap.h"
-#include "pico/platform.h"
-
-#include <cstddef>
+#include <hardware/regs/addressmap.h>
+#include <pico.h>
 #include <cstdint>
 
 namespace arch::pico::extmem

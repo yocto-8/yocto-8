@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <pico/platform.h>
+#include <pico.h>
 
 namespace arch::pico::extmem::spiram
 {

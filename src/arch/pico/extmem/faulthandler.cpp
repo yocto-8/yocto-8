@@ -6,7 +6,6 @@
 #include <cstring>
 #include <hardware/structs/xip_ctrl.h>
 #include <RP2040.h>
-#include "hardware/sync.h"
 #include "hardware/timer.h"
 #include "pico/platform.h"
 #include "pico/time.h"
