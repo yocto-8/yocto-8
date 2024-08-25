@@ -1,5 +1,14 @@
 # How does yocto-8 use SPI RAM?
 
+> [!IMPORTANT]
+> This article is obsolete in several ways.
+>
+> Firstly, as the project shifts to using a RP2350, using hacks to be able to use external PSRAM is no longer necessary.
+>
+> Secondly, the approach was shifted to abusing the M0+ MPU and the RP2040's SRAM bank configuration in order to have a primitive but functional form of read&write caching, which enables better performance.
+>
+> Realistically, despite this, the performance characteristics of the hack were just too questionable to keep going with this, as bigger PICO-8 apps would just suffer too much.
+
 ## Memory requirements
 
 The pico-8 VM allows allocating up to 2MB of "Lua memory", which apparently includes heap, stack and bytecode data.  
