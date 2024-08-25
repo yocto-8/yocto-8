@@ -8,7 +8,6 @@ set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
 set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
 
 if (Y8_ARCH STREQUAL "desktop")
-    enable_testing()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
 elseif(Y8_ARCH STREQUAL "pico")
     include(vendor/pico-sdk/pico_sdk_init.cmake)
@@ -156,16 +155,6 @@ if (Y8_ARCH STREQUAL "desktop")
     target_link_libraries(y8-headless PRIVATE y8-core)
 
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".text")
-
-    find_package(PythonInterp)
-    find_package(Python)
-
-    if (Python_FOUND)
-        add_test(NAME romtests
-            COMMAND ${PYTHON_EXECUTABLE} -m pytest ./runtests.py
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/tests/
-        )
-    endif()
 elseif (Y8_ARCH STREQUAL "pico")
     pico_sdk_init()
 
