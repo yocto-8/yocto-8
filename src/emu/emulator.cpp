@@ -403,11 +403,8 @@ void* __not_in_flash_func(lua_alloc)(void* ud, void* ptr, size_t osize, size_t n
 
     static bool has_alloc_succeeded_since_egc = false;
 
-    // unfortunately using UMM comes with alignment issues on 64-bit platforms;
-    // let's disable the extra heap on these for now.
     const bool has_extra_heap =
-        !emulator.get_memory_alloc_buffer().empty()
-        && sizeof(void*) <= 4;
+        !emulator.get_memory_alloc_buffer().empty();
 
     const auto is_ptr_on_slow_heap = [&] {
         const auto alloc_buffer = emulator.get_memory_alloc_buffer();
