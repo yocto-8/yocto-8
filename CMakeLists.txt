@@ -57,7 +57,7 @@ set(CORE_SOURCES
     ${CORE_ROOT}/emu/bindings/video.cpp
     ${CORE_ROOT}/p8/parser.cpp
 )
-target_sources(y8-core PRIVATE ${CORE_SOURCES})
+target_sources(y8-core PUBLIC ${CORE_SOURCES})
 
 set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/")
 set(LUA_SOURCES
@@ -189,11 +189,7 @@ elseif (Y8_ARCH STREQUAL "pico")
     target_compile_definitions(y8-core PUBLIC PICO_USE_MALLOC_MUTEX=0)
 
     add_executable(y8 ${ARCH_SOURCES} ${PLATFORM_SOURCES})
-    target_link_libraries(y8 PRIVATE y8-core)
-    
-    # Performs some checksum verification on SPI RAM when swapping pages in and out.
-    # Use only for debugging; increases memory and CPU workload.
-    #target_compile_definitions(y8 PRIVATE YOCTO8_EXTMEM_CHECKSUM)
+    target_link_libraries(y8 PUBLIC y8-core)
     
     pico_add_extra_outputs(y8)
 

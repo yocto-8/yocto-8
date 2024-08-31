@@ -40,7 +40,7 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	const auto default_palette = hal::get_default_palette();
 	std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
 
-	_lua = lua_newstate(lua_alloc, nullptr);
+	_lua = lua_newstate(y8_lua_realloc, nullptr);
 	luaL_openlibs(_lua);
 
 	device<devices::DrawPalette>.reset();
@@ -345,12 +345,12 @@ void Emulator::panic(const char *message) {
 	exit(1);
 }
 
+extern "C" {
 #ifdef Y8_USE_EXTMEM
 #include "tinyalloc.hpp"
 
-//[[gnu::flatten]]
-void * /*__not_in_flash_func(lua_alloc)*/
-lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+[[gnu::flatten]]
+void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	(void)ud;
 
 	static bool fuck = false;
@@ -483,7 +483,7 @@ lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	}
 }
 #else
-void *lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	(void)ud;
 
 	if (nsize == 0) {
@@ -499,6 +499,7 @@ void *lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	}
 }
 #endif
+}
 
 constinit Emulator emulator;
 

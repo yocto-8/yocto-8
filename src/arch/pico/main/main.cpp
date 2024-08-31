@@ -5,7 +5,7 @@
 
 namespace pico = arch::pico;
 
-#include "cartridges/fluid.hpp"
+#include "cartridges/closed/fluid.hpp"
 
 int main() {
 	pico::platform::init_hardware();
