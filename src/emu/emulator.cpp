@@ -40,13 +40,6 @@ Emulator::~Emulator()
 void Emulator::init(std::span<std::byte> memory_buffer)
 {
     _memory_buffer = memory_buffer;
-
-    if (!memory_buffer.empty())
-    {
-        /*umm_init_heap(
-            _memory_buffer.data(),
-            _memory_buffer.size_bytes());*/
-    }
     
     const auto default_palette = hal::get_default_palette();
     std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
@@ -371,8 +364,8 @@ void Emulator::panic(const char* message)
 #ifdef Y8_USE_EXTMEM
 #include "tinyalloc.hpp"
 
-[[gnu::flatten]]
-void* __not_in_flash_func(lua_alloc)(void* ud, void* ptr, size_t osize, size_t nsize)
+//[[gnu::flatten]]
+void* /*__not_in_flash_func(lua_alloc)*/lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize)
 {
     (void)ud;
 

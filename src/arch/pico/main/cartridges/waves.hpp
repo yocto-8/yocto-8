@@ -5,7 +5,8 @@ version 32
 __lua__
 r=64
 
-function _update()
+function _update60() end
+function _draw()
 	cls()
 	s=t()
 		for y=-r,r,3 do
@@ -15,6 +16,7 @@ function _update()
 				pset(r+x,r+y-z,7)
 		end
 	end
+	printh(stat(1))
 end
 __gfx__
 )";

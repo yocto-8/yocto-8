@@ -12,20 +12,20 @@ void init_hardware()
 {
     using namespace asupico;
 
-    printf("Configuring core frequency\n");
+    init_stdio();
+    printf("Configuring frequency and clock divisors\n");
     init_default_frequency();
+    printf("Configuring PSRAM\n");
+    const auto psram_size = init_psram_pimoroni();
+    printf("PSRAM configured with size %dKiB", psram_size / 1024);
     printf("Booting command thread\n");
     init_cmd_thread();
-    printf("Configuring stdio\n");
-    init_stdio();
     printf("Configuring buttons\n");
     init_buttons();
-    // printf("Configuring SPI RAM\n");
-    // init_spi_ram();
     printf("Configuring video\n");
     init_video_ssd1351();
     printf("Configuring emulator\n");
-    init_emulator();
+    init_emulator(psram_size);
     printf("Hardware init done\n");
 }
 

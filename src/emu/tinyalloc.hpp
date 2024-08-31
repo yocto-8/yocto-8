@@ -1,6 +1,5 @@
 #pragma once
 
-#include "extmem/paging.hpp"
 #include <cstdint>
 #include <cstddef>
 
@@ -27,8 +26,8 @@ typedef struct {
     size_t top;    // top free addr
 } Heap;
 
-static Heap *const heap = reinterpret_cast<Heap*>(arch::pico::extmem::bank_base);
-static void *const heap_limit = reinterpret_cast<void*>(arch::pico::extmem::bank_base + arch::pico::extmem::bank_size - 1);
+static Heap *const heap = reinterpret_cast<Heap*>(Y8_EXTMEM_START);
+static void* heap_limit = nullptr;
 static constexpr size_t heap_split_thresh = 16;
 static constexpr size_t heap_alignment = sizeof(void*);
 static constexpr size_t heap_max_blocks = 16384;

@@ -1,13 +1,16 @@
+#include <pico/stdio.h>
 #include <platform/asupico/asupico.hpp>
 
+#include <emu/tinyalloc.hpp>
 #include <pico/stdlib.h>
 #include <hardware/vreg.h>
 #include <hardware/clocks.h>
+#include <hardware/structs/xip.h>
+#include <hardware/structs/qmi.h>
+#include <hardware/sync.h>
 #include <cstdio>
 
 #include <hardwarestate.hpp>
-#include <extmem/spiram.hpp>
-#include <extmem/paging.hpp>
 
 namespace arch::pico::platform::asupico
 {
@@ -16,26 +19,13 @@ HardwareState hw;
 
 void init_default_frequency()
 {
-    // NOTE: Not all following settings may work on any board.
-    // In any case, those settings run the RP2040 out-of-spec and increases power draw.
-    // Most settings beyond 250MHz will fail if you do not edit the flash SPI frequency multiplier to 4 (default 2).
+    // FIXME: less jank and need to respect the write thing
+    qmi_hw->m[0].timing = 0x60007203;
 
-    // The bootup settings are 125MHz@1.10V.
+    vreg_set_voltage(VREG_VOLTAGE_1_25);
+    set_sys_clock_khz(351000, true);
 
-    /*vreg_set_voltage(VREG_VOLTAGE_1_10);
-    set_sys_clock_khz(250000, false);*/
-    
-    vreg_set_voltage(VREG_VOLTAGE_1_15);
-    set_sys_clock_khz(300000, false);
-
-    /*vreg_set_voltage(VREG_VOLTAGE_1_25);
-    set_sys_clock_khz(351000, false);*/
-
-    clock_configure(clk_peri,
-                    0,
-                    CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-                    300 * MHZ,
-                    300 * MHZ);
+    init_stdio();
 }
 
 void init_stdio()
@@ -53,159 +43,150 @@ void init_buttons()
     hw.buttons[5].init(21);
 }
 
-/*
-#include <extmem/spiram.hpp>
-
-[[gnu::noinline]]
-void test_ram()
+std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)()
 {
-    using namespace arch::pico;
-    std::array<std::uint8_t, 1024> test;
-    int successes = 0, total = 0;
+    gpio_set_function(PIMORONI_PICO_PLUS2_PSRAM_CS_PIN, GPIO_FUNC_XIP_CS1);
+    int psram_size;
+    psram_size = 0;
+    
+    uint32_t interrupt_state = save_and_disable_interrupts();
 
-    printf("Performing PSRAM test\n");
+    // Try and read the PSRAM ID via direct_csr.
+    qmi_hw->direct_csr = 30 << QMI_DIRECT_CSR_CLKDIV_LSB |
+        QMI_DIRECT_CSR_EN_BITS;
+    // Need to poll for the cooldown on the last XIP transfer to expire
+    // (via direct-mode BUSY flag) before it is safe to perform the first
+    // direct-mode operation
+    while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0);
 
-    printf("OP validation\n");
+    // Exit out of QMI in case we've inited already
+    qmi_hw->direct_csr |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
+    // Transmit as quad.
+    qmi_hw->direct_tx = QMI_DIRECT_TX_OE_BITS |
+        QMI_DIRECT_TX_IWIDTH_VALUE_Q << QMI_DIRECT_TX_IWIDTH_LSB |
+        0xf5;
+    while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0);
+    (void)qmi_hw->direct_rx;
+    qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS);
 
-    // STR(imm)
-    asm(
-        "str %[value], [%[addr], #8]"
-        :: [value]"r"(123456), [addr]"r"(0x2F000100-8)
-    );
-
-    // LDR(imm)
-    {
-        std::uint32_t out;
-        asm(
-            "ldr %[out], [%[addr], #16]"
-            : [out]"=r"(out)
-            : [addr]"r"(0x2F000100-16)
-        );
-        printf("LDR(imm): %d (expected 123456)\n", out);
-    }
-
-    // STRB(imm)
-    asm(
-        "strb %[value], [%[addr], #3]"
-        :: [value]"r"(128), [addr]"r"(0x2F000200-3)
-    );
-
-    // LDRB(imm)
-    {
-        std::uint8_t out;
-        asm(
-            "ldrb %[out], [%[addr], #1]"
-            : [out]"=r"(out)
-            : [addr]"r"(0x2F000200-1)
-        );
-        printf("LDRB(imm): %d (expected 128)\n", out);
-    }
-
-    // STRH(imm)
-    asm(
-        "strh %[value], [%[addr], #2]"
-        :: [value]"r"(5000), [addr]"r"(0x2F000300-2)
-    );
-
-    // LDRH(imm)
-    {
-        std::uint16_t out;
-        asm(
-            "ldrh %[out], [%[addr], #4]"
-            : [out]"=r"(out)
-            : [addr]"r"(0x2F000300-4)
-        );
-        printf("LDRH(imm): %d (expected 5000)\n", out);
-    }
-
-    // STM
-    {
-        register uint32_t a asm("r0"), b asm("r2"), c asm("r4"), addr asm("r6");
-        a = 123456;
-        b = 654321;
-        c = 696969;
-        addr = 0x2F000400;
-        asm volatile(
-            "stm %[addr], {%[a], %[b], %[c]}"
-            : [addr]"+r"(addr)
-            : [a]"r"(a), [b]"r"(b), [c]"r"(c)
-            : "memory"
-        );
-    }
-
-    // LDM(imm)
-    {
-        register uint32_t a asm("r1"), b asm("r3"), c asm("r5"), addr asm("r7");
-
-        addr = 0x2F000400;
-
-        asm(
-            "ldm %[addr]!, {%[a], %[b], %[c]}"
-            : [a]"=r"(a), [b]"=r"(b), [c]"=r"(c)
-            : [addr]"r"(addr)
-        );
-        printf("LDM(imm): %d %d %d (expect 123456, 654321, 696969)\n", a, b, c);
-    }
-
-    printf("Bank swapping test\n");
-
-    for (int i = 0; i < 100; ++i)
-    {
-        std::size_t bank_addr = (rand() % 8192) * 0x400;
-
-        for (std::size_t i = 0; i < test.size(); ++i)
-        {
-            test[i] = rand() % 256;
+    // Read the id
+    qmi_hw->direct_csr |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
+    uint8_t kgd = 0;
+    uint8_t eid = 0;
+    for (size_t i = 0; i < 7; i++) {
+        if (i == 0) {
+            qmi_hw->direct_tx = 0x9f;
+        } else {
+            qmi_hw->direct_tx = 0xff;
         }
-
-        ++total;
-        //printf("Writing page.\n");
-        extmem::spiram::write_page(bank_addr, test);
-
-        //printf("Reading page back.\n");
-        std::array<std::uint8_t, 1024> test_target;
-        extmem::spiram::read_page((rand() % 8192) * 0x400, test_target); // read from random page
-        extmem::spiram::read_page(bank_addr, test_target); // and read back from page
-
-        if (test != test_target)
-        {
-            printf("\n\nFAIL %d\n", int(bank_addr));
-            for (std::size_t i = 0; i < test_target.size(); ++i)
-            {
-
-                if (i%(extmem::spiram::burst_size*2) == 0)
-                    printf("\n");
-                
-                if (test[i] == test_target[i]) printf("-- ");
-                else printf("%02x ", test_target[i]);
-            }
+        while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_TXEMPTY_BITS) == 0) {
         }
-        else {
-            ++successes;
+        while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0) {
         }
-        if (total % 20 == 0) printf("Success rate %d/%d\n", successes, total);
+        if (i == 5) {
+            kgd = qmi_hw->direct_rx;
+        } else if (i == 6) {
+            eid = qmi_hw->direct_rx;
+        } else {
+            (void)qmi_hw->direct_rx;
+        }
+    }
+    // Disable direct csr.
+    qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
+
+    printf("kgd: %02x\n", kgd);
+    /*if (kgd != 0x5D) {
+        common_hal_mcu_enable_interrupts();
+        reset_pin_number(CIRCUITPY_PSRAM_CHIP_SELECT->number);
+        return;
+    }
+    never_reset_pin_number(CIRCUITPY_PSRAM_CHIP_SELECT->number);*/
+
+    // Enable quad mode.
+    qmi_hw->direct_csr = 30 << QMI_DIRECT_CSR_CLKDIV_LSB |
+        QMI_DIRECT_CSR_EN_BITS;
+    // Need to poll for the cooldown on the last XIP transfer to expire
+    // (via direct-mode BUSY flag) before it is safe to perform the first
+    // direct-mode operation
+    while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0) {
     }
 
-    if (successes != total)
-    {
-        printf("FAILED PSRAM test: %d/%d\n", successes, total);
+    // RESETEN, RESET and quad enable
+    for (uint8_t i = 0; i < 3; i++) {
+        qmi_hw->direct_csr |= QMI_DIRECT_CSR_ASSERT_CS1N_BITS;
+        if (i == 0) {
+            qmi_hw->direct_tx = 0x66;
+        } else if (i == 1) {
+            qmi_hw->direct_tx = 0x99;
+        } else {
+            qmi_hw->direct_tx = 0x35;
+        }
+        while ((qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS) != 0) {
+        }
+        qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS);
+        for (size_t j = 0; j < 20; j++) {
+            asm ("nop");
+        }
+        (void)qmi_hw->direct_rx;
     }
-}
-*/
+    // Disable direct csr.
+    qmi_hw->direct_csr &= ~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
 
-void init_spi_ram()
-{
-    pico::extmem::spiram::setup();
-    //test_ram();
+    qmi_hw->m[1].timing =
+        QMI_M0_TIMING_PAGEBREAK_VALUE_1024 << QMI_M0_TIMING_PAGEBREAK_LSB | // Break between pages.
+            3 << QMI_M0_TIMING_SELECT_HOLD_LSB | // Delay releasing CS for 3 extra system cycles.
+            3 << QMI_M0_TIMING_COOLDOWN_LSB |
+            3 << QMI_M0_TIMING_RXDELAY_LSB |
+            32 << QMI_M0_TIMING_MAX_SELECT_LSB | // In units of 64 system clock cycles. PSRAM says 8us max. 8 / 0.00752 / 64 = 16.62
+            14 << QMI_M0_TIMING_MIN_DESELECT_LSB | // In units of system clock cycles. PSRAM says 50ns.50 / 7.52 = 6.64
+            2 << QMI_M0_TIMING_CLKDIV_LSB;
+    qmi_hw->m[1].rfmt = (QMI_M0_RFMT_PREFIX_WIDTH_VALUE_Q << QMI_M0_RFMT_PREFIX_WIDTH_LSB |
+            QMI_M0_RFMT_ADDR_WIDTH_VALUE_Q << QMI_M0_RFMT_ADDR_WIDTH_LSB |
+            QMI_M0_RFMT_SUFFIX_WIDTH_VALUE_Q << QMI_M0_RFMT_SUFFIX_WIDTH_LSB |
+            QMI_M0_RFMT_DUMMY_WIDTH_VALUE_Q << QMI_M0_RFMT_DUMMY_WIDTH_LSB |
+            QMI_M0_RFMT_DUMMY_LEN_VALUE_24 << QMI_M0_RFMT_DUMMY_LEN_LSB |
+            QMI_M0_RFMT_DATA_WIDTH_VALUE_Q << QMI_M0_RFMT_DATA_WIDTH_LSB |
+            QMI_M0_RFMT_PREFIX_LEN_VALUE_8 << QMI_M0_RFMT_PREFIX_LEN_LSB |
+            QMI_M0_RFMT_SUFFIX_LEN_VALUE_NONE << QMI_M0_RFMT_SUFFIX_LEN_LSB);
+    qmi_hw->m[1].rcmd = 0xeb << QMI_M0_RCMD_PREFIX_LSB |
+        0 << QMI_M0_RCMD_SUFFIX_LSB;
+    qmi_hw->m[1].wfmt = (QMI_M0_WFMT_PREFIX_WIDTH_VALUE_Q << QMI_M0_WFMT_PREFIX_WIDTH_LSB |
+            QMI_M0_WFMT_ADDR_WIDTH_VALUE_Q << QMI_M0_WFMT_ADDR_WIDTH_LSB |
+            QMI_M0_WFMT_SUFFIX_WIDTH_VALUE_Q << QMI_M0_WFMT_SUFFIX_WIDTH_LSB |
+            QMI_M0_WFMT_DUMMY_WIDTH_VALUE_Q << QMI_M0_WFMT_DUMMY_WIDTH_LSB |
+            QMI_M0_WFMT_DUMMY_LEN_VALUE_NONE << QMI_M0_WFMT_DUMMY_LEN_LSB |
+            QMI_M0_WFMT_DATA_WIDTH_VALUE_Q << QMI_M0_WFMT_DATA_WIDTH_LSB |
+            QMI_M0_WFMT_PREFIX_LEN_VALUE_8 << QMI_M0_WFMT_PREFIX_LEN_LSB |
+            QMI_M0_WFMT_SUFFIX_LEN_VALUE_NONE << QMI_M0_WFMT_SUFFIX_LEN_LSB);
+    qmi_hw->m[1].wcmd = 0x38 << QMI_M0_WCMD_PREFIX_LSB |
+        0 << QMI_M0_WCMD_SUFFIX_LSB;
+
+    restore_interrupts(interrupt_state);
+
+    psram_size = 1024 * 1024; // 1 MiB
+    uint8_t size_id = eid >> 5;
+    if (eid == 0x26 || size_id == 2) {
+        psram_size *= 8;
+    } else if (size_id == 0) {
+        psram_size *= 2;
+    } else if (size_id == 1) {
+        psram_size *= 4;
+    }
+
+    // Mark that we can write to PSRAM.
+    xip_ctrl_hw->ctrl |= XIP_CTRL_WRITABLE_M1_BITS;
+
+    return psram_size;
 }
 
-void init_emulator()
+void init_emulator(std::size_t psram_size)
 {
-    // emu::emulator.init(std::span(
-    //     pico::extmem::bank_base,
-    //     pico::extmem::bank_size
-    // ));
-    emu::emulator.init(std::span<std::byte, 0>());
+    heap_limit = reinterpret_cast<void*>(Y8_EXTMEM_START + psram_size);
+
+    emu::emulator.init(std::span(
+        reinterpret_cast<std::byte*>(Y8_EXTMEM_START),
+        psram_size
+    ));
 }
 
 void init_video_ssd1351()

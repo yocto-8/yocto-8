@@ -10,13 +10,8 @@ set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevan
 if (Y8_ARCH STREQUAL "desktop")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold -Wl,--thinlto-cache-dir=./llvmcache")
 elseif(Y8_ARCH STREQUAL "pico")
+    set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
     include(vendor/pico-sdk/pico_sdk_init.cmake)
-
-    # Higher frequencies mean we need a higher SPI clock divisor.
-    # Past 200MHz, we are way out of spec for the Flash and everything crashes.
-    # This is not as much of a big deal as you may think;
-    # the XIP cache works well if you pay attention to things (e.g. multicore).
-    add_compile_definitions(PICO_FLASH_SPI_CLKDIV=4)
 else()
     message(FATAL_ERROR "Y8_ARCH not specified or illegal")
 endif()
@@ -31,7 +26,7 @@ set(PERF_FLAGS
     "-ffast-math")
 
 if (Y8_ARCH STREQUAL "pico")
-    set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
+    set(PERF_FLAGS ${PERF_FLAGS}) # "-flto")  # todo: detect clang and use thinlto
 endif()
 
 # FIXME: this really shouldn't be duplicated :)
@@ -155,9 +150,6 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
     set(ARCH_SOURCES
-        ${ARCH_ROOT}/extmem/paging.cpp
-        ${ARCH_ROOT}/extmem/faulthandler.cpp
-        ${ARCH_ROOT}/extmem/spiram.cpp
         ${ARCH_ROOT}/hal/hal.cpp
         ${ARCH_ROOT}/hardwarestate.cpp
         ${ARCH_ROOT}/cmdthread.cpp
@@ -170,7 +162,9 @@ elseif (Y8_ARCH STREQUAL "pico")
             ${PLATFORM_ROOT}/asupico.cpp
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp)
-        # add_compile_definitions(Y8_USE_EXTMEM)
+
+        # extmem size is autodetected at runtime
+        add_compile_definitions(Y8_USE_EXTMEM Y8_EXTMEM_START=0x11000000)
     elseif (Y8_PLATFORM STREQUAL "picosystem")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/picosystem")
         set(PLATFORM_SOURCES
@@ -189,6 +183,10 @@ elseif (Y8_ARCH STREQUAL "pico")
     #    malloc return values in the only place it can be used: the lua allocator.
     # 3. we rely on the lua emergency GC, which can save us in this usecase.
     target_compile_definitions(y8-core PUBLIC PICO_MALLOC_PANIC=0)
+
+    # NOTE: we forbid malloc outsides of lua malloc; and that excludes any work
+    # on the second core.
+    target_compile_definitions(y8-core PUBLIC PICO_USE_MALLOC_MUTEX=0)
 
     add_executable(y8 ${ARCH_SOURCES} ${PLATFORM_SOURCES})
     target_link_libraries(y8 PRIVATE y8-core)
