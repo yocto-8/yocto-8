@@ -26,7 +26,7 @@ set(PERF_FLAGS
     "-ffast-math")
 
 if (Y8_ARCH STREQUAL "pico")
-    set(PERF_FLAGS ${PERF_FLAGS}) # "-flto")  # todo: detect clang and use thinlto
+    # set(PERF_FLAGS ${PERF_FLAGS}) "-flto")  # todo: detect clang and use thinlto
 endif()
 
 # FIXME: this really shouldn't be duplicated :)
@@ -205,14 +205,6 @@ elseif (Y8_ARCH STREQUAL "pico")
     endif()
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
-
-    # NOTE: at the moment, usage of LTO on the pico has its shares of gotchas, see
-    # https://github.com/raspberrypi/pico-sdk/issues/97
-    # so we have to do a few silly things... overall it's a net gain on pico, though.
-    set_source_files_properties(
-        "${SDK_ROOT}/src/rp2_common/hardware_irq/irq.c"
-        PROPERTIES COMPILE_FLAGS -fno-lto
-    )
 
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".time_critical.y8")
 endif()
