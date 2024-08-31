@@ -2,9 +2,8 @@
 
 #include "binding.hpp"
 
-namespace emu::bindings
-{
+namespace emu::bindings {
 
-int y8_btn(lua_State* state);
+int y8_btn(lua_State *state);
 
 }

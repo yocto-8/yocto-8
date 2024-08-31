@@ -1,16 +1,7 @@
 #pragma once
 
-namespace io
-{
+namespace io {
 
-enum class Button
-{
-    LEFT = 0,
-    RIGHT,
-    UP,
-    DOWN,
-    O,
-    X
-};
+enum class Button { LEFT = 0, RIGHT, UP, DOWN, O, X };
 
 }

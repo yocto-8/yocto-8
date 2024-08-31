@@ -7,14 +7,13 @@ namespace pico = arch::pico;
 
 #include "cartridges/fluid.hpp"
 
-int main()
-{
-    pico::platform::init_hardware();
+int main() {
+	pico::platform::init_hardware();
 
-    p8::Parser parser(cartridge);
+	p8::Parser parser(cartridge);
 
-    while (parser.parse_line())
-        ;
-    
-    emu::emulator.run();
+	while (parser.parse_line())
+		;
+
+	emu::emulator.run();
 }

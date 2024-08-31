@@ -1,6 +1,7 @@
 #include <string_view>
 
-static constexpr std::string_view cartridge = R"(pico-8 cartridge // http://www.pico-8.com
+static constexpr std::string_view cartridge =
+	R"(pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
 i=0

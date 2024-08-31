@@ -1,80 +1,65 @@
 #pragma once
 
 #include <array>
+#include <lua.h>
 #include <span>
 #include <string_view>
-#include <lua.h>
 
 #include <emu/mmio.hpp>
 #include <video/palette.hpp>
 
-namespace emu
-{
+namespace emu {
 
-class Emulator
-{
-public:
-    constexpr Emulator() = default;
-    ~Emulator();
+class Emulator {
+	public:
+	constexpr Emulator() = default;
+	~Emulator();
 
-    void init(std::span<std::byte> memory_buffer);
+	void init(std::span<std::byte> memory_buffer);
 
-    void load(std::string_view buf);
+	void load(std::string_view buf);
 
-    void run();
-    void flip();
+	void run();
+	void flip();
 
-    int get_fps_target() const;
+	int get_fps_target() const;
 
-    enum class HookResult
-    {
-        SUCCESS,
-        UNDEFINED,
-        LUA_ERROR
-    };
-    
-    HookResult run_hook(const char* name);
+	enum class HookResult { SUCCESS, UNDEFINED, LUA_ERROR };
 
-    [[noreturn]] void panic(const char* message);
+	HookResult run_hook(const char *name);
 
-    constexpr Memory memory()
-    {
-        return Memory{std::span(_memory)};
-    }
+	[[noreturn]] void panic(const char *message);
 
-    auto get_memory_alloc_buffer() const
-    {
-        return _memory_buffer;
-    }
+	constexpr Memory memory() { return Memory{std::span(_memory)}; }
 
-    auto& palette()
-    {
-        return _palette;
-    }
+	auto get_memory_alloc_buffer() const { return _memory_buffer; }
 
-    std::uint64_t get_update_start_time() { return _update_start_time; }
-    std::uint64_t get_frame_start_time() { return _frame_start_time; }
-    std::uint64_t get_frame_target_time() { return _frame_target_time; }
+	auto &palette() { return _palette; }
 
-    Emulator(const Emulator&) = delete;
-    Emulator& operator=(const Emulator&) = delete;
+	std::uint64_t get_update_start_time() { return _update_start_time; }
+	std::uint64_t get_frame_start_time() { return _frame_start_time; }
+	std::uint64_t get_frame_target_time() { return _frame_target_time; }
 
-private:
-    std::span<std::byte> _memory_buffer;
-    std::array<std::uint8_t, 65536> _memory = {};
-    std::array<std::uint32_t, 32> _palette = {};
-    lua_State* _lua = nullptr;
+	Emulator(const Emulator &) = delete;
+	Emulator &operator=(const Emulator &) = delete;
 
-    std::uint64_t _update_start_time = 0;
-    std::uint64_t _frame_start_time = 0;
-    std::uint64_t _frame_target_time = 0;
+	private:
+	std::span<std::byte> _memory_buffer;
+	std::array<std::uint8_t, 65536> _memory = {};
+	std::array<std::uint32_t, 32> _palette = {};
+	lua_State *_lua = nullptr;
+
+	std::uint64_t _update_start_time = 0;
+	std::uint64_t _frame_start_time = 0;
+	std::uint64_t _frame_target_time = 0;
 };
 
-void* lua_alloc(void* ud, void* ptr, size_t osize, size_t nsize);
+void *lua_alloc(void *ud, void *ptr, size_t osize, size_t nsize);
 
 extern constinit Emulator emulator;
 
-template<class Device, std::uint16_t map_address = Device::default_map_address>
-inline constexpr auto device = Device(emulator.memory().data.subspan<map_address, Device::map_length>());
+template <class Device, std::uint16_t map_address = Device::default_map_address>
+inline constexpr auto device =
+	Device(emulator.memory().data.subspan<map_address, Device::map_length>());
 
-}
+} // namespace emu

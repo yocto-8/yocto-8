@@ -1,21 +1,17 @@
 #include "hardwarestate.hpp"
 
-#include <pico/stdlib.h>
-#include <pico/multicore.h>
-#include <hardware/vreg.h>
 #include <hardware/clocks.h>
+#include <hardware/vreg.h>
+#include <pico/multicore.h>
+#include <pico/stdlib.h>
 
-#include <emu/emulator.hpp>
 #include <cmdthread.hpp>
+#include <emu/emulator.hpp>
 
-namespace arch::pico
-{
+namespace arch::pico {
 
-void init_cmd_thread()
-{
-    multicore_launch_core1(core1_entry);
-}
+void init_cmd_thread() { multicore_launch_core1(core1_entry); }
 
 ArchState state;
 
-}
+} // namespace arch::pico
