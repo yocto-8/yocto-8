@@ -45,6 +45,8 @@ void init_buttons()
 
 std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)()
 {
+    // RP2350 QMI PSRAM initialization code from CircuitPython
+
     gpio_set_function(PIMORONI_PICO_PLUS2_PSRAM_CS_PIN, GPIO_FUNC_XIP_CS1);
     int psram_size;
     psram_size = 0;
