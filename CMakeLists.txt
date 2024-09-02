@@ -24,22 +24,16 @@ set(PERF_FLAGS
     # is a net gain, for some reason
     # TODO: recheck performance, maybe it's not relevant
     "-ffast-math"
+
+    "-fno-exceptions"
 )
 
 if (Y8_ARCH STREQUAL "pico")
     # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
 endif()
 
-# FIXME: this really shouldn't be duplicated :)
-add_link_options(
-    "-fno-exceptions"
-    ${PERF_FLAGS}
-)
-
-add_compile_options(
-    "-fno-exceptions"
-    ${PERF_FLAGS}
-)
+add_link_options(${PERF_FLAGS})
+add_compile_options(${PERF_FLAGS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
