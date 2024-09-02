@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <pico/stdio.h>
 #include <platform/asupico/asupico.hpp>
 
@@ -92,7 +93,7 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	qmi_hw->direct_csr &=
 		~(QMI_DIRECT_CSR_ASSERT_CS1N_BITS | QMI_DIRECT_CSR_EN_BITS);
 
-	printf("kgd: %02x\n", kgd);
+	// printf("kgd: %02x\n", kgd);
 	/*if (kgd != 0x5D) {
 	    common_hal_mcu_enable_interrupts();
 	    reset_pin_number(CIRCUITPY_PSRAM_CHIP_SELECT->number);
@@ -183,11 +184,23 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	// Mark that we can write to PSRAM.
 	xip_ctrl_hw->ctrl |= XIP_CTRL_WRITABLE_M1_BITS;
 
+	// half-assed PSRAM test code
+	// for (int i = 0; i < psram_size / 4; ++i) {
+	// 	volatile int32_t *test_address =
+	// 		reinterpret_cast<int32_t *>(Y8_EXTMEM_START + i * 4);
+
+	// 	*test_address = i * 3;
+	// 	if (*test_address != i * 3) {
+	// 		printf("PSRAM self test failed! PSRAM heap will be disabled.\n");
+	// 		return 0;
+	// 	}
+	// }
+
 	return psram_size;
 }
 
 void init_emulator(std::size_t psram_size) {
-	heap_limit = reinterpret_cast<void *>(Y8_EXTMEM_START + psram_size);
+	heap_limit = reinterpret_cast<void *>(Y8_EXTMEM_START + psram_size - 1);
 
 	emu::emulator.init(
 		std::span(reinterpret_cast<std::byte *>(Y8_EXTMEM_START), psram_size));
