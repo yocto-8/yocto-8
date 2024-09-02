@@ -43,7 +43,17 @@ add_compile_options(
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
-add_library(y8-core)
+# this is a weird hack that defines a core library on the desktop platform
+# (which avoids rebuilding everything when doing headless/gui builds)
+#
+# the core library trick worked OK on pico, but it resulted in double the files
+# being compiled for some reason; unsure why.
+if (Y8_ARCH STREQUAL "desktop")
+    set(CORE_LIBRARY_TARGET y8-core)
+    add_library(${CORE_LIBRARY_TARGET})
+elseif(Y8_ARCH STREQUAL "pico")
+    set(CORE_LIBRARY_TARGET y8)
+endif()
 
 set(CORE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/")
 set(CORE_SOURCES
@@ -58,7 +68,6 @@ set(CORE_SOURCES
     ${CORE_ROOT}/emu/bindings/video.cpp
     ${CORE_ROOT}/p8/parser.cpp
 )
-target_sources(y8-core PUBLIC ${CORE_SOURCES})
 
 set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/")
 set(LUA_SOURCES
@@ -110,7 +119,6 @@ set_source_files_properties(
 
     PROPERTIES COMPILE_FLAGS "-Os")
 add_compile_definitions(LUA_USE_LONGJMP)
-target_sources(y8-core PUBLIC ${LUA_SOURCES})
 
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
 set(FIXMATH_SOURCES
@@ -121,7 +129,6 @@ set(FIXMATH_SOURCES
     ${FIXMATH_ROOT}/fix16.c
 )
 set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
-target_sources(y8-core PUBLIC ${FIXMATH_SOURCES})
 
 if (Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
@@ -139,11 +146,11 @@ if (Y8_ARCH STREQUAL "desktop")
         ${ARCH_SOURCES}
         ${ARCH_ROOT}/window.cpp
     )
-    target_link_libraries(y8 PRIVATE y8-core sfml-system sfml-window sfml-graphics)
+    target_link_libraries(y8 PRIVATE ${CORE_LIBRARY_TARGET} sfml-system sfml-window sfml-graphics)
 
     add_executable(y8-headless ${ARCH_SOURCES})
     target_compile_definitions(y8-headless PRIVATE YOCTO8_DESKTOP_HEADLESS)
-    target_link_libraries(y8-headless PRIVATE y8-core)
+    target_link_libraries(y8-headless PRIVATE ${CORE_LIBRARY_TARGET})
 
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".text")
 elseif (Y8_ARCH STREQUAL "pico")
@@ -176,33 +183,32 @@ elseif (Y8_ARCH STREQUAL "pico")
         message(FATAL_ERROR "Y8_PLATFORM not specified, illegal or not supported on the \"pico\" arch")
     endif()
 
-    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore)
+    add_executable(${CORE_LIBRARY_TARGET} ${ARCH_SOURCES} ${PLATFORM_SOURCES})
+
+    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore)
     
     # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
     # 1. usage of the secondary memory pool requires us to handle failing allocs.
     # 2. dynamic allocation in non-desktop platforms is forbidden, so we can check
     #    malloc return values in the only place it can be used: the lua allocator.
     # 3. we rely on the lua emergency GC, which can save us in this usecase.
-    target_compile_definitions(y8-core PUBLIC PICO_MALLOC_PANIC=0)
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_MALLOC_PANIC=0)
 
     # NOTE: we forbid malloc outsides of lua malloc; and that excludes any work
     # on the second core.
-    target_compile_definitions(y8-core PUBLIC PICO_USE_MALLOC_MUTEX=0)
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_MALLOC_MUTEX=0)
 
-    add_executable(y8 ${ARCH_SOURCES} ${PLATFORM_SOURCES})
-    target_link_libraries(y8 PUBLIC y8-core)
-
-    pico_add_extra_outputs(y8)
+    pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
 
     if (Y8_PLATFORM STREQUAL "asupico")
-        target_link_libraries(y8-core PUBLIC hardware_spi hardware_dma)
-        target_compile_definitions(y8-core PUBLIC PICO_CMSIS_RENAME_EXCEPTIONS=0)
+        target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
+        target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_CMSIS_RENAME_EXCEPTIONS=0)
     elseif (Y8_PLATFORM STREQUAL "picosystem")
-        #target_link_libraries(y8-core PUBLIC hardware_spi hardware_pio hardware_dma)
-        target_link_libraries(y8-core PUBLIC hardware_spi hardware_dma)
-        #pico_generate_pio_header(y8-core ${PLATFORM_ROOT}/screen.pio)
-        pico_set_linker_script(y8 "${PLATFORM_ROOT}/memmap_picosystem.ld")
-        pico_enable_stdio_usb(y8 1)
+        #target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_pio hardware_dma)
+        target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
+        #pico_generate_pio_header(${CORE_LIBRARY_TARGET} ${PLATFORM_ROOT}/screen.pio)
+        pico_set_linker_script(${CORE_LIBRARY_TARGET} "${PLATFORM_ROOT}/memmap_picosystem.ld")
+        pico_enable_stdio_usb(${CORE_LIBRARY_TARGET} 1)
     endif()
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
@@ -210,9 +216,13 @@ elseif (Y8_ARCH STREQUAL "pico")
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".time_critical.y8")
 endif()
 
-target_include_directories(y8-core PUBLIC ${ARCH_ROOT})
+target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${CORE_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${LUA_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${FIXMATH_SOURCES})
 
-target_compile_options(y8-core
+target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC ${ARCH_ROOT})
+
+target_compile_options(${CORE_LIBRARY_TARGET}
     PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wno-ignored-qualifiers>
 )
@@ -225,7 +235,7 @@ target_compile_options(y8-core
 # 	set_property(SOURCE ${FILE} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 # endforeach()
 
-target_include_directories(y8-core PUBLIC
+target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/frozen/include"
