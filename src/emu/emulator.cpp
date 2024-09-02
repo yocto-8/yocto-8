@@ -390,7 +390,7 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 
 	// egc counter: only retry emergency GC (EGC) if xxKiB were freed from the
 	// main heap since the last EGC trigger
-	static constexpr size_t egc_cooldown = 16384;
+	static constexpr size_t egc_cooldown = 4096;
 
 	// init the counter to the cooldown to allow one first EGC
 	static size_t bytes_freed_since_egc = egc_cooldown;
