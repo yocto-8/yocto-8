@@ -287,9 +287,9 @@ void Emulator::run() {
 void Emulator::flip() {
 	hal::present_frame();
 
-	const auto taken_time = hal::measure_time_us() - _frame_start_time;
-
 	lua_gc(_lua, LUA_GCSTEP, 100);
+
+	const auto taken_time = hal::measure_time_us() - _frame_start_time;
 
 	// printf("%f\n", double(taken_time) / 1000.0);
 
