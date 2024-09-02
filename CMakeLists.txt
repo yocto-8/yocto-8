@@ -37,6 +37,11 @@ add_compile_options(${PERF_FLAGS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
+add_compile_definitions(
+    # Y8_DEBUG_MEMCHECK
+    Y8_EXPERIMENTAL_GENGC
+)
+
 # this is a weird hack that defines a core library on the desktop platform
 # (which avoids rebuilding everything when doing headless/gui builds)
 #

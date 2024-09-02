@@ -184,6 +184,7 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	// Mark that we can write to PSRAM.
 	xip_ctrl_hw->ctrl |= XIP_CTRL_WRITABLE_M1_BITS;
 
+#ifdef Y8_DEBUG_MEMCHECK
 	// half-assed PSRAM test code
 	printf("Writing test pattern to PSRAM (through XIP)");
 	for (int i = psram_size / 4 - 1; i >= 0; --i) {
@@ -214,6 +215,7 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 		}
 	}
 	printf("\nPSRAM self test passed!\n");
+#endif
 
 	return psram_size;
 }

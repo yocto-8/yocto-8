@@ -2,6 +2,7 @@
 #include "devices/drawstatemisc.hpp"
 #include "devices/image.hpp"
 #include "devices/random.hpp"
+#include "lgc.h"
 
 #include <cstddef>
 #include <cstdio>
@@ -41,6 +42,11 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
 
 	_lua = lua_newstate(y8_lua_realloc, nullptr);
+
+#ifdef Y8_EXPERIMENTAL_GENGC
+	printf("Buggy Lua 5.2 Generational GC enabled\n");
+	luaC_changemode(_lua, KGC_GEN);
+#endif
 	luaL_openlibs(_lua);
 
 	device<devices::DrawPalette>.reset();
@@ -287,11 +293,15 @@ void Emulator::run() {
 void Emulator::flip() {
 	hal::present_frame();
 
-	lua_gc(_lua, LUA_GCSTEP, 100);
-
 	const auto taken_time = hal::measure_time_us() - _frame_start_time;
 
 	// printf("%f\n", double(taken_time) / 1000.0);
+
+#ifdef Y8_EXPERIMENTAL_GENGC
+	lua_gc(_lua, LUA_GCSTEP, 0);
+#else
+	lua_gc(_lua, LUA_GCSTEP, 100);
+#endif
 
 	if (taken_time < _frame_target_time) {
 		hal::delay_time_us(_frame_target_time - taken_time);
@@ -378,9 +388,9 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 	// The idea of letting Lua consume all of the malloc() heap is somewhat fine
 	// for us, because we never allocate memory dynamically elsewhere.
 
-	// egc counter: only retry emergency GC (EGC) if 16KiB were freed from the
+	// egc counter: only retry emergency GC (EGC) if xxKiB were freed from the
 	// main heap since the last EGC trigger
-	static constexpr size_t egc_cooldown = 4096;
+	static constexpr size_t egc_cooldown = 16384;
 
 	// init the counter to the cooldown to allow one first EGC
 	static size_t bytes_freed_since_egc = egc_cooldown;
