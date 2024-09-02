@@ -46,7 +46,7 @@ enum class StatEntry : std::uint16_t {
 };
 
 int y8_stat(lua_State *state) {
-	const auto argument_count = lua_gettop(state);
+	[[maybe_unused]] const auto argument_count = lua_gettop(state);
 
 	const auto entry = lua_tointeger(state, 1);
 
