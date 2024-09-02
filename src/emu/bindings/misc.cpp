@@ -14,7 +14,7 @@ namespace emu::bindings {
 enum class StatEntry : std::uint16_t {
 	RAM_USAGE_KB = 0,
 	CPU_USAGE_SINCE_UPDATE = 1,
-	SYSTEM_CPU_USAGE = 2,
+	SYSCALL_USAGE_SINCE_UPDATE = 2,
 	MAP_DISPLAY = 3,
 	CLIPBOARD_STRING = 4,
 	P8_VERSION = 5,
@@ -66,7 +66,10 @@ int y8_stat(lua_State *state) {
 		break;
 	}
 
-	case StatEntry::CPU_USAGE_SINCE_UPDATE: {
+	// no distinction between stat(1) and stat(2), since we aren't emulating
+	// cycles in the first place
+	case StatEntry::CPU_USAGE_SINCE_UPDATE:
+	case StatEntry::SYSCALL_USAGE_SINCE_UPDATE: {
 		const auto current_time = hal::measure_time_us();
 
 		// let's compute this with floats -- not sure if fixed point would
