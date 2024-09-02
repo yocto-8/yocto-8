@@ -145,7 +145,7 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 		14 << QMI_M0_TIMING_MIN_DESELECT_LSB | // In units of system clock
 	                                           // cycles. PSRAM says 50ns.50
 	                                           // / 7.52 = 6.64
-		2 << QMI_M0_TIMING_CLKDIV_LSB;
+		3 << QMI_M0_TIMING_CLKDIV_LSB;
 	qmi_hw->m[1].rfmt =
 		(QMI_M0_RFMT_PREFIX_WIDTH_VALUE_Q << QMI_M0_RFMT_PREFIX_WIDTH_LSB |
 	     QMI_M0_RFMT_ADDR_WIDTH_VALUE_Q << QMI_M0_RFMT_ADDR_WIDTH_LSB |
@@ -185,16 +185,35 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	xip_ctrl_hw->ctrl |= XIP_CTRL_WRITABLE_M1_BITS;
 
 	// half-assed PSRAM test code
-	// for (int i = 0; i < psram_size / 4; ++i) {
-	// 	volatile int32_t *test_address =
-	// 		reinterpret_cast<int32_t *>(Y8_EXTMEM_START + i * 4);
+	printf("Writing test pattern to PSRAM (through XIP)");
+	for (int i = psram_size / 4 - 1; i >= 0; --i) {
+		if (i % 8192 == 0) {
+			putchar('.');
+		}
 
-	// 	*test_address = i * 3;
-	// 	if (*test_address != i * 3) {
-	// 		printf("PSRAM self test failed! PSRAM heap will be disabled.\n");
-	// 		return 0;
-	// 	}
-	// }
+		volatile uint32_t *test_address =
+			reinterpret_cast<uint32_t *>(Y8_EXTMEM_START + i * 4);
+
+		*test_address = unsigned(i);
+	}
+
+	printf("\nVerifying test pattern from PSRAM (through XIP)");
+	for (int i = 0; i < psram_size / 4; ++i) {
+		if (i % 8192 == 0) {
+			putchar('.');
+		}
+
+		volatile uint32_t *test_address =
+			reinterpret_cast<uint32_t *>(Y8_EXTMEM_START + i * 4);
+		const auto got = *test_address;
+		if (got != unsigned(i)) {
+			printf("\nPSRAM self test failed (got %d expected %d at %p)! PSRAM "
+			       "heap will be disabled.\n",
+			       got, unsigned(i), test_address);
+			return 0;
+		}
+	}
+	printf("\nPSRAM self test passed!\n");
 
 	return psram_size;
 }
