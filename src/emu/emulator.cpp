@@ -289,7 +289,7 @@ void Emulator::flip() {
 
 	const auto taken_time = hal::measure_time_us() - _frame_start_time;
 
-	lua_gc(_lua, LUA_GCSTEP, 10);
+	lua_gc(_lua, LUA_GCSTEP, 100);
 
 	// printf("%f\n", double(taken_time) / 1000.0);
 
