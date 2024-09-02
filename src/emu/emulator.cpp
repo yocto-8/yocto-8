@@ -351,7 +351,7 @@ extern "C" {
 
 [[gnu::flatten]]
 void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
-                     bool must_not_fail) {
+                     bool egc_recently) {
 	(void)ud;
 
 	static bool fuck = false;
@@ -360,9 +360,15 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		fuck = true;
 	}
 
+	// static int heap_use = 0;
+	// heap_use += (nsize - osize);
+
+	// printf("realloc %p %ld %ld mustnotfail=%d\n", ptr, osize, nsize,
+	//        must_not_fail);
+	// printf("heap: %fKiB\n", float(heap_use) / 1024.0f);
+
 	// This is a Lua allocation function that uses standard malloc and realloc,
-	// but can make use of a secondary memory pool as a fallback using
-	// umm_malloc.
+	// but can make use of a secondary memory pool as a fallback.
 
 	// The secondary memory pool is used only when malloc() fails to allocate.
 	// Currently, we trigger the GC to use the secondary heap as a last resort.
@@ -372,12 +378,24 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 	// The idea of letting Lua consume all of the malloc() heap is somewhat fine
 	// for us, because we never allocate memory dynamically elsewhere.
 
+	// egc counter: only retry emergency GC (EGC) if 16KiB were freed from the
+	// main heap since the last EGC trigger
+	static constexpr size_t egc_cooldown = 4096;
+
+	// init the counter to the cooldown to allow one first EGC
+	static size_t bytes_freed_since_egc = egc_cooldown;
+
 	const bool has_extra_heap = !emulator.get_memory_alloc_buffer().empty();
 
 	const auto is_ptr_on_slow_heap = [&] {
 		const auto alloc_buffer = emulator.get_memory_alloc_buffer();
 		return has_extra_heap && ptr >= alloc_buffer.data() &&
 		       ptr < alloc_buffer.data() + alloc_buffer.size();
+	};
+
+	const auto c_free = [&] {
+		bytes_freed_since_egc += osize;
+		free(ptr);
 	};
 
 	// Free this pointer no matter the heap it was allocated in.
@@ -389,7 +407,7 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		if (is_ptr_on_slow_heap()) {
 			ta_free(ptr);
 		} else {
-			free(ptr);
+			c_free();
 		}
 	};
 
@@ -404,11 +422,17 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 			return malloc_ptr;
 		}
 
-		if (!must_not_fail) {
+		if (!egc_recently && bytes_freed_since_egc >= egc_cooldown) {
 			// trigger Lua's EGC
-			// printf("EGC\n");
+			printf("EGC\n");
+			bytes_freed_since_egc = 0;
 			return nullptr;
 		}
+
+		// if (!egc_recently) {
+		// 	printf("Fallback heap alloc with %d freed from main\n",
+		// 	       bytes_freed_since_egc);
+		// }
 
 		if (!has_extra_heap) {
 			return nullptr;
@@ -430,7 +454,7 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		}
 
 		std::memcpy(new_ptr, ptr, std::min(osize, nsize));
-		free(ptr);
+		c_free();
 		return new_ptr;
 	};
 

@@ -27,7 +27,7 @@ typedef struct {
 } Heap;
 
 static Heap *const heap = reinterpret_cast<Heap *>(Y8_EXTMEM_START);
-static void *heap_limit = nullptr;
+extern void *heap_limit;
 static constexpr size_t heap_split_thresh = 16;
 static constexpr size_t heap_alignment = sizeof(void *);
 static constexpr size_t heap_max_blocks = 16384;
@@ -113,7 +113,7 @@ static void compact() {
 }
 #endif
 
-bool ta_init() {
+static bool ta_init() {
 	heap->free = NULL;
 	heap->used = NULL;
 	heap->fresh = (Block *)(heap + 1);
@@ -129,7 +129,7 @@ bool ta_init() {
 	return true;
 }
 
-bool ta_free(void *free) {
+static bool ta_free(void *free) {
 	Block *block = heap->used;
 	Block *prev = NULL;
 	while (block != NULL) {
@@ -210,7 +210,7 @@ static Block *alloc_block(size_t num) {
 	return NULL;
 }
 
-void *ta_alloc(size_t num) {
+static void *ta_alloc(size_t num) {
 	Block *block = alloc_block(num);
 	if (block != NULL) {
 		return block->addr;
@@ -231,7 +231,7 @@ static void memclear(void *ptr, size_t num) {
 	}
 }
 
-void *ta_calloc(size_t num, size_t size) {
+static void *ta_calloc(size_t num, size_t size) {
 	num *= size;
 	Block *block = alloc_block(num);
 	if (block != NULL) {
@@ -250,12 +250,12 @@ static size_t count_blocks(Block *ptr) {
 	return num;
 }
 
-size_t ta_num_free() { return count_blocks(heap->free); }
+static size_t ta_num_free() { return count_blocks(heap->free); }
 
-size_t ta_num_used() { return count_blocks(heap->used); }
+static size_t ta_num_used() { return count_blocks(heap->used); }
 
-size_t ta_num_fresh() { return count_blocks(heap->fresh); }
+static size_t ta_num_fresh() { return count_blocks(heap->fresh); }
 
-bool ta_check() {
+static bool ta_check() {
 	return heap_max_blocks == ta_num_free() + ta_num_used() + ta_num_fresh();
 }
