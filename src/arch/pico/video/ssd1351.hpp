@@ -52,7 +52,7 @@ class SSD1351 {
 
 		SET_PRECHARGE_PERIOD = 0xB1,
 		MAGIC_ENHANCE_DISPLAY = 0xB2, //< no idea what this does, the datasheet
-		                              //is not any more clear
+		                              // is not any more clear
 		SET_CLOCK_DIVIDER = 0xB3,
 		SET_VSL = 0xB4,
 		SET_GPIO = 0xB5,

@@ -19,14 +19,15 @@ endif()
 project(yocto-8)
 
 set(PERF_FLAGS
-    "-Os"
+    "-O2"
 
     # is a net gain, for some reason
     # TODO: recheck performance, maybe it's not relevant
-    "-ffast-math")
+    "-ffast-math"
+)
 
 if (Y8_ARCH STREQUAL "pico")
-    # set(PERF_FLAGS ${PERF_FLAGS}) "-flto")  # todo: detect clang and use thinlto
+    # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
 endif()
 
 # FIXME: this really shouldn't be duplicated :)
@@ -175,7 +176,7 @@ elseif (Y8_ARCH STREQUAL "pico")
         message(FATAL_ERROR "Y8_PLATFORM not specified, illegal or not supported on the \"pico\" arch")
     endif()
 
-    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore cmsis_core)
+    target_link_libraries(y8-core PUBLIC pico_stdlib pico_multicore)
     
     # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
     # 1. usage of the secondary memory pool requires us to handle failing allocs.
@@ -190,7 +191,7 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     add_executable(y8 ${ARCH_SOURCES} ${PLATFORM_SOURCES})
     target_link_libraries(y8 PUBLIC y8-core)
-    
+
     pico_add_extra_outputs(y8)
 
     if (Y8_PLATFORM STREQUAL "asupico")

@@ -26,6 +26,28 @@ arch:
         PICO_BOARD: "asupico"
         PICO_PLATFORM: "rp2350"
         PICO_COMPILER: "pico_arm_cortex_m33_gcc"
+    asuram:
+      short: PicoPlus2 w/ asu pinout (RAM)
+      long: Pimoroni Pico Plus 2 based setup (RAM)
+      identifier: asupico
+      settings:
+        Y8_ARCH: "pico"
+        Y8_PLATFORM: "asupico"
+        PICO_BOARD: "asupico"
+        PICO_PLATFORM: "rp2350"
+        PICO_COMPILER: "pico_arm_cortex_m33_gcc"
+        PICO_NO_FLASH: 1
+    asurv:
+      short: PicoPlus2 w/ asu pinout on hazard3
+      long: Pimoroni Pico Plus 2 based setup (RISC-V)
+      identifier: asupico
+      settings:
+        Y8_ARCH: "pico"
+        Y8_PLATFORM: "asupico"
+        PICO_BOARD: "asupico"
+        PICO_PLATFORM: "rp2350-riscv"
+        PICO_COMPILER: "pico_riscv_gcc"
+        PICO_TOOLCHAIN_PATH: "/home/sdelang/rv/embecosm/riscv32-embecosm-centos7-gcc13.2.0/"
     picosystem:
       short: PicoSystem
       long: Build for the RP2040-based PicoSystem handheld from Pimoroni
