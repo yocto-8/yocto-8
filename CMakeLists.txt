@@ -198,6 +198,9 @@ elseif (Y8_ARCH STREQUAL "pico")
     # on the second core.
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_MALLOC_MUTEX=0)
 
+    # needed for a LTO hack
+    # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STDIO_SHORT_CIRCUIT_CLIB_FUNCS=0)
+
     pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
 
     if (Y8_PLATFORM STREQUAL "asupico")
