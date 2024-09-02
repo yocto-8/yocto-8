@@ -15,7 +15,7 @@ void init_hardware() {
 	init_default_frequency();
 	printf("Configuring PSRAM\n");
 	const auto psram_size = init_psram_pimoroni();
-	printf("PSRAM configured with size %dKiB", psram_size / 1024);
+	printf("PSRAM configured with size %dKiB\n", psram_size / 1024);
 	printf("Booting command thread\n");
 	init_cmd_thread();
 	printf("Configuring buttons\n");
