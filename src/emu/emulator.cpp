@@ -350,7 +350,8 @@ extern "C" {
 #include "tinyalloc.hpp"
 
 [[gnu::flatten]]
-void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
+                     bool must_not_fail) {
 	(void)ud;
 
 	static bool fuck = false;
@@ -364,21 +365,12 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	// umm_malloc.
 
 	// The secondary memory pool is used only when malloc() fails to allocate.
-	// For performance reasons, it is a good idea to aggressively GC so that
-	// heap usage remains as low as possible since the secondary memory pool may
-	// be significantly slower.
-
-	// We (ab)use the Lua emergency GC by strategically returning nullptr to
-	// force the GC to kick in when the primary pool is exhausted. In the
-	// emulator we try to make the GC step a bit, but while it helps reduce
-	// GC-induced spikes it is not a perfect solution and is only performed once
-	// per frame, whereas the program may be trying to allocate and free a lot
-	// within one frame.
+	// Currently, we trigger the GC to use the secondary heap as a last resort.
+	// (NOTE: the performance characteristics of doing this without a smarter
+	// heuristic are to be determined.)
 
 	// The idea of letting Lua consume all of the malloc() heap is somewhat fine
 	// for us, because we never allocate memory dynamically elsewhere.
-
-	static bool has_alloc_succeeded_since_egc = false;
 
 	const bool has_extra_heap = !emulator.get_memory_alloc_buffer().empty();
 
@@ -409,13 +401,11 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 			{
 			    printf("recovered enough mem\n");
 			}*/
-			has_alloc_succeeded_since_egc = true;
 			return malloc_ptr;
 		}
 
-		if (has_alloc_succeeded_since_egc) {
+		if (!must_not_fail) {
 			// trigger Lua's EGC
-			has_alloc_succeeded_since_egc = false;
 			// printf("EGC\n");
 			return nullptr;
 		}
@@ -483,7 +473,8 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
 	}
 }
 #else
-void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize) {
+void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
+                     [[maybe_unused]] bool must_not_fail) {
 	(void)ud;
 
 	if (nsize == 0) {
