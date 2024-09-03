@@ -293,8 +293,6 @@ void Emulator::run() {
 void Emulator::flip() {
 	hal::present_frame();
 
-	const auto taken_time = hal::measure_time_us() - _frame_start_time;
-
 	// printf("%f\n", double(taken_time) / 1000.0);
 
 #ifdef Y8_EXPERIMENTAL_GENGC
@@ -302,6 +300,8 @@ void Emulator::flip() {
 #else
 	lua_gc(_lua, LUA_GCSTEP, 100);
 #endif
+
+	const auto taken_time = hal::measure_time_us() - _frame_start_time;
 
 	if (taken_time < _frame_target_time) {
 		hal::delay_time_us(_frame_target_time - taken_time);
