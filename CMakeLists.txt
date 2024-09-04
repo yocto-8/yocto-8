@@ -199,14 +199,17 @@ elseif (Y8_ARCH STREQUAL "pico")
     # on the second core.
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_MALLOC_MUTEX=0)
 
+    # NOTE: as of 2.0.0, the pico-sdk is not including XIP setup code for the
+    # flash, resulting in suboptimal timing for the stock flash
+    # https://github.com/raspberrypi/pico-sdk/issues/1903
+    # however, enabling it does mess up debugging for some reason
+    # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_EMBED_XIP_SETUP=1)
+
     # needed for a LTO hack
     # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STDIO_SHORT_CIRCUIT_CLIB_FUNCS=0)
 
-    pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
-
     if (Y8_PLATFORM STREQUAL "asupico")
         target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
-        target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_CMSIS_RENAME_EXCEPTIONS=0)
     elseif (Y8_PLATFORM STREQUAL "picosystem")
         #target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_pio hardware_dma)
         target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
@@ -218,6 +221,8 @@ elseif (Y8_ARCH STREQUAL "pico")
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
 
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".time_critical.y8")
+
+    pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
 endif()
 
 target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${CORE_SOURCES})

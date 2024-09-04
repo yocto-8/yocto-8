@@ -12,6 +12,7 @@ void init_hardware() {
 
 	init_stdio();
 	printf("Configuring frequency and clock divisors\n");
+	init_flash_frequency();
 	init_default_frequency();
 	printf("Configuring PSRAM\n");
 	const auto psram_size = init_psram_pimoroni();

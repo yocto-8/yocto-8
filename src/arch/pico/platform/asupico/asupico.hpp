@@ -16,6 +16,7 @@ struct HardwareState {
 
 extern HardwareState hw;
 
+void init_flash_frequency();
 void init_default_frequency();
 void init_stdio();
 void init_buttons();

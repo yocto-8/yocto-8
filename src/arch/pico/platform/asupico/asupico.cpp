@@ -17,10 +17,31 @@ namespace arch::pico::platform::asupico {
 
 HardwareState hw;
 
-void init_default_frequency() {
-	// FIXME: less jank and need to respect the write thing
-	qmi_hw->m[0].timing = 0x60007203;
+void __no_inline_not_in_flash_func(init_flash_frequency)() {
+	uint32_t interrupt_state = save_and_disable_interrupts();
 
+	qmi_hw->m[0].timing = 1 << QMI_M0_TIMING_COOLDOWN_LSB |
+	                      2 << QMI_M0_TIMING_RXDELAY_LSB |
+	                      3 << QMI_M0_TIMING_CLKDIV_LSB;
+	qmi_hw->m[0].rcmd =
+		0xEB << QMI_M0_RCMD_PREFIX_LSB /* | 0xA0 << QMI_M0_RCMD_SUFFIX_LSB*/;
+	qmi_hw->m[0].rfmt =
+		QMI_M0_RFMT_PREFIX_WIDTH_VALUE_S << QMI_M0_RFMT_PREFIX_WIDTH_LSB |
+		QMI_M0_RFMT_ADDR_WIDTH_VALUE_Q << QMI_M0_RFMT_ADDR_WIDTH_LSB |
+		QMI_M0_RFMT_SUFFIX_WIDTH_VALUE_Q << QMI_M0_RFMT_SUFFIX_WIDTH_LSB |
+		QMI_M0_RFMT_DUMMY_WIDTH_VALUE_Q << QMI_M0_RFMT_DUMMY_WIDTH_LSB |
+		QMI_M0_RFMT_DATA_WIDTH_VALUE_Q << QMI_M0_RFMT_DATA_WIDTH_LSB |
+		QMI_M0_RFMT_PREFIX_LEN_VALUE_8 << QMI_M0_RFMT_PREFIX_LEN_LSB |
+		QMI_M0_RFMT_SUFFIX_LEN_VALUE_8 << QMI_M0_RFMT_SUFFIX_LEN_LSB |
+		4 << QMI_M0_RFMT_DUMMY_LEN_LSB;
+
+	// dummy read
+	*reinterpret_cast<volatile char *>(XIP_NOCACHE_NOALLOC_BASE);
+
+	restore_interrupts(interrupt_state);
+}
+
+void init_default_frequency() {
 	vreg_set_voltage(VREG_VOLTAGE_1_25);
 	set_sys_clock_khz(351000, true);
 
