@@ -6,6 +6,13 @@ namespace p8 {
 
 class Parser {
 	public:
+	// TODO: The parser should instead be able to read from something that can
+	// read chunks (probably of a size it cannot control). Cartridges cannot be
+	// assumed to be all stored in memory at once. The Lua parser should be able
+	// to read using the same chunk reader. The parser here should be able to
+	// automatically inject code when `#include` is detected. The Lua parser
+	// doesn't really need to be edited to be able to early quit: This could
+	// reasonably be handled inside of the chunk reader mechanism.
 	Parser(std::string_view source);
 
 	enum class State {
