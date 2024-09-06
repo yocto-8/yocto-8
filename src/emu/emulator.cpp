@@ -248,6 +248,32 @@ void Emulator::load(std::string_view buf) {
 	}
 }
 
+void Emulator::exec(std::string_view buf) {
+	const int load_status =
+		luaL_loadbuffer(_lua, buf.data(), buf.size(), "repl");
+
+	if (load_status != 0) {
+		printf("Exec compilation failed: %s\n", lua_tostring(_lua, -1));
+		panic(lua_tostring(_lua, -1));
+		lua_pop(_lua, 1);
+	}
+
+	if (lua_pcall(_lua, 0, 0, 0) != 0) {
+		printf("Exec failed: %s\n", lua_tostring(_lua, -1));
+		panic(lua_tostring(_lua, -1));
+		lua_pop(_lua, 1);
+	}
+}
+
+void Emulator::handle_repl() {
+	std::array<char, 512> repl_buffer;
+	const auto repl_input = hal::read_repl(repl_buffer);
+
+	if (!repl_input.empty()) {
+		exec(std::string_view{repl_input.data(), repl_input.size()});
+	}
+}
+
 void Emulator::run() {
 	hal::reset_timer();
 
@@ -268,6 +294,8 @@ void Emulator::run() {
 			has_any_hook_defined |= hook_result != HookResult::UNDEFINED;
 			return hook_result;
 		};
+
+		handle_repl();
 
 		// this _update behavior matches pico-8's: if _update60 is defined,
 		// _update is ignored when both are unspecified, flipping will occur at

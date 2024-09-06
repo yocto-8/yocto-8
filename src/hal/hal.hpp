@@ -32,4 +32,11 @@ void load_rgb_palette(std::span<std::uint32_t, 32> new_palette);
 /// @brief Gets the default/precalibrated color for this platform.
 std::span<const std::uint32_t, 32> get_default_palette();
 
+/// @brief Reads user input from the standard input into the provided buffer, if
+/// supported. Non-blocking. Used for debugging; exceeding buffer size does not
+/// need to be correctly handled/notified (but won't cause UB).
+/// @returns Subspan representing the parsed string within the `target_buffer`.
+/// Empty on no input or on an empty input.
+[[nodiscard]] std::span<char> read_repl(std::span<char> target_buffer);
+
 } // namespace hal

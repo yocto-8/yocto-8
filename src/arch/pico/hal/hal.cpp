@@ -1,9 +1,11 @@
 #include "pico/time.h"
 #include "video/palette.hpp"
+#include <cstdio>
 #include <hal/hal.hpp>
 
 #include <cmdthread.hpp>
 #include <hardwarestate.hpp>
+#include <pico/stdio.h>
 
 namespace hal {
 
@@ -23,5 +25,22 @@ std::uint64_t measure_time_us() {
 }
 
 void delay_time_us(std::uint64_t time) { sleep_us(time); }
+
+std::span<char> read_repl(std::span<char> target_buffer) {
+	int c = stdio_getchar_timeout_us(0);
+
+	if (c == PICO_ERROR_TIMEOUT) {
+		return {};
+	}
+
+	std::size_t i = 0;
+	do {
+		target_buffer[i] = c;
+		c = getchar();
+		++i;
+	} while (c != '\r');
+
+	return {target_buffer.data(), i};
+}
 
 } // namespace hal

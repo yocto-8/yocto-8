@@ -12,18 +12,19 @@ set(Y8_DEFINITIONS "")
 
 function(add_y8_definition_string OPTION_NAME OPTION_DEFAULT OPTION_DEFINITION)
     set(${OPTION_NAME} ${OPTION_DEFAULT} CACHE STRING ${OPTION_DEFINITION})
-    set(Y8_DEFINITIONS "${Y8_DEFINITION} ${OPTION_NAME}=${${OPTION_NAME}}" PARENT_SCOPE)
+    set(Y8_DEFINITIONS "${Y8_DEFINITION};${OPTION_NAME}=${${OPTION_NAME}}" PARENT_SCOPE)
 endfunction()
 
 function(add_y8_definition_flag OPTION_NAME OPTION_DEFAULT OPTION_DEFINITION)
     set(${OPTION_NAME} ${OPTION_DEFAULT} CACHE BOOL ${OPTION_DEFINITION})
     if (${${OPTION_NAME}})
-        set(Y8_DEFINITIONS "${Y8_DEFINITIONS} ${OPTION_NAME}" PARENT_SCOPE)
+        set(Y8_DEFINITIONS "${Y8_DEFINITIONS};${OPTION_NAME}" PARENT_SCOPE)
     endif()
 endfunction()
 
 add_y8_definition_flag(Y8_DEBUG_MEMCHECK OFF "On PSRAM-enabled systems, run a quick memory test script to sanity check whether the PSRAM appears functional and stable. If the memcheck fails, an error will be logged and the PSRAM heap will be disabled")
 add_y8_definition_flag(Y8_EXPERIMENTAL_GENGC ON "Enable the experimental Lua 5.2 generational GC, which is known to have bugs but can prove beneficial for performance")
+add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
 
 message("Following definitions set: [${Y8_DEFINITIONS}]")
 

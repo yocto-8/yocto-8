@@ -18,6 +18,9 @@ class Emulator {
 	void init(std::span<std::byte> memory_buffer);
 
 	void load(std::string_view buf);
+	void exec(std::string_view buf);
+
+	void handle_repl();
 
 	void run();
 	void flip();
