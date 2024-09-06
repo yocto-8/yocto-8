@@ -7,6 +7,26 @@ cmake_minimum_required(VERSION 3.13)
 set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
 set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
 
+# macro definitions
+set(Y8_DEFINITIONS "")
+
+function(add_y8_definition_string OPTION_NAME OPTION_DEFAULT OPTION_DEFINITION)
+    set(${OPTION_NAME} ${OPTION_DEFAULT} CACHE STRING ${OPTION_DEFINITION})
+    set(Y8_DEFINITIONS "${Y8_DEFINITION} -D${OPTION_NAME}=${${OPTION_NAME}}" PARENT_SCOPE)
+endfunction()
+
+function(add_y8_definition_flag OPTION_NAME OPTION_DEFAULT OPTION_DEFINITION)
+    set(${OPTION_NAME} ${OPTION_DEFAULT} CACHE BOOL ${OPTION_DEFINITION})
+    if (${${OPTION_NAME}})
+        set(Y8_DEFINITIONS "${Y8_DEFINITIONS} -D${OPTION_NAME}" PARENT_SCOPE)
+    endif()
+endfunction()
+
+add_y8_definition_flag(Y8_DEBUG_MEMCHECK OFF "On PSRAM-enabled systems, run a quick memory test script to sanity check whether the PSRAM appears functional and stable. If the memcheck fails, an error will be logged and the PSRAM heap will be disabled")
+add_y8_definition_flag(Y8_EXPERIMENTAL_GENGC ON "Enable the experimental Lua 5.2 generational GC, which is known to have bugs but can prove beneficial for performance")
+
+message("Following definitions set: [${Y8_DEFINITIONS}]")
+
 if (Y8_ARCH STREQUAL "desktop")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold -Wl,--thinlto-cache-dir=./llvmcache")
 elseif(Y8_ARCH STREQUAL "pico")
@@ -36,11 +56,6 @@ add_link_options(${PERF_FLAGS})
 add_compile_options(${PERF_FLAGS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
-
-add_compile_definitions(
-    # Y8_DEBUG_MEMCHECK
-    Y8_EXPERIMENTAL_GENGC
-)
 
 # this is a weird hack that defines a core library on the desktop platform
 # (which avoids rebuilding everything when doing headless/gui builds)
@@ -236,13 +251,7 @@ target_compile_options(${CORE_LIBRARY_TARGET}
     $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wno-ignored-qualifiers>
 )
 
-# Causes issues with lua; when lua excluded, no significant gains
-# set_target_properties(y8 PROPERTIES
-#     UNITY_BUILD ON
-# )
-# foreach(FILE IN LISTS LUA_SOURCES)
-# 	set_property(SOURCE ${FILE} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
-# endforeach()
+target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC ${Y8_DEFINITIONS})
 
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
