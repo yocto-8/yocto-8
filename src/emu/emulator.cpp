@@ -266,12 +266,14 @@ void Emulator::exec(std::string_view buf) {
 }
 
 void Emulator::handle_repl() {
+#ifdef Y8_LUA_REPL
 	std::array<char, 512> repl_buffer;
 	const auto repl_input = hal::read_repl(repl_buffer);
 
 	if (!repl_input.empty()) {
 		exec(std::string_view{repl_input.data(), repl_input.size()});
 	}
+#endif
 }
 
 void Emulator::run() {
