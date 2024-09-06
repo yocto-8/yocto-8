@@ -49,6 +49,10 @@ set(PERF_FLAGS
     "-fno-exceptions"
 )
 
+set(LUA_EXTRA_CXXFLAGS
+    "-Wno-implicit-fallthrough -Wno-unused-function"
+)
+
 if (Y8_ARCH STREQUAL "pico")
     # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
 endif()
@@ -122,6 +126,7 @@ set(LUA_SOURCES
 )
 # compile Lua as C++ - we need this for the fixmath black magic
 set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
+set_source_files_properties(${LUA_SOURCES} COMPILE_FLAGS ${LUA_EXTRA_CXXFLAGS}) 
 
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
@@ -132,7 +137,7 @@ set_source_files_properties(
     ${LUA_ROOT}/lundump.c
     ${LUA_ROOT}/ldebug.c
 
-    PROPERTIES COMPILE_FLAGS "-Os")
+    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
 add_compile_definitions(LUA_USE_LONGJMP)
 
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
