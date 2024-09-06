@@ -138,8 +138,10 @@ void format_address(std::span<char> buffer, std::string_view prefix,
 	std::memcpy(buffer.data(), prefix.data(), prefix.size());
 	const auto output_span = buffer.subspan(prefix.size());
 
-	assert(std::snprintf(output_span.data(), output_span.size(), "0x%" PRIxPTR,
-	                     std::uintptr_t(address)) > 0);
+	[[maybe_unused]] const auto bytes =
+		std::snprintf(output_span.data(), output_span.size(), "0x%" PRIxPTR,
+	                  std::uintptr_t(address));
+	assert(written > 0);
 }
 
 int tostr_handle_optional_address_mode(lua_State *state,
