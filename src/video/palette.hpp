@@ -23,9 +23,9 @@ constexpr std::uint32_t pack_rgb(std::uint8_t r, std::uint8_t g,
 }
 
 constexpr std::array<std::uint32_t, 32> ssd1351_precal_palette_rgb8{
-	pack_rgb(0, 0, 0), pack_rgb(9, 17, 61), pack_rgb(89, 0, 61),
-	pack_rgb(0, 121, 54), pack_rgb(149, 70, 45), pack_rgb(68, 72, 69),
-	pack_rgb(144, 144, 216), pack_rgb(222, 210, 216), pack_rgb(255, 25, 68),
+	pack_rgb(0, 0, 0), pack_rgb(45, 60, 85), pack_rgb(100, 0, 80),
+	pack_rgb(0, 121, 54), pack_rgb(149, 70, 45), pack_rgb(100, 120, 100),
+	pack_rgb(150, 150, 180), pack_rgb(255, 230, 225), pack_rgb(255, 25, 90),
 	pack_rgb(255, 148, 0), pack_rgb(255, 250, 17), pack_rgb(0, 255, 81),
 	pack_rgb(70, 123, 255), pack_rgb(127, 88, 165), pack_rgb(238, 25, 159),
 	pack_rgb(240, 179, 133),
