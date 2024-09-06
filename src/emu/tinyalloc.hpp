@@ -38,7 +38,7 @@ static constexpr size_t heap_max_blocks = 16384;
  * If disabled, add block has new head of
  * the free list.
  */
-static void insert_block(Block *block) {
+inline void insert_block(Block *block) {
 #ifndef TA_DISABLE_COMPACT
 	Block *ptr = heap->free;
 	Block *prev = NULL;
@@ -68,7 +68,7 @@ static void insert_block(Block *block) {
 }
 
 #ifndef TA_DISABLE_COMPACT
-static void release_blocks(Block *scan, Block *to) {
+inline void release_blocks(Block *scan, Block *to) {
 	Block *scan_next;
 	while (scan != to) {
 		print_s("release");
@@ -82,7 +82,7 @@ static void release_blocks(Block *scan, Block *to) {
 	}
 }
 
-static void compact() {
+inline void compact() {
 	Block *ptr = heap->free;
 	Block *prev;
 	Block *scan;
@@ -113,7 +113,7 @@ static void compact() {
 }
 #endif
 
-static bool ta_init() {
+inline bool ta_init() {
 	heap->free = NULL;
 	heap->used = NULL;
 	heap->fresh = (Block *)(heap + 1);
@@ -129,7 +129,7 @@ static bool ta_init() {
 	return true;
 }
 
-static bool ta_free(void *free) {
+inline bool ta_free(void *free) {
 	Block *block = heap->used;
 	Block *prev = NULL;
 	while (block != NULL) {
@@ -151,7 +151,7 @@ static bool ta_free(void *free) {
 	return false;
 }
 
-static Block *alloc_block(size_t num) {
+inline Block *alloc_block(size_t num) {
 	Block *ptr = heap->free;
 	Block *prev = NULL;
 	size_t top = heap->top;
@@ -210,7 +210,7 @@ static Block *alloc_block(size_t num) {
 	return NULL;
 }
 
-static void *ta_alloc(size_t num) {
+inline void *ta_alloc(size_t num) {
 	Block *block = alloc_block(num);
 	if (block != NULL) {
 		return block->addr;
@@ -218,7 +218,7 @@ static void *ta_alloc(size_t num) {
 	return NULL;
 }
 
-static void memclear(void *ptr, size_t num) {
+inline void memclear(void *ptr, size_t num) {
 	size_t *ptrw = (size_t *)ptr;
 	size_t numw = (num & -sizeof(size_t)) / sizeof(size_t);
 	while (numw--) {
@@ -231,7 +231,7 @@ static void memclear(void *ptr, size_t num) {
 	}
 }
 
-static void *ta_calloc(size_t num, size_t size) {
+inline void *ta_calloc(size_t num, size_t size) {
 	num *= size;
 	Block *block = alloc_block(num);
 	if (block != NULL) {
@@ -241,7 +241,7 @@ static void *ta_calloc(size_t num, size_t size) {
 	return NULL;
 }
 
-static size_t count_blocks(Block *ptr) {
+inline size_t count_blocks(Block *ptr) {
 	size_t num = 0;
 	while (ptr != NULL) {
 		num++;
@@ -250,12 +250,12 @@ static size_t count_blocks(Block *ptr) {
 	return num;
 }
 
-static size_t ta_num_free() { return count_blocks(heap->free); }
+inline size_t ta_num_free() { return count_blocks(heap->free); }
 
-static size_t ta_num_used() { return count_blocks(heap->used); }
+inline size_t ta_num_used() { return count_blocks(heap->used); }
 
-static size_t ta_num_fresh() { return count_blocks(heap->fresh); }
+inline size_t ta_num_fresh() { return count_blocks(heap->fresh); }
 
-static bool ta_check() {
+inline bool ta_check() {
 	return heap_max_blocks == ta_num_free() + ta_num_used() + ta_num_fresh();
 }
