@@ -29,7 +29,7 @@ void delay_time_us(std::uint64_t time) { sleep_us(time); }
 std::span<char> read_repl(std::span<char> target_buffer) {
 	int c = stdio_getchar_timeout_us(0);
 
-	if (c == PICO_ERROR_TIMEOUT) {
+	if (c == PICO_ERROR_TIMEOUT || c == '\n' || c == '\r') {
 		return {};
 	}
 
@@ -38,7 +38,7 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 		target_buffer[i] = c;
 		c = getchar();
 		++i;
-	} while (c != '\r');
+	} while (c != '\r' && c != '\n');
 
 	return {target_buffer.data(), i};
 }
