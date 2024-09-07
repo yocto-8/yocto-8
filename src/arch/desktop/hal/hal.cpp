@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <hal/hal.hpp>
 #include <SFML/Window/Keyboard.hpp>
 
@@ -7,6 +8,7 @@
 #include "devices/image.hpp"
 #include "devices/screenpalette.hpp"
 #include <emu/emulator.hpp>
+#include <iostream>
 #include <unistd.h>
 
 namespace hal {
@@ -47,6 +49,21 @@ void load_rgb_palette(std::span<std::uint32_t, 32> new_palette) {
 
 std::span<const std::uint32_t, 32> get_default_palette() {
 	return video::pico8_palette_rgb8;
+}
+
+std::span<char> read_repl(std::span<char> target_buffer) {
+	// int byte_count = 0;
+	// if ((fseek(stdin, 0, SEEK_END), ftell(stdin)) > 0) {
+	// 	std::string out_str;
+	// 	std::getline(std::cin, out_str);
+	// 	std::size_t size_bytes =
+	// 		std::min(out_str.size() + 1, target_buffer.size());
+
+	// 	std::memcpy(target_buffer.data(), out_str.data(), size_bytes);
+
+	// 	return target_buffer.subspan(0, size_bytes);
+	// }
+	return {};
 }
 
 } // namespace hal
