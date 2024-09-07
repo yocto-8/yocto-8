@@ -8,7 +8,7 @@ set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
 set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
 
 # macro definitions
-set(Y8_DEFINITIONS "")
+set(Y8_DEFINITIONS "Y8_ARCH=${Y8_ARCH} Y8_PLATFORM=${Y8_PLATFORM}")
 
 function(add_y8_definition_string OPTION_NAME OPTION_DEFAULT OPTION_DEFINITION)
     set(${OPTION_NAME} ${OPTION_DEFAULT} CACHE STRING ${OPTION_DEFINITION})
@@ -211,6 +211,8 @@ elseif (Y8_ARCH STREQUAL "pico")
     add_executable(${CORE_LIBRARY_TARGET} ${ARCH_SOURCES} ${PLATFORM_SOURCES})
 
     target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore)
+
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_INFINITE_LOOP_EXIT)
     
     # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
     # 1. usage of the secondary memory pool requires us to handle failing allocs.

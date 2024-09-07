@@ -382,7 +382,12 @@ void Emulator::panic(const char *message) {
 
 	hal::present_frame();
 
+#ifdef Y8_INFINITE_LOOP_EXIT
+	for (;;)
+		;
+#else
 	exit(1);
+#endif
 }
 
 extern "C" {
