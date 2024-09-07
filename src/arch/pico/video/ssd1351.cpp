@@ -164,18 +164,20 @@ void SSD1351::scanline_dma_update() {
 void SSD1351::start_scanout() {
 	active_instance = this;
 
+	if (_current_dma_fb_offset != 0) {
+		// Scanout was still going on when we flipped, which will result in
+		// tearing.
+		// This is not really supposed to happen, but it isn't catastrophic.
+		// Return from this; let it finish the frame.
+		return;
+	}
+
 	// SRAM writes should cover all the framebuffer (0..127)
 	write(Command::SET_COLUMN, DataBuffer<2>{0, 127});
 	write(Command::SET_ROW, DataBuffer<2>{0, 127});
 
 	// Start write
 	write(Command::RAM_WRITE);
-
-	if (_current_dma_fb_offset != 0) {
-		// printf("Frame took too long to scan out!! Offset: %d\n",
-		//        _current_dma_fb_offset);
-		_current_dma_fb_offset = 0;
-	}
 
 	gpio_put(_pinout.dc, 1);
 	gpio_put(_pinout.cs, 0);
