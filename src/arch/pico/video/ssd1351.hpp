@@ -103,12 +103,14 @@ class SSD1351 {
 	template <std::size_t N> using DataBuffer = std::array<std::uint8_t, N>;
 
 	// scale 0x0..0xF
+	[[gnu::always_inline]]
 	void set_brightness(std::uint8_t scale) {
 		write(Command::SET_GLOBAL_CONTRAST, DataBuffer<1>{scale});
 	}
 
 	void submit_init_sequence();
 
+	[[gnu::always_inline]]
 	inline void write(Command command,
 	                  std::span<const std::uint8_t> data = {}) {
 		gpio_put(_pinout.dc, 0);
@@ -122,12 +124,9 @@ class SSD1351 {
 		gpio_put(_pinout.cs, 1);
 	}
 
-	[[gnu::flatten]]
-	void
-	__not_in_flash_func(update_frame)(devices::Framebuffer view,
-	                                  devices::ScreenPalette screen_palette) {
-		// const auto time_start = get_absolute_time();
-
+	[[gnu::flatten, gnu::section(Y8_SRAM_SECTION)]]
+	void update_frame(devices::Framebuffer view,
+	                  devices::ScreenPalette screen_palette) {
 		// SRAM writes should cover all the framebuffer (0..127)
 		write(Command::SET_COLUMN, DataBuffer<2>{0, 127});
 		write(Command::SET_ROW, DataBuffer<2>{0, 127});
@@ -156,10 +155,6 @@ class SSD1351 {
 		}
 
 		gpio_put(_pinout.cs, 1);
-
-		// const auto time_end = get_absolute_time();
-		// printf("%fms\n", absolute_time_diff_us(time_start, time_end) /
-		// 1000.0f);
 	}
 
 	std::array<std::uint16_t, 32> palette;

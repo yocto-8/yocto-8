@@ -174,7 +174,7 @@ if (Y8_ARCH STREQUAL "desktop")
     target_compile_definitions(y8-headless PRIVATE Y8_DESKTOP_HEADLESS)
     target_link_libraries(y8-headless PRIVATE ${CORE_LIBRARY_TARGET})
 
-    add_compile_definitions(FAST_FUNC_TARGET_SECTION=".text")
+    add_compile_definitions(Y8_SRAM_SECTION=".text")
 elseif (Y8_ARCH STREQUAL "pico")
     pico_sdk_init()
 
@@ -244,7 +244,7 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
 
-    add_compile_definitions(FAST_FUNC_TARGET_SECTION=".time_critical.y8")
+    add_compile_definitions(Y8_SRAM_SECTION=".time_critical.y8")
 
     pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
 endif()
