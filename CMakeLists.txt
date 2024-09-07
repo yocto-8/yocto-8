@@ -49,6 +49,8 @@ set(PERF_FLAGS
     "-fno-exceptions"
 )
 
+set(COMMON_FLAGS ${PERF_FLAGS} "-gsplit-dwarf")
+
 set(LUA_EXTRA_CXXFLAGS
     "-Wno-implicit-fallthrough -Wno-unused-function"
 )
@@ -57,8 +59,8 @@ if (Y8_ARCH STREQUAL "pico")
     # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
 endif()
 
-add_link_options(${PERF_FLAGS})
-add_compile_options(${PERF_FLAGS})
+add_link_options(${COMMON_FLAGS})
+add_compile_options(${COMMON_FLAGS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 
