@@ -158,4 +158,6 @@ class SSD1351 {
 	Pinout _pinout;
 };
 
+extern void ssd1351_global_dma_handler();
+
 } // namespace arch::pico::video

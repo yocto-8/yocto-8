@@ -28,7 +28,7 @@ void init_hardware() {
 	printf("Hardware init done\n");
 }
 
-void __not_in_flash_func(present_frame)(FrameCopiedCallback *callback) {
+void present_frame(FrameCopiedCallback *callback) {
 	asupico::hw.ssd1351.copy_framebuffer(emu::device<devices::Framebuffer>,
 	                                     emu::device<devices::ScreenPalette>);
 

@@ -6,7 +6,8 @@
 
 namespace arch::pico::video {
 
-[[gnu::section(Y8_SRAM_SECTION)]] static void ssd1351_global_dma_handler() {
+[[gnu::section(Y8_SRAM_SECTION), gnu::flatten, gnu::noinline]] void
+ssd1351_global_dma_handler() {
 	SSD1351::active_instance->scanline_dma_update();
 }
 
@@ -122,7 +123,6 @@ namespace arch::pico::video {
 	irq_set_enabled(DMA_IRQ_0, true);
 }
 
-[[gnu::section(Y8_SRAM_SECTION)]]
 void SSD1351::scanline_dma_update() {
 	// OK to call even if the function wasn't triggered by IRQ (i.e. on first
 	// run)
@@ -155,7 +155,6 @@ void SSD1351::scanline_dma_update() {
 	dma_channel_set_read_addr(_dma_channel, _scanline_buffer.data(), true);
 }
 
-[[gnu::flatten, gnu::section(Y8_SRAM_SECTION)]]
 void SSD1351::start_scanout() {
 	active_instance = this;
 
@@ -178,7 +177,7 @@ void SSD1351::start_scanout() {
 	gpio_put(_pinout.cs, 0);
 
 	// trigger the first scanline write manually. IRQs will trigger the rest
-	scanline_dma_update();
+	ssd1351_global_dma_handler();
 }
 
 SSD1351 *SSD1351::active_instance;
