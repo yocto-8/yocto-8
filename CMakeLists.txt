@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 # FIXME: This is currently broken when using the secondary memory pool because OOM situations in Lua are turned into UB
 #        Maybe this should be scrapped altogether
-# set(YOCTO8_YOLO_RELEASE OFF CACHE BOOL "Enables highly aggressive optimizations that turn some error conditions into undefined behavior")
+# set(Y8_YOLO_RELEASE OFF CACHE BOOL "Enables highly aggressive optimizations that turn some error conditions into undefined behavior")
 
 set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
 set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
@@ -171,7 +171,7 @@ if (Y8_ARCH STREQUAL "desktop")
     target_link_libraries(y8 PRIVATE ${CORE_LIBRARY_TARGET} sfml-system sfml-window sfml-graphics)
 
     add_executable(y8-headless ${ARCH_SOURCES})
-    target_compile_definitions(y8-headless PRIVATE YOCTO8_DESKTOP_HEADLESS)
+    target_compile_definitions(y8-headless PRIVATE Y8_DESKTOP_HEADLESS)
     target_link_libraries(y8-headless PRIVATE ${CORE_LIBRARY_TARGET})
 
     add_compile_definitions(FAST_FUNC_TARGET_SECTION=".text")

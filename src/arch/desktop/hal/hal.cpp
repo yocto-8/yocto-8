@@ -12,7 +12,7 @@
 namespace hal {
 
 std::uint16_t update_button_state() {
-#ifndef YOCTO8_DESKTOP_HEADLESS
+#ifndef Y8_DESKTOP_HEADLESS
 	return arch::desktop::yolo_window.button_state;
 #else
 	return 0;
@@ -20,7 +20,7 @@ std::uint16_t update_button_state() {
 }
 
 void present_frame() {
-#ifndef YOCTO8_DESKTOP_HEADLESS
+#ifndef Y8_DESKTOP_HEADLESS
 	arch::desktop::yolo_window.present_frame(
 		emu::device<devices::Framebuffer>, emu::device<devices::ScreenPalette>);
 #endif
