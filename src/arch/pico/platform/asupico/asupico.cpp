@@ -250,7 +250,10 @@ void init_emulator(std::size_t psram_size) {
 
 void init_video_ssd1351() {
 	spi_inst_t *video_spi = spi0;
-	spi_init(video_spi, 25 * 1000 * 1000);
+	// The datasheet mentions a rise/fall time of 15ns, i.e. 30ns per cycle,
+	// hence we try to target 33.333333MHz. What exactly will be achieved does
+	// depend on the PERI clock.
+	spi_init(video_spi, 33'333'333);
 
 	printf("SSD1351 baudrate: %d\n", spi_get_baudrate(video_spi));
 
