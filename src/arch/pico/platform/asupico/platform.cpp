@@ -29,18 +29,12 @@ void init_hardware() {
 }
 
 void __not_in_flash_func(present_frame)(FrameCopiedCallback *callback) {
-	emu::device<devices::Framebuffer>.clone_into(asupico::hw.fb_copy);
-
-	devices::ScreenPalette::ClonedArray palette_copy;
-	emu::device<devices::ScreenPalette>.clone_into(palette_copy);
+	asupico::hw.ssd1351.update_frame_nonblocking(
+		emu::device<devices::Framebuffer>, emu::device<devices::ScreenPalette>);
 
 	if (callback != nullptr) {
 		callback();
 	}
-
-	asupico::hw.ssd1351.update_frame(
-		devices::Framebuffer{std::span(asupico::hw.fb_copy)},
-		devices::ScreenPalette{std::span(palette_copy)});
 }
 
 std::span<const std::uint32_t, 32> get_default_palette() {

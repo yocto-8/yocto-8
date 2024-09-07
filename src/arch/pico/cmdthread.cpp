@@ -9,23 +9,37 @@
 #include <hardwarestate.hpp>
 #include <platform/platform.hpp>
 
+#include <cstdio>
+
 namespace arch::pico {
 
-[[gnu::flatten]]
+void __scratch_x("core1_irq") core1_sio_irq() {
+	const auto command = IoThreadCommand(sio_hw->fifo_rd);
+
+	switch (command) {
+	case IoThreadCommand::PUSH_FRAME: {
+		platform::present_frame([] {
+			// copy done - we can update in background now
+			assert(sio_hw->multicore_fifo_wready());
+			sio_hw->fifo_wr = 0;
+			__sev(); // fire event
+		});
+
+		break;
+	}
+	}
+
+	multicore_fifo_clear_irq();
+}
+
 void __scratch_x("core1_entry") core1_entry() {
+	irq_set_exclusive_handler(SIO_FIFO_IRQ_NUM(1), core1_sio_irq);
+	irq_set_enabled(SIO_FIFO_IRQ_NUM(1), true);
+
+	// TODO: check if there are lower power option, or if returning from the
+	// core entry point falls back into something equivalent in the bootrom
 	for (;;) {
-		const auto command = IoThreadCommand(multicore_fifo_pop_blocking());
-
-		switch (command) {
-		case IoThreadCommand::PUSH_FRAME: {
-			platform::present_frame([] {
-				multicore_fifo_push_blocking(
-					0); // copy done - we can update in background now
-			});
-
-			break;
-		}
-		}
+		__wfe();
 	}
 }
 

@@ -11,10 +11,9 @@ namespace emu {
 template <std::size_t MapLength> struct MMIODevice {
 	static constexpr auto map_length = MapLength;
 	using View = std::span<std::uint8_t, map_length>;
+	using ClonedArray = std::array<std::uint8_t, map_length>;
 
 	explicit constexpr MMIODevice(View data) : data(data) {}
-
-	using ClonedArray = std::array<std::uint8_t, map_length>;
 
 	constexpr void clone_into(ClonedArray &target) const {
 		std::memcpy(target.data(), data.data(), target.size());

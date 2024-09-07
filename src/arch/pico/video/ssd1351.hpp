@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <hardware/dma.h>
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <pico/time.h>
@@ -86,6 +87,7 @@ class SSD1351 {
 	};
 
 	void init(Config config);
+	void shutdown();
 
 	void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette) {
 		palette = util::make_r5g6b5_palette(new_rgb_palette, true);
@@ -108,8 +110,6 @@ class SSD1351 {
 		write(Command::SET_GLOBAL_CONTRAST, DataBuffer<1>{scale});
 	}
 
-	void submit_init_sequence();
-
 	[[gnu::always_inline]]
 	inline void write(Command command,
 	                  std::span<const std::uint8_t> data = {}) {
@@ -124,43 +124,31 @@ class SSD1351 {
 		gpio_put(_pinout.cs, 1);
 	}
 
-	[[gnu::flatten, gnu::section(Y8_SRAM_SECTION)]]
-	void update_frame(devices::Framebuffer view,
-	                  devices::ScreenPalette screen_palette) {
-		// SRAM writes should cover all the framebuffer (0..127)
-		write(Command::SET_COLUMN, DataBuffer<2>{0, 127});
-		write(Command::SET_ROW, DataBuffer<2>{0, 127});
-
-		// Start write
-		write(Command::RAM_WRITE);
-
-		gpio_put(_pinout.dc, 1);
-		gpio_put(_pinout.cs, 0);
-		/*dma_channel_configure(
-		    _dma_channel,
-		    &dma_cfg,
-		    &spi_get_hw(_spi)->dr,
-		    emu::emulator.frame_buffer().data.data(),
-		    8192 / 4,
-		    false);*/
-
-		for (std::size_t i = 0; i < view.frame_bytes; ++i) {
-			const auto pixel_pair = std::array{
-				palette[screen_palette.get_color(view.data[i] & 0x0F)],
-				palette[screen_palette.get_color(view.data[i] >> 4)]};
-
-			spi_write_blocking(
-				_spi, reinterpret_cast<const std::uint8_t *>(pixel_pair.data()),
-				2 * pixel_pair.size());
-		}
-
-		gpio_put(_pinout.cs, 1);
-	}
+	void update_frame_nonblocking(devices::Framebuffer view,
+	                              devices::ScreenPalette screen_palette);
 
 	std::array<std::uint16_t, 32> palette;
 
+	// HACK: we can't exactly have user data for the IRQ, but to be realistic,
+	// with this DMA logic we long ago gave up on multi-device support
+	static SSD1351 *active_instance;
+	void scanline_dma_update();
+
 	private:
-	// unsigned _dma_channel;
+	void _submit_init_sequence();
+
+	/// Configure a DMA channel to write 32-bit words to the SPI TX we use.
+	/// This channel is later configured to read from the scanline buffer and
+	/// call an IRQ after every scanline.
+	void _configure_dma_channel();
+
+	std::array<std::uint16_t, 128> _scanline_buffer;
+	unsigned _dma_channel;
+	unsigned _current_dma_fb_offset;
+
+	devices::Framebuffer::ClonedArray _cloned_fb;
+	devices::ScreenPalette::ClonedArray _cloned_screen_palette;
+
 	spi_inst_t *_spi;
 	Pinout _pinout;
 };

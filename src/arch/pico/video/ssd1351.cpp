@@ -1,8 +1,19 @@
 #include "ssd1351.hpp"
+#include "devices/image.hpp"
+#include "devices/screenpalette.hpp"
+#include <cstdio>
+#include <hardware/dma.h>
 
-[[gnu::cold]] void arch::pico::video::SSD1351::init(Config config) {
+namespace arch::pico::video {
+
+[[gnu::section(Y8_SRAM_SECTION)]] static void ssd1351_global_dma_handler() {
+	SSD1351::active_instance->scanline_dma_update();
+}
+
+[[gnu::cold]] void SSD1351::init(Config config) {
 	_spi = config.spi;
 	_pinout = config.pinout;
+	_current_dma_fb_offset = 0;
 
 	gpio_set_function(_pinout.sclk, GPIO_FUNC_SPI);
 	gpio_set_function(_pinout.tx, GPIO_FUNC_SPI);
@@ -20,17 +31,18 @@
 	gpio_put(_pinout.dc, 0);
 
 	reset_blocking();
-	submit_init_sequence();
+	_submit_init_sequence();
 
-	/*_dma_channel = dma_claim_unused_channel(true);
-	dma_channel_config dma_cfg =
-	dma_channel_get_default_config(_dma_channel);
-	channel_config_set_transfer_data_size(&dma_cfg, DMA_SIZE_32);
-	channel_config_set_dreq(&dma_cfg, spi_get_index(spi_default) ?
-	DREQ_SPI1_TX : DREQ_SPI0_TX);*/
+	_dma_channel = dma_claim_unused_channel(true);
+	_configure_dma_channel();
 }
 
-[[gnu::cold]] void arch::pico::video::SSD1351::submit_init_sequence() {
+[[gnu::cold]] void SSD1351::shutdown() {
+	// TODO: cancel any in-flight IRQ, tear down/unclaim DMA, bring any GPIO to
+	// defaults/unselected, etc.
+}
+
+[[gnu::cold]] void SSD1351::_submit_init_sequence() {
 	// Enable MCU interface (else some commands will be dropped)
 	write(Command::SET_COMMAND_LOCK, DataBuffer<1>{0x12});
 	write(Command::SET_COMMAND_LOCK, DataBuffer<1>{0xB1});
@@ -87,3 +99,90 @@
 	// Start display
 	write(Command::DISPLAY_ON);
 }
+
+[[gnu::cold]] void SSD1351::_configure_dma_channel() {
+	dma_channel_config dma_cfg = dma_channel_get_default_config(_dma_channel);
+
+	// TODO: is DMA_SIZE_32 (with transfer_count edited accordingly) supposed to
+	// be scuffed?
+	channel_config_set_transfer_data_size(&dma_cfg, DMA_SIZE_8);
+	channel_config_set_dreq(&dma_cfg, spi_get_dreq(_spi, true));
+
+	// read increment + no write increment is the default
+	channel_config_set_read_increment(&dma_cfg, true);
+	channel_config_set_write_increment(&dma_cfg, false);
+
+	constexpr std::size_t scanline_buffer_size_bytes = 128 * 2;
+	dma_channel_configure(_dma_channel, &dma_cfg, &spi_get_hw(_spi)->dr,
+	                      nullptr, scanline_buffer_size_bytes, false);
+
+	// configure DMA IRQ and configure it to trigger when DMA scanned out a line
+	dma_channel_set_irq0_enabled(_dma_channel, true);
+	irq_set_exclusive_handler(DMA_IRQ_0, ssd1351_global_dma_handler);
+	irq_set_enabled(DMA_IRQ_0, true);
+}
+
+[[gnu::section(Y8_SRAM_SECTION)]]
+void SSD1351::scanline_dma_update() {
+	// OK to call even if the function wasn't triggered by IRQ (i.e. on first
+	// run)
+	dma_channel_acknowledge_irq0(_dma_channel);
+
+	if (_current_dma_fb_offset == _cloned_fb.size()) {
+		// final DMA scanline transfered, deselect chip and return
+		_current_dma_fb_offset = 0;
+		gpio_put(_pinout.cs, 1);
+		return;
+	}
+
+	unsigned current_fb_scanline_end =
+		_current_dma_fb_offset + 64; // 128 half-bytes
+
+	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
+	const devices::Framebuffer fb{_cloned_fb};
+
+	for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
+	     fb_idx < current_fb_scanline_end; ++fb_idx, scanline_idx += 2) {
+		_scanline_buffer[scanline_idx + 0] =
+			palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
+		_scanline_buffer[scanline_idx + 1] =
+			palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
+	}
+
+	_current_dma_fb_offset = current_fb_scanline_end;
+
+	// trigger new scanline transfer; we will get IRQ'd again when scaned out
+	dma_channel_set_read_addr(_dma_channel, _scanline_buffer.data(), true);
+}
+
+[[gnu::flatten, gnu::section(Y8_SRAM_SECTION)]]
+void SSD1351::update_frame_nonblocking(devices::Framebuffer view,
+                                       devices::ScreenPalette screen_palette) {
+	active_instance = this;
+
+	// SRAM writes should cover all the framebuffer (0..127)
+	write(Command::SET_COLUMN, DataBuffer<2>{0, 127});
+	write(Command::SET_ROW, DataBuffer<2>{0, 127});
+
+	// Start write
+	write(Command::RAM_WRITE);
+
+	if (_current_dma_fb_offset != 0) {
+		printf("Frame took too long to scan out!! Offset: %d\n",
+		       _current_dma_fb_offset);
+		_current_dma_fb_offset = 0;
+	}
+
+	view.clone_into(_cloned_fb);
+	screen_palette.clone_into(_cloned_screen_palette);
+
+	gpio_put(_pinout.dc, 1);
+	gpio_put(_pinout.cs, 0);
+
+	// trigger the first scanline write manually. IRQs will trigger the rest
+	scanline_dma_update();
+}
+
+SSD1351 *SSD1351::active_instance;
+
+} // namespace arch::pico::video
