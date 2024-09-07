@@ -45,6 +45,9 @@ void init_default_frequency() {
 	vreg_set_voltage(VREG_VOLTAGE_1_25);
 	set_sys_clock_khz(351000, true);
 
+	clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+	                351 * MHZ, 351 * MHZ);
+
 	init_stdio();
 }
 
