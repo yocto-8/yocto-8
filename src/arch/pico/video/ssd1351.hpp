@@ -87,6 +87,12 @@ class SSD1351 {
 	};
 
 	void init(Config config);
+
+	/// Configure a DMA channel to write 32-bit words to the SPI TX we use.
+	/// This channel is later configured to read from the scanline buffer and
+	/// call an IRQ after every scanline.
+	void init_dma_on_this_core();
+
 	void shutdown();
 
 	void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette) {
@@ -141,11 +147,6 @@ class SSD1351 {
 
 	private:
 	void _submit_init_sequence();
-
-	/// Configure a DMA channel to write 32-bit words to the SPI TX we use.
-	/// This channel is later configured to read from the scanline buffer and
-	/// call an IRQ after every scanline.
-	void _configure_dma_channel();
 
 	std::array<std::uint16_t, 128> _scanline_buffer;
 	unsigned _dma_channel;

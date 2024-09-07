@@ -35,7 +35,28 @@ ssd1351_global_dma_handler() {
 	_submit_init_sequence();
 
 	_dma_channel = dma_claim_unused_channel(true);
-	_configure_dma_channel();
+}
+
+[[gnu::cold]] void SSD1351::init_dma_on_this_core() {
+	dma_channel_config dma_cfg = dma_channel_get_default_config(_dma_channel);
+
+	// TODO: is DMA_SIZE_32 (with transfer_count edited accordingly) supposed to
+	// be scuffed?
+	channel_config_set_transfer_data_size(&dma_cfg, DMA_SIZE_8);
+	channel_config_set_dreq(&dma_cfg, spi_get_dreq(_spi, true));
+
+	// read increment + no write increment is the default
+	channel_config_set_read_increment(&dma_cfg, true);
+	channel_config_set_write_increment(&dma_cfg, false);
+
+	constexpr std::size_t scanline_buffer_size_bytes = 128 * 2;
+	dma_channel_configure(_dma_channel, &dma_cfg, &spi_get_hw(_spi)->dr,
+	                      nullptr, scanline_buffer_size_bytes, false);
+
+	// configure DMA IRQ and configure it to trigger when DMA scanned out a line
+	dma_channel_set_irq0_enabled(_dma_channel, true);
+	irq_set_exclusive_handler(DMA_IRQ_0, ssd1351_global_dma_handler);
+	irq_set_enabled(DMA_IRQ_0, true);
 }
 
 [[gnu::cold]] void SSD1351::shutdown() {
@@ -99,28 +120,6 @@ ssd1351_global_dma_handler() {
 
 	// Start display
 	write(Command::DISPLAY_ON);
-}
-
-[[gnu::cold]] void SSD1351::_configure_dma_channel() {
-	dma_channel_config dma_cfg = dma_channel_get_default_config(_dma_channel);
-
-	// TODO: is DMA_SIZE_32 (with transfer_count edited accordingly) supposed to
-	// be scuffed?
-	channel_config_set_transfer_data_size(&dma_cfg, DMA_SIZE_8);
-	channel_config_set_dreq(&dma_cfg, spi_get_dreq(_spi, true));
-
-	// read increment + no write increment is the default
-	channel_config_set_read_increment(&dma_cfg, true);
-	channel_config_set_write_increment(&dma_cfg, false);
-
-	constexpr std::size_t scanline_buffer_size_bytes = 128 * 2;
-	dma_channel_configure(_dma_channel, &dma_cfg, &spi_get_hw(_spi)->dr,
-	                      nullptr, scanline_buffer_size_bytes, false);
-
-	// configure DMA IRQ and configure it to trigger when DMA scanned out a line
-	dma_channel_set_irq0_enabled(_dma_channel, true);
-	irq_set_exclusive_handler(DMA_IRQ_0, ssd1351_global_dma_handler);
-	irq_set_enabled(DMA_IRQ_0, true);
 }
 
 void SSD1351::scanline_dma_update() {

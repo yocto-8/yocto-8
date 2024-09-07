@@ -40,6 +40,8 @@ void core1_entry() {
 	irq_set_exclusive_handler(SIO_FIFO_IRQ_NUM(1), core1_sio_irq);
 	irq_set_enabled(SIO_FIFO_IRQ_NUM(1), true);
 
+	platform::local_core_init();
+
 	// TODO: look into deep sleep bits to save power here, if viable
 	for (;;) {
 		__wfi();

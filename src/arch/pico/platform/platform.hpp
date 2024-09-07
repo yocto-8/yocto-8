@@ -26,4 +26,7 @@ using FrameCopiedCallback = void();
 /// instead of being forced through "slow" (difficult to optimize) global state.
 void present_frame(FrameCopiedCallback *callback = nullptr);
 
+/// Perform initialization that should be local to the core.
+void local_core_init();
+
 } // namespace arch::pico::platform
