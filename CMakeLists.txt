@@ -99,7 +99,7 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lcode.c
     ${LUA_ROOT}/lcorolib.c
     ${LUA_ROOT}/lctype.c
-    ${LUA_ROOT}/ldblib.c
+    # ${LUA_ROOT}/ldblib.c
     ${LUA_ROOT}/ldebug.c
     ${LUA_ROOT}/ldo.c
     ${LUA_ROOT}/ldump.c
