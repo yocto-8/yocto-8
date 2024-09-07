@@ -13,6 +13,12 @@
 
 namespace arch::pico {
 
+inline void multicore_fifo_write_assume_nonfull(std::uint32_t value) {
+	assert(sio_hw->multicore_fifo_wready());
+	sio_hw->fifo_wr = 0;
+	__sev(); // fire event
+}
+
 void __scratch_x("core1_irq") core1_sio_irq() {
 	const auto command = IoThreadCommand(sio_hw->fifo_rd);
 
@@ -20,9 +26,7 @@ void __scratch_x("core1_irq") core1_sio_irq() {
 	case IoThreadCommand::PUSH_FRAME: {
 		platform::present_frame([] {
 			// copy done - we can update in background now
-			assert(sio_hw->multicore_fifo_wready());
-			sio_hw->fifo_wr = 0;
-			__sev(); // fire event
+			multicore_fifo_write_assume_nonfull(0);
 		});
 
 		break;
