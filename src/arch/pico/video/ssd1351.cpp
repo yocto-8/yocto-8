@@ -172,8 +172,8 @@ void SSD1351::start_scanout() {
 	write(Command::RAM_WRITE);
 
 	if (_current_dma_fb_offset != 0) {
-		printf("Frame took too long to scan out!! Offset: %d\n",
-		       _current_dma_fb_offset);
+		// printf("Frame took too long to scan out!! Offset: %d\n",
+		//        _current_dma_fb_offset);
 		_current_dma_fb_offset = 0;
 	}
 
