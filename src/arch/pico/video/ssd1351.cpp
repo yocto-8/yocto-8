@@ -138,13 +138,8 @@ void SSD1351::scanline_dma_update() {
 	unsigned current_fb_scanline_end =
 		_current_dma_fb_offset + 64; // 128 half-bytes
 
-#ifdef Y8_HACK_NO_FB_COPY
 	const auto screen_palette = emu::device<devices::ScreenPalette>;
 	const auto fb = emu::device<devices::Framebuffer>;
-#else
-	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
-	const devices::Framebuffer fb{_cloned_fb};
-#endif
 
 	for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
 	     fb_idx < current_fb_scanline_end; ++fb_idx, scanline_idx += 2) {

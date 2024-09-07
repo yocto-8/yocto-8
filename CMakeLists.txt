@@ -25,7 +25,6 @@ endfunction()
 add_y8_definition_flag(Y8_DEBUG_MEMCHECK OFF "On PSRAM-enabled systems, run a quick memory test script to sanity check whether the PSRAM appears functional and stable. If the memcheck fails, an error will be logged and the PSRAM heap will be disabled")
 add_y8_definition_flag(Y8_EXPERIMENTAL_GENGC ON "Enable the experimental Lua 5.2 generational GC, which is known to have bugs but can prove beneficial for performance")
 add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
-add_y8_definition_flag(Y8_HACK_NO_FB_COPY OFF "Performance hack: on relevant platforms, do not copy the framebuffer to the other core at flip time, even if it means the framebuffer may get edited mid-SPI-scanout. This is less of a concern for carts that don't touch the framebuffer until later in the tick.")
 
 message("Following definitions set: [${Y8_DEFINITIONS}]")
 

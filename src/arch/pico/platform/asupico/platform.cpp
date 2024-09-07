@@ -29,10 +29,8 @@ void init_hardware() {
 }
 
 void __not_in_flash_func(present_frame)(FrameCopiedCallback *callback) {
-#ifndef Y8_HACK_NO_FB_COPY
 	asupico::hw.ssd1351.copy_framebuffer(emu::device<devices::Framebuffer>,
 	                                     emu::device<devices::ScreenPalette>);
-#endif
 
 	if (callback != nullptr) {
 		callback();
