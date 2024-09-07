@@ -786,7 +786,7 @@ int y8_mget(lua_State *state) {
 	return 1;
 }
 
-int y8_flip(lua_State *state) {
+int y8_flip([[maybe_unused]] lua_State *state) {
 	emu::emulator.flip();
 	return 0;
 }
