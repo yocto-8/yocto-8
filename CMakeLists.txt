@@ -267,6 +267,5 @@ target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC ${Y8_DEFINITIONS})
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/frozen/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )

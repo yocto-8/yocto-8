@@ -7,9 +7,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
-#include <frozen/set.h>
-#include <frozen/string.h>
-#include <frozen/unordered_map.h>
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
@@ -68,8 +65,14 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	};
 
 	// TODO: make lua use this directly; and define a const string table
-	using Binding = int(lua_State *);
-	constexpr frozen::unordered_map<frozen::string, Binding *, 54> y8_std = {
+	using BindingCallback = int(lua_State *);
+
+	struct Binding {
+		const char *name;
+		BindingCallback &callback;
+	};
+
+	static constexpr std::array<Binding, 54> y8_std{{
 		{"camera", bindings::y8_camera},
 		{"color", bindings::y8_color},
 		{"pset", bindings::y8_pset},
@@ -130,11 +133,11 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 
 		{"t", bindings::y8_time},
 		{"time", bindings::y8_time},
-	};
+	}};
 
-	for (const auto &[func, binding] : y8_std) {
+	for (const auto &[name, binding] : y8_std) {
 		lua_pushcfunction(_lua, binding);
-		lua_setglobal(_lua, func.data());
+		lua_setglobal(_lua, name);
 	}
 
 	stub("music");
