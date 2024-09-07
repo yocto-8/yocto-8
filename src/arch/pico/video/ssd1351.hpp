@@ -125,7 +125,11 @@ class SSD1351 {
 	}
 
 	void copy_framebuffer(devices::Framebuffer view,
-	                      devices::ScreenPalette screen_palette);
+	                      devices::ScreenPalette screen_palette) {
+		view.clone_into(_cloned_fb);
+		screen_palette.clone_into(_cloned_screen_palette);
+	}
+
 	void start_scanout();
 
 	std::array<std::uint16_t, 32> palette;
