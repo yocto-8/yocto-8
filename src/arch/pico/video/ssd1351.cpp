@@ -128,7 +128,7 @@ void SSD1351::scanline_dma_update() {
 	// run)
 	dma_channel_acknowledge_irq0(_dma_channel);
 
-	if (_current_dma_fb_offset == _cloned_fb.size()) {
+	if (_current_dma_fb_offset == devices::Framebuffer::frame_bytes) {
 		// final DMA scanline transfered, deselect chip and return
 		_current_dma_fb_offset = 0;
 		gpio_put(_pinout.cs, 1);
@@ -138,8 +138,13 @@ void SSD1351::scanline_dma_update() {
 	unsigned current_fb_scanline_end =
 		_current_dma_fb_offset + 64; // 128 half-bytes
 
+#ifdef Y8_HACK_NO_FB_COPY
+	const auto screen_palette = emu::device<devices::ScreenPalette>;
+	const auto fb = emu::device<devices::Framebuffer>;
+#else
 	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
 	const devices::Framebuffer fb{_cloned_fb};
+#endif
 
 	for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
 	     fb_idx < current_fb_scanline_end; ++fb_idx, scanline_idx += 2) {
@@ -156,8 +161,7 @@ void SSD1351::scanline_dma_update() {
 }
 
 [[gnu::flatten, gnu::section(Y8_SRAM_SECTION)]]
-void SSD1351::update_frame_nonblocking(devices::Framebuffer view,
-                                       devices::ScreenPalette screen_palette) {
+void SSD1351::start_scanout() {
 	active_instance = this;
 
 	// SRAM writes should cover all the framebuffer (0..127)
@@ -172,9 +176,6 @@ void SSD1351::update_frame_nonblocking(devices::Framebuffer view,
 		       _current_dma_fb_offset);
 		_current_dma_fb_offset = 0;
 	}
-
-	view.clone_into(_cloned_fb);
-	screen_palette.clone_into(_cloned_screen_palette);
 
 	gpio_put(_pinout.dc, 1);
 	gpio_put(_pinout.cs, 0);

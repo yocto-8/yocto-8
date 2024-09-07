@@ -29,12 +29,16 @@ void init_hardware() {
 }
 
 void __not_in_flash_func(present_frame)(FrameCopiedCallback *callback) {
-	asupico::hw.ssd1351.update_frame_nonblocking(
-		emu::device<devices::Framebuffer>, emu::device<devices::ScreenPalette>);
+#ifndef Y8_HACK_NO_FB_COPY
+	asupico::hw.ssd1351.copy_framebuffer(emu::device<devices::Framebuffer>,
+	                                     emu::device<devices::ScreenPalette>);
+#endif
 
 	if (callback != nullptr) {
 		callback();
 	}
+
+	asupico::hw.ssd1351.start_scanout();
 }
 
 std::span<const std::uint32_t, 32> get_default_palette() {

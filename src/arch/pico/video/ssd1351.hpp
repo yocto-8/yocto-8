@@ -124,8 +124,11 @@ class SSD1351 {
 		gpio_put(_pinout.cs, 1);
 	}
 
-	void update_frame_nonblocking(devices::Framebuffer view,
-	                              devices::ScreenPalette screen_palette);
+#ifndef Y8_HACK_NO_FB_COPY
+	void copy_framebuffer(devices::Framebuffer view,
+	                      devices::ScreenPalette screen_palette);
+#endif
+	void start_scanout();
 
 	std::array<std::uint16_t, 32> palette;
 
@@ -146,8 +149,10 @@ class SSD1351 {
 	unsigned _dma_channel;
 	unsigned _current_dma_fb_offset;
 
+#ifndef Y8_HACK_NO_FB_COPY
 	devices::Framebuffer::ClonedArray _cloned_fb;
 	devices::ScreenPalette::ClonedArray _cloned_screen_palette;
+#endif
 
 	spi_inst_t *_spi;
 	Pinout _pinout;
