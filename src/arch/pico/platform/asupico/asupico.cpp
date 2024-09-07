@@ -256,7 +256,12 @@ void init_video_ssd1351() {
 	// The datasheet mentions a rise/fall time of 15ns, i.e. 30ns per cycle,
 	// hence we try to target 33.333333MHz. What exactly will be achieved does
 	// depend on the PERI clock.
-	spi_init(video_spi, 33'333'333);
+	// spi_init(video_spi, 33'333'333);
+
+	// NEVERMIND: There is some coruption that could be attributed to too high
+	// SPI freq. Even if specific to the dupont cable mess setup, it's better
+	// to just be safe here.
+	spi_init(video_spi, 25'000'000);
 
 	printf("SSD1351 baudrate: %d\n", spi_get_baudrate(video_spi));
 
