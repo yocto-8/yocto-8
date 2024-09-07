@@ -15,7 +15,7 @@ namespace arch::pico {
 
 inline void multicore_fifo_write_assume_nonfull(std::uint32_t value) {
 	assert(sio_hw->multicore_fifo_wready());
-	sio_hw->fifo_wr = 0;
+	sio_hw->fifo_wr = value;
 	__sev(); // fire event
 }
 
