@@ -49,9 +49,8 @@ ssd1351_global_dma_handler() {
 	channel_config_set_read_increment(&dma_cfg, true);
 	channel_config_set_write_increment(&dma_cfg, false);
 
-	constexpr std::size_t scanline_buffer_size_bytes = 128 * 2;
 	dma_channel_configure(_dma_channel, &dma_cfg, &spi_get_hw(_spi)->dr,
-	                      nullptr, scanline_buffer_size_bytes, false);
+	                      nullptr, _scanline_buffer.size() * 2, false);
 
 	// configure DMA IRQ and configure it to trigger when DMA scanned out a line
 	dma_channel_set_irq0_enabled(_dma_channel, true);
@@ -135,7 +134,7 @@ void SSD1351::scanline_dma_update() {
 	}
 
 	unsigned current_fb_scanline_end =
-		_current_dma_fb_offset + 64; // 128 half-bytes
+		_current_dma_fb_offset + _scanline_buffer.size() / 2;
 
 	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
 	const devices::Framebuffer fb{_cloned_fb};
