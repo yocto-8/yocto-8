@@ -38,4 +38,8 @@ std::span<const std::uint32_t, 32> get_default_palette() {
 	return ::video::pico8_palette_rgb8;
 }
 
+void local_core_init() {
+	// noop
+}
+
 } // namespace arch::pico::platform
