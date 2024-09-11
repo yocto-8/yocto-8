@@ -11,3 +11,5 @@ printh(tostr(rnd(0), true))
 printh(tostr(rnd(1), true))
 printh(tostr(rnd(0x10), true))
 printh(tostr(rnd(0.5), true))
+
+printh("====DONE====")

@@ -13,3 +13,5 @@ srand(0)
 printh(tostr(peek4(0x5f44), true))
 printh(tostr(peek4(0x5f48), true))
 printh(tostr(rnd(0xFFFF), true))
+
+printh("====DONE====")

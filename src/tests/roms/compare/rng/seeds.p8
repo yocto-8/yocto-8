@@ -27,3 +27,5 @@ for i in all(is) do
         printh(tostr(rnd(), true))
     end
 end
+
+printh("====DONE====")
