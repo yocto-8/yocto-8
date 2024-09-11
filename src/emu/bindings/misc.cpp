@@ -139,10 +139,10 @@ void format_address(std::span<char> buffer, std::string_view prefix,
 	std::memcpy(buffer.data(), prefix.data(), prefix.size());
 	const auto output_span = buffer.subspan(prefix.size());
 
-	[[maybe_unused]] const auto bytes =
+	[[maybe_unused]] const auto err =
 		std::snprintf(output_span.data(), output_span.size(), "0x%" PRIxPTR,
 	                  std::uintptr_t(address));
-	assert(written > 0);
+	assert(err > 0);
 }
 
 int tostr_handle_optional_address_mode(lua_State *state,
@@ -167,27 +167,32 @@ void format_number(std::span<char> buffer, LuaFix16 number, bool as_hex,
 
 	if (as_integral) {
 		if (as_hex) {
-			assert(std::snprintf(buffer.data(), buffer.size(), "0x%08x",
-			                     number.value) > 0);
+			[[maybe_unused]] const int err = std::snprintf(
+				buffer.data(), buffer.size(), "0x%08x", number.value);
+			assert(err > 0);
 		} else {
-			assert(std::snprintf(buffer.data(), buffer.size(), "%d",
-			                     number.value) > 0);
+			[[maybe_unused]] const int err =
+				std::snprintf(buffer.data(), buffer.size(), "%d", number.value);
+			assert(err > 0);
 		}
 
 		return;
 	}
 
 	if (as_hex) {
-		assert(std::snprintf(buffer.data(), buffer.size(), "0x%04x.%04x",
-		                     number.unsigned_integral_bits(),
-		                     number.decimal_bits()) > 0);
+		[[maybe_unused]] const int err = std::snprintf(
+			buffer.data(), buffer.size(), "0x%04x.%04x",
+			number.unsigned_integral_bits(), number.decimal_bits());
+		assert(err > 0);
 	} else {
 		if (number.decimal_bits() != 0) {
 			// TODO: maybe move this out of the fix16 lib
 			fix16_to_str(number.value, buffer.data(), 4);
 		} else {
-			assert(std::snprintf(buffer.data(), buffer.size(), "%d",
-			                     number.signed_integral_bits()) > 0);
+			[[maybe_unused]] const int err =
+				std::snprintf(buffer.data(), buffer.size(), "%d",
+			                  number.signed_integral_bits());
+			assert(err > 0);
 		}
 	}
 }
