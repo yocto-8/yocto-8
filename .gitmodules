@@ -8,3 +8,6 @@
 	path = vendor/libfixmath
 	url = git@github.com:yocto-8/libfixmath.git
 	
+[submodule "vendor/fmt"]
+	path = vendor/fmt
+	url = git@github.com:fmtlib/fmt.git
