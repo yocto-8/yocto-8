@@ -34,7 +34,7 @@ int y8_srand(lua_State *state) {
 		seed = lua_tonumber(state, 1);
 	}
 
-	device<devices::Random>.set_seed(0);
+	device<devices::Random>.set_seed(seed.value);
 
 	return 0;
 }
