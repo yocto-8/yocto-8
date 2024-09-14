@@ -34,7 +34,7 @@ struct Random : emu::MMIODevice<8> {
 	fix16_t next(fix16_t range) const {
 		step();
 
-		if (range < 0) {
+		if (range <= 0) {
 			return 0;
 		}
 
