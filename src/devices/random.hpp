@@ -17,7 +17,7 @@ struct Random : emu::MMIODevice<8> {
 
 	void set_seed(std::uint32_t seed) const {
 		get<std::uint32_t>(0) = seed != 0 ? seed : 0xDEADBEEF;
-		get<std::uint32_t>(1) = get<std::uint32_t>(0) ^ 0xBEAD29BA;
+		get<std::uint32_t>(4) = get<std::uint32_t>(0) ^ 0xBEAD29BA;
 
 		for (int i = 0; i < 32; ++i) {
 			step();
