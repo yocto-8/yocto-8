@@ -43,7 +43,8 @@ std::uint64_t measure_time_us() {
 
 void delay_time_us(std::uint64_t time) { usleep(time); }
 
-void load_rgb_palette(std::span<std::uint32_t, 32> new_palette) {
+void load_rgb_palette(
+	[[maybe_unused]] std::span<std::uint32_t, 32> new_palette) {
 	printf("RGB palette update unimplemented on desktop\n");
 }
 
