@@ -1,10 +1,11 @@
 #pragma once
 
+#include <bit>
 #include <cstdint>
 #include <emu/mmio.hpp>
 #include <fix16.h>
 
-// PRNG logic adapted from FAKE-08
+// PRNG logic adapted from https://www.lexaloffle.com/bbs/?tid=51113
 
 namespace devices {
 
@@ -13,11 +14,17 @@ struct Random : emu::MMIODevice<8> {
 
 	static constexpr std::uint16_t default_map_address = 0x5F44;
 
-	auto rng_state() const { return get<std::uint64_t>(0x00); }
+	auto lo_ref() const { return get<std::uint32_t>(0); }
+	auto hi_ref() const { return get<std::uint32_t>(4); }
 
 	void set_seed(std::uint32_t seed) const {
-		get<std::uint32_t>(0) = seed != 0 ? seed : 0xDEADBEEF;
-		get<std::uint32_t>(4) = get<std::uint32_t>(0) ^ 0xBEAD29BA;
+		if (seed == 0) {
+			lo_ref() = 0xDEADBEEF;
+			hi_ref() = 0x60009755;
+		} else {
+			lo_ref() = seed;
+			hi_ref() = seed ^ 0xBEAD29BA;
+		}
 
 		for (int i = 0; i < 32; ++i) {
 			step();
@@ -25,10 +32,14 @@ struct Random : emu::MMIODevice<8> {
 	}
 
 	void step() const {
-		get<std::uint32_t>(0) =
-			get_raw<std::uint16_t>(0) << 16 | get_raw<std::uint16_t>(2);
-		get<std::uint32_t>(0) = get<std::uint32_t>(0) + get<std::uint32_t>(4);
-		get<std::uint32_t>(4) = get<std::uint32_t>(0) + get<std::uint32_t>(4);
+		std::uint32_t lo = lo_ref(), hi = hi_ref();
+
+		// swap nibbles and add low
+		hi = ((hi << 16) | (hi >> 16)) + lo;
+		lo += hi;
+
+		lo_ref() = lo;
+		hi_ref() = hi;
 	}
 
 	fix16_t next(fix16_t range) const {
@@ -38,7 +49,7 @@ struct Random : emu::MMIODevice<8> {
 			return 0;
 		}
 
-		return fix16_mod(get<fix16_t>(4), range);
+		return fix16_mod(std::bit_cast<fix16_t>(uint32_t(hi_ref())), range);
 	}
 };
 
