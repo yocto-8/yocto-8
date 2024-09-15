@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 
 # FIXME: This is currently broken when using the secondary memory pool because OOM situations in Lua are turned into UB
-#        Maybe this should be scrapped altogether
+# Maybe this should be scrapped altogether
 # set(Y8_YOLO_RELEASE OFF CACHE BOOL "Enables highly aggressive optimizations that turn some error conditions into undefined behavior")
-
 set(Y8_ARCH "desktop" CACHE STRING "Selects the architecture (desktop/pico)")
 set(Y8_PLATFORM "" CACHE STRING "Selects the platform (i.e. subarch), if relevant (none/asupico/picosystem). Must be consistent with architecture.")
 
@@ -17,7 +16,8 @@ endfunction()
 
 function(add_y8_definition_flag OPTION_NAME OPTION_DEFAULT OPTION_DEFINITION)
     set(${OPTION_NAME} ${OPTION_DEFAULT} CACHE BOOL ${OPTION_DEFINITION})
-    if (${${OPTION_NAME}})
+
+    if(${${OPTION_NAME}})
         set(Y8_DEFINITIONS "${Y8_DEFINITIONS};${OPTION_NAME}" PARENT_SCOPE)
     endif()
 endfunction()
@@ -28,7 +28,7 @@ add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
 
 message("Following definitions set: [${Y8_DEFINITIONS}]")
 
-if (Y8_ARCH STREQUAL "desktop")
+if(Y8_ARCH STREQUAL "desktop")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold -Wl,--thinlto-cache-dir=./llvmcache")
 elseif(Y8_ARCH STREQUAL "pico")
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
@@ -55,7 +55,7 @@ set(LUA_EXTRA_CXXFLAGS
     "-Wno-implicit-fallthrough -Wno-unused-function"
 )
 
-if (Y8_ARCH STREQUAL "pico")
+if(Y8_ARCH STREQUAL "pico")
     # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
 endif()
 
@@ -69,7 +69,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 #
 # the core library trick worked OK on pico, but it resulted in double the files
 # being compiled for some reason; unsure why.
-if (Y8_ARCH STREQUAL "desktop")
+if(Y8_ARCH STREQUAL "desktop")
     set(CORE_LIBRARY_TARGET y8-core)
     add_library(${CORE_LIBRARY_TARGET})
 elseif(Y8_ARCH STREQUAL "pico")
@@ -95,10 +95,12 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lapi.c
     ${LUA_ROOT}/lauxlib.c
     ${LUA_ROOT}/lbaselib.c
+
     # ${LUA_ROOT}/lbitlib.c
     ${LUA_ROOT}/lcode.c
     ${LUA_ROOT}/lcorolib.c
     ${LUA_ROOT}/lctype.c
+
     # ${LUA_ROOT}/ldblib.c
     ${LUA_ROOT}/ldebug.c
     ${LUA_ROOT}/ldo.c
@@ -106,19 +108,24 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lfunc.c
     ${LUA_ROOT}/lgc.c
     ${LUA_ROOT}/linit.c
+
     # ${LUA_ROOT}/liolib.c
     ${LUA_ROOT}/llex.c
-    #${LUA_ROOT}/lmathlib.c
+
+    # ${LUA_ROOT}/lmathlib.c
     ${LUA_ROOT}/lmem.c
     ${LUA_ROOT}/loadlib.c
     ${LUA_ROOT}/lobject.c
     ${LUA_ROOT}/lopcodes.c
+
     # ${LUA_ROOT}/loslib.c
     ${LUA_ROOT}/lparser.c
     ${LUA_ROOT}/lstate.c
     ${LUA_ROOT}/lstring.c
+
     # ${LUA_ROOT}/lstrlib.c
     ${LUA_ROOT}/ltable.c
+
     # ${LUA_ROOT}/ltablib.c
     # ${LUA_ROOT}/ltests.c
     ${LUA_ROOT}/ltm.c
@@ -126,9 +133,10 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lvm.c
     ${LUA_ROOT}/lzio.c
 )
+
 # compile Lua as C++ - we need this for the fixmath black magic
 set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
-set_source_files_properties(${LUA_SOURCES} COMPILE_FLAGS ${LUA_EXTRA_CXXFLAGS}) 
+set_source_files_properties(${LUA_SOURCES} COMPILE_FLAGS ${LUA_EXTRA_CXXFLAGS})
 
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
@@ -148,11 +156,10 @@ set(FIXMATH_SOURCES
     ${FIXMATH_ROOT}/fix16_sqrt.c
     ${FIXMATH_ROOT}/fix16_str.c
     ${FIXMATH_ROOT}/fix16_trig.c
-    ${FIXMATH_ROOT}/fix16.c
 )
 set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 
-if (Y8_ARCH STREQUAL "desktop")
+if(Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
@@ -175,7 +182,7 @@ if (Y8_ARCH STREQUAL "desktop")
     target_link_libraries(y8-headless PRIVATE ${CORE_LIBRARY_TARGET})
 
     add_compile_definitions(Y8_SRAM_SECTION=".text")
-elseif (Y8_ARCH STREQUAL "pico")
+elseif(Y8_ARCH STREQUAL "pico")
     pico_sdk_init()
 
     set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico")
@@ -186,19 +193,19 @@ elseif (Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/main/main.cpp
     )
 
-    if (Y8_PLATFORM STREQUAL "asupico")
+    if(Y8_PLATFORM STREQUAL "asupico")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/asupico")
         set(PLATFORM_SOURCES
             ${PLATFORM_ROOT}/asupico.cpp
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp
-            ${ARCH_ROOT}/video/ssd1351.cpp  # FIXME: proper compile-time API for driver selection
-            ${CORE_ROOT}/emu/tinyalloc.cpp  # TODO: cleaner way to include this
+            ${ARCH_ROOT}/video/ssd1351.cpp # FIXME: proper compile-time API for driver selection
+            ${CORE_ROOT}/emu/tinyalloc.cpp # TODO: cleaner way to include this
         )
 
         # extmem size is autodetected at runtime
         add_compile_definitions(Y8_USE_EXTMEM Y8_EXTMEM_START=0x11000000)
-    elseif (Y8_PLATFORM STREQUAL "picosystem")
+    elseif(Y8_PLATFORM STREQUAL "picosystem")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/picosystem")
         set(PLATFORM_SOURCES
             ${PLATFORM_ROOT}/picosystem.cpp
@@ -213,11 +220,11 @@ elseif (Y8_ARCH STREQUAL "pico")
     target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore)
 
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_INFINITE_LOOP_EXIT)
-    
+
     # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
     # 1. usage of the secondary memory pool requires us to handle failing allocs.
     # 2. dynamic allocation in non-desktop platforms is forbidden, so we can check
-    #    malloc return values in the only place it can be used: the lua allocator.
+    # malloc return values in the only place it can be used: the lua allocator.
     # 3. we rely on the lua emergency GC, which can save us in this usecase.
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_MALLOC_PANIC=0)
 
@@ -233,13 +240,13 @@ elseif (Y8_ARCH STREQUAL "pico")
 
     # needed for a LTO hack
     # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STDIO_SHORT_CIRCUIT_CLIB_FUNCS=0)
+    if(Y8_PLATFORM STREQUAL "asupico")
+        target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
+    elseif(Y8_PLATFORM STREQUAL "picosystem")
+        # target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_pio hardware_dma)
+        target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
 
-    if (Y8_PLATFORM STREQUAL "asupico")
-        target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
-    elseif (Y8_PLATFORM STREQUAL "picosystem")
-        #target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_pio hardware_dma)
-        target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)
-        #pico_generate_pio_header(${CORE_LIBRARY_TARGET} ${PLATFORM_ROOT}/screen.pio)
+        # pico_generate_pio_header(${CORE_LIBRARY_TARGET} ${PLATFORM_ROOT}/screen.pio)
         pico_set_linker_script(${CORE_LIBRARY_TARGET} "${PLATFORM_ROOT}/memmap_picosystem.ld")
         pico_enable_stdio_usb(${CORE_LIBRARY_TARGET} 1)
     endif()
