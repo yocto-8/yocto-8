@@ -14,8 +14,8 @@ struct Random : emu::MMIODevice<8> {
 
 	static constexpr std::uint16_t default_map_address = 0x5F44;
 
-	auto lo_ref() const { return get<std::uint32_t>(0); }
-	auto hi_ref() const { return get<std::uint32_t>(4); }
+	auto lo_ref() const { return get<std::uint32_t>(4); }
+	auto hi_ref() const { return get<std::uint32_t>(0); }
 
 	void set_seed(std::uint32_t seed) const {
 		if (seed == 0) {
