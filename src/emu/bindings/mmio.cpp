@@ -32,7 +32,8 @@ int y8_peek2(lua_State *state) {
 
 int y8_peek4(lua_State *state) {
 	const auto address = luaL_checkunsigned(state, 1);
-	lua_pushunsigned(state, emu::emulator.memory().get<std::uint32_t>(address));
+	lua_pushnumber(state, LuaFix16::from_fix16(
+							  emu::emulator.memory().get<fix16_t>(address)));
 	return 1;
 }
 
@@ -59,8 +60,8 @@ int y8_poke2(lua_State *state) {
 
 int y8_poke4(lua_State *state) {
 	const auto address = luaL_checkunsigned(state, 1);
-	const auto value = luaL_checkunsigned(state, 2);
-	emu::emulator.memory().get<std::uint32_t>(address) = value;
+	const auto number = luaL_checknumber(state, 2);
+	emu::emulator.memory().get<fix16_t>(address) = number.value;
 	return 0;
 }
 
