@@ -49,7 +49,13 @@ set(PERF_FLAGS
     "-fno-exceptions"
 )
 
-set(COMMON_FLAGS ${PERF_FLAGS} "-gsplit-dwarf")
+set(COMMON_FLAGS ${PERF_FLAGS}
+    "-gsplit-dwarf"
+
+    # ninja opens a pipe so the compiler disables ansi escape sequences by
+    # default. let's force it for now
+    "-fdiagnostics-color=always"
+)
 
 set(LUA_EXTRA_CXXFLAGS
     "-Wno-implicit-fallthrough -Wno-unused-function"
