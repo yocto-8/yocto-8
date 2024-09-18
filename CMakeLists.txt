@@ -71,7 +71,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
 # being compiled for some reason; unsure why.
 if(Y8_ARCH STREQUAL "desktop")
     set(CORE_LIBRARY_TARGET y8-core)
-    add_library(${CORE_LIBRARY_TARGET})
+    add_library(${CORE_LIBRARY_TARGET} STATIC)
 elseif(Y8_ARCH STREQUAL "pico")
     set(CORE_LIBRARY_TARGET y8)
 endif()
@@ -258,9 +258,9 @@ elseif(Y8_ARCH STREQUAL "pico")
     pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
 endif()
 
-target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${CORE_SOURCES})
-target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${LUA_SOURCES})
-target_sources(${CORE_LIBRARY_TARGET} PUBLIC ${FIXMATH_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${CORE_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${LUA_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${FIXMATH_SOURCES})
 
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC ${ARCH_ROOT})
 
