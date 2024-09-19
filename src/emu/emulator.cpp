@@ -56,12 +56,6 @@ local all = function(t)
     end
 end
 
-local foreach = function(t, f)
-    for e in all(t) do
-        f(e)
-    end
-end
-
 local del = function(t, v)
     if t == nil then
         return
@@ -123,8 +117,8 @@ end)"
     /// per-function... For how carts normally behave, this is probably fine.
 
 	R"(
-local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add =
-      color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add
+local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach =
+      color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach
 	)"
 
 	R"(printh(stat(0) .. "KB at boot")
@@ -140,7 +134,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 55> y8_std{{
+static constexpr std::array<Binding, 56> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -203,6 +197,7 @@ static constexpr std::array<Binding, 55> y8_std{{
 	{"time", bindings::y8_time},
 
 	{"add", bindings::y8_add},
+	{"foreach", bindings::y8_foreach},
 }};
 
 Emulator::~Emulator() {
