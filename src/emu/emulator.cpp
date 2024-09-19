@@ -118,6 +118,9 @@ end)"
     /// table of a function. Usually, this is a net performance benefit, because
     /// upvalue accesses can be done directly rather than through an environment
     /// lookup by string key (even if this usecase was optimized for in y8).
+    ///
+    /// However, it also results in longer upvalue construction time
+    /// per-function... For how carts normally behave, this is probably fine.
 
 	R"(
 local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add =
