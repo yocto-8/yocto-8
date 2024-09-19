@@ -3,6 +3,7 @@
 #include <devices/image.hpp>
 #include <devices/map.hpp>
 #include <devices/spriteflags.hpp>
+#include <emu/bufferio.hpp>
 #include <emu/emulator.hpp>
 
 namespace p8 {
@@ -176,6 +177,10 @@ bool Parser::parse_line() {
 	return true;
 }
 
-void Parser::finalize() { emu::emulator.load(_lua_block); }
+void Parser::finalize() {
+	emu::StringReader string_reader{_lua_block};
+	emu::emulator.load_and_inject_header(emu::StringReader::reader_callback,
+	                                     &string_reader);
+}
 
 } // namespace p8

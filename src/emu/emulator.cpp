@@ -2,6 +2,7 @@
 #include "devices/drawstatemisc.hpp"
 #include "devices/image.hpp"
 #include "devices/random.hpp"
+#include "emu/bufferio.hpp"
 #include "lgc.h"
 
 #include <cstddef>
@@ -25,6 +26,92 @@
 #include <hal/hal.hpp>
 
 namespace emu {
+
+static constexpr std::string_view app_header = R"(
+local all = function(t)
+    if t == nil or #t == 0 then
+        return function() end
+    end
+
+    local i = 1
+    local prev = nil
+
+    return function()
+        if t[i] == prev then
+            i += 1
+        end
+
+        while t[i] == nil and i <= #t do
+            i += 1
+        end
+
+        prev = t[i]
+
+        return prev
+    end
+end
+
+local foreach = function(t, f)
+    for e in all(t) do
+        f(e)
+    end
+end
+
+local add = function(t, v)
+    if t == nil then
+        return nil
+    end
+
+    t[#t+1] = v
+    return v
+end
+
+local del = function(t, v)
+    if t == nil then
+        return
+    end
+
+    local n=#t
+
+    local i
+    for i=1,n do
+        if t[i] == v then
+            for j = i,n-1 do
+                t[j] = t[j + 1]
+            end
+
+            t[n] = nil
+            return v
+        end
+    end
+end
+
+local count = function(t, v)
+    local n = 0
+    if v == nil then
+        for i = 1,#t do
+            if t[i] ~= nil then
+                n += 1
+            end
+        end
+    else
+        for i = 1,#t do
+            if t[i] == v then
+                n += 1
+            end
+        end
+    end
+    return n
+end
+
+function __panic(msg)
+    printh("PANIC: " .. msg)
+    print(":(", 0, 0, 7)
+    print(msg)
+end
+
+printh(stat(0) .. "KB at boot")
+)";
 
 Emulator::~Emulator() {
 	if (_lua != nullptr) {
@@ -144,97 +231,18 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	stub("sfx");
 
 	hal::load_rgb_palette(_palette);
-
-	load(R"(
-function all(t)
-    if t == nil or #t == 0 then
-        return function() end
-    end
-
-    local i = 1
-    local prev = nil
-
-    return function()
-        if t[i] == prev then
-            i += 1
-        end
-
-        while t[i] == nil and i <= #t do
-            i += 1
-        end
-
-        prev = t[i]
-
-        return prev
-    end
-end
-
-function foreach(t, f)
-    for e in all(t) do
-        f(e)
-    end
-end
-
-function add(t, v)
-    if t == nil then
-        return nil
-    end
-
-    t[#t+1] = v
-    return v
-end
-
-function del(t, v)
-    if t == nil then
-        return
-    end
-
-    local n=#t
-
-    local i
-    for i=1,n do
-        if t[i] == v then
-            for j = i,n-1 do
-                t[j] = t[j + 1]
-            end
-
-            t[n] = nil
-            return v
-        end
-    end
-end
-
-function count(t, v)
-    local n = 0
-    if v == nil then
-        for i = 1,#t do
-            if t[i] ~= nil then
-                n += 1
-            end
-        end
-    else
-        for i = 1,#t do
-            if t[i] == v then
-                n += 1
-            end
-        end
-    end
-    return n
-end
-
-function __panic(msg)
-    printh("PANIC: " .. msg)
-    print(":(", 0, 0, 7)
-    print(msg)
-end
-
-printh(stat(0) .. "KB at boot")
-)");
 }
 
-void Emulator::load(std::string_view buf) {
-	const int load_status =
-		luaL_loadbuffer(_lua, buf.data(), buf.size(), "main");
+void Emulator::load_and_inject_header(hal::ReaderCallback *reader, void *ud) {
+	CartImporterReader state{.header_reader{app_header},
+	                         .cart_reader = SourceBufferReader(reader, ud)};
+
+	const int load_status = lua_load(
+		_lua,
+		[]([[maybe_unused]] lua_State *state, void *ud, size_t *sz) {
+			return CartImporterReader::reader_callback(ud, sz);
+		},
+		&state, "m", "t");
 
 	if (load_status != 0) {
 		printf("Script load failed: %s\n", lua_tostring(_lua, -1));
@@ -247,7 +255,7 @@ void Emulator::load(std::string_view buf) {
 		panic(lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
 	} else {
-		printf("Loaded segment successfully (%d bytes)\n", int(buf.size()));
+		printf("Loaded segment successfully\n");
 	}
 }
 

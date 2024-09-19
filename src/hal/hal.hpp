@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <lua.h>
+#include <string_view>
 
 #include <devices/image.hpp>
 
@@ -39,4 +42,44 @@ std::span<const std::uint32_t, 32> get_default_palette();
 /// Empty on no input or on an empty input.
 [[nodiscard]] std::span<char> read_repl(std::span<char> target_buffer);
 
+/// @brief Platform-specific struct.
+struct FileReaderContext;
+
+enum class FileOpenStatus { SUCCESS, FAIL };
+
+/// @brief Opens a file with the given path in the filesystem in a blocking
+/// fashion. Initializes the `out` context.
+/// @returns FileOpenStatus::SUCCESS is the file is readable, FAIL otherwise.
+FileOpenStatus fs_create_open_context(std::string_view path,
+                                      FileReaderContext &out);
+
+/// @brief Closes/destroys a file read context. Should not be called if file
+/// open had failed with any non-SUCCESS status. No further reader callback
+/// should ever be issued after destruction.
+void fs_destroy_open_context(FileReaderContext &ctx);
+
+/// @brief Callback for filesystem file reading. Uses semantics similar to that
+/// of `lua_Reader`. Note that the caller is not in control of buffering. The
+/// backend can return any number of bytes, but a `*size` of 0 is exclusively
+/// used to signal EOF to the caller.
+///
+/// The returned buffer is expected to survive until either:
+///
+/// - `fs_destroy_open_context` is called for the associated context
+/// - **or** `fs_read_buffer` is called over the same context again
+///
+/// @arg context Opaque pointer to the @ref FileReaderContext
+/// @arg size Pointer to the `size_t` that will receive the size of the buffer.
+/// The callback should write 0 to it when the file is done reading and all
+/// chunks were read.
+/// @returns Pointer to a buffer.
+using ReaderCallback = const char *(void *context, std::size_t *size);
+
+/// @brief Reader callback for a file, where `context` is a pointer to an object
+/// of type @ref FileReaderContext as previously returned by @ref
+/// fs_create_open_context. Compatible with @ref FileChunkReaderCallback
+const char *fs_read_buffer(void *context, std::size_t *size);
+
 } // namespace hal
+
+#include Y8_HAL_TYPES_HPP

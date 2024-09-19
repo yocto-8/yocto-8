@@ -5,7 +5,9 @@
 #include <span>
 #include <string_view>
 
+#include <emu/bufferio.hpp>
 #include <emu/mmio.hpp>
+#include <hal/hal.hpp>
 #include <video/palette.hpp>
 
 namespace emu {
@@ -17,7 +19,7 @@ class Emulator {
 
 	void init(std::span<std::byte> memory_buffer);
 
-	void load(std::string_view buf);
+	void load_and_inject_header(hal::ReaderCallback *cart_reader, void *ud);
 	void exec(std::string_view buf);
 
 	void handle_repl();

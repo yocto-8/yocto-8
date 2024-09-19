@@ -85,6 +85,7 @@ endif()
 set(CORE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/")
 set(CORE_SOURCES
     ${CORE_ROOT}/devices/image.cpp
+    ${CORE_ROOT}/emu/bufferio.cpp
     ${CORE_ROOT}/emu/emulator.cpp
     ${CORE_ROOT}/emu/bindings/input.cpp
     ${CORE_ROOT}/emu/bindings/math.cpp
@@ -176,6 +177,7 @@ if(Y8_ARCH STREQUAL "desktop")
         ${ARCH_ROOT}/hal/hal.cpp
         ${ARCH_ROOT}/main.cpp
     )
+    set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
 
     add_executable(y8
         ${ARCH_SOURCES}
@@ -198,6 +200,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/cmdthread.cpp
         ${ARCH_ROOT}/main/main.cpp
     )
+    set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
 
     if(Y8_PLATFORM STREQUAL "asupico")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/asupico")
@@ -276,6 +279,7 @@ target_compile_options(${CORE_LIBRARY_TARGET}
 )
 
 target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC ${Y8_DEFINITIONS})
+target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_HAL_TYPES_HPP=\"${ARCH_HAL_ROOT}/types.hpp\")
 
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
