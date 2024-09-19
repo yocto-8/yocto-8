@@ -31,7 +31,8 @@ namespace emu {
 // TODO: minify lua header
 /// @brief This header is injected at the start of every cart.
 /// Whatever symbols it brings to the `local` scope will be visible to the cart.
-static constexpr std::string_view app_header = R"(
+static constexpr std::string_view app_header =
+	R"(
 local all = function(t)
     if t == nil or #t == 0 then
         return function() end
@@ -103,10 +104,103 @@ function __panic(msg)
     printh("PANIC: " .. msg)
     print(":(", 0, 0, 7)
     print(msg)
-end
+end)"
 
-printh(stat(0) .. "KB at boot")
+	/// This re-exports certain globals into the `local` scope of the cart.
+    /// Calling these is faster, but there is a 200 limit on locals (including
+    /// the cart's own), so it shouldn't be used a ton. That limit only affects
+    /// the number of locals that are used, AFAICT.
+    ///
+    /// This should preferably only re-export standard functions that are used
+    /// in hot loops.
+    ///
+    /// When re-exported in the `local` scope, any use gets added to the upvalue
+    /// table of a function. Usually, this is a net performance benefit, because
+    /// upvalue accesses can be done directly rather than through an environment
+    /// lookup by string key (even if this usecase was optimized for in y8).
+
+	R"(
+local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add =
+      color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add
+	)"
+
+	R"(printh(stat(0) .. "KB at boot")
 )";
+
+using BindingCallback = int(lua_State *);
+
+struct Binding {
+	/// @brief Name to export the binding under.
+	const char *name;
+
+	/// @brief Reference to the callback. Always of this fixed signature.
+	BindingCallback &callback;
+};
+
+static constexpr std::array<Binding, 55> y8_std{{
+	{"camera", bindings::y8_camera},
+	{"color", bindings::y8_color},
+	{"pset", bindings::y8_pset},
+	{"pget", bindings::y8_pget},
+	{"sset", bindings::y8_sset},
+	{"sget", bindings::y8_sget},
+	{"fget", bindings::y8_fget},
+	{"cls", bindings::y8_cls},
+	{"line", bindings::y8_line},
+	{"circfill", bindings::y8_circfill},
+	{"rectfill", bindings::y8_rectfill},
+	{"spr", bindings::y8_spr},
+	{"sspr", bindings::y8_sspr},
+	{"pal", bindings::y8_pal},
+	{"palt", bindings::y8_palt},
+	{"fillp", bindings::y8_fillp},
+	{"clip", bindings::y8_clip},
+	{"mset", bindings::y8_mset},
+	{"mget", bindings::y8_mget},
+	{"map", bindings::y8_map},
+	{"flip", bindings::y8_flip},
+	{"print", bindings::y8_print},
+	{"_rgbpal", bindings::y8_rgbpal},
+
+	{"btn", bindings::y8_btn},
+
+	{"peek", bindings::y8_peek},
+	{"peek2", bindings::y8_peek2},
+	{"peek4", bindings::y8_peek4},
+	{"poke", bindings::y8_poke},
+	{"poke2", bindings::y8_poke2},
+	{"poke4", bindings::y8_poke4},
+	{"memcpy", bindings::y8_memcpy},
+	{"memset", bindings::y8_memset},
+
+	{"abs", bindings::y8_abs},
+	{"flr", bindings::y8_flr},
+	{"mid", bindings::y8_mid},
+	{"min", bindings::y8_min},
+	{"max", bindings::y8_max},
+	{"sin", bindings::y8_sin},
+	{"cos", bindings::y8_cos},
+	{"sqrt", bindings::y8_sqrt},
+	{"shl", bindings::y8_shl},
+	{"shr", bindings::y8_shr},
+	{"band", bindings::y8_band},
+	{"bor", bindings::y8_bor},
+
+	{"cursor", bindings::y8_cursor},
+	{"printh", bindings::y8_printh},
+	{"tostr", bindings::y8_tostr},
+	{"stat", bindings::y8_stat},
+	{"sub", bindings::y8_sub},
+	{"_exit", bindings::y8_exit},
+
+	{"rnd", bindings::y8_rnd},
+	{"srand", bindings::y8_srand},
+
+	{"t", bindings::y8_time},
+	{"time", bindings::y8_time},
+
+	{"add", bindings::y8_add},
+}};
 
 Emulator::~Emulator() {
 	if (_lua != nullptr) {
@@ -146,82 +240,9 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 		});
 	};
 
-	// TODO: make lua use this directly; and define a const string table
-	using BindingCallback = int(lua_State *);
-
-	struct Binding {
-		const char *name;
-		BindingCallback &callback;
-	};
-
-	static constexpr std::array<Binding, 55> y8_std{{
-		{"camera", bindings::y8_camera},
-		{"color", bindings::y8_color},
-		{"pset", bindings::y8_pset},
-		{"pget", bindings::y8_pget},
-		{"sset", bindings::y8_sset},
-		{"sget", bindings::y8_sget},
-		{"fget", bindings::y8_fget},
-		{"cls", bindings::y8_cls},
-		{"line", bindings::y8_line},
-		{"circfill", bindings::y8_circfill},
-		{"rectfill", bindings::y8_rectfill},
-		{"spr", bindings::y8_spr},
-		{"sspr", bindings::y8_sspr},
-		{"pal", bindings::y8_pal},
-		{"palt", bindings::y8_palt},
-		{"fillp", bindings::y8_fillp},
-		{"clip", bindings::y8_clip},
-		{"mset", bindings::y8_mset},
-		{"mget", bindings::y8_mget},
-		{"map", bindings::y8_map},
-		{"flip", bindings::y8_flip},
-		{"print", bindings::y8_print},
-		{"_rgbpal", bindings::y8_rgbpal},
-
-		{"btn", bindings::y8_btn},
-
-		{"peek", bindings::y8_peek},
-		{"peek2", bindings::y8_peek2},
-		{"peek4", bindings::y8_peek4},
-		{"poke", bindings::y8_poke},
-		{"poke2", bindings::y8_poke2},
-		{"poke4", bindings::y8_poke4},
-		{"memcpy", bindings::y8_memcpy},
-		{"memset", bindings::y8_memset},
-
-		{"abs", bindings::y8_abs},
-		{"flr", bindings::y8_flr},
-		{"mid", bindings::y8_mid},
-		{"min", bindings::y8_min},
-		{"max", bindings::y8_max},
-		{"sin", bindings::y8_sin},
-		{"cos", bindings::y8_cos},
-		{"sqrt", bindings::y8_sqrt},
-		{"shl", bindings::y8_shl},
-		{"shr", bindings::y8_shr},
-		{"band", bindings::y8_band},
-		{"bor", bindings::y8_bor},
-
-		{"cursor", bindings::y8_cursor},
-		{"printh", bindings::y8_printh},
-		{"tostr", bindings::y8_tostr},
-		{"stat", bindings::y8_stat},
-		{"sub", bindings::y8_sub},
-		{"_exit", bindings::y8_exit},
-
-		{"rnd", bindings::y8_rnd},
-		{"srand", bindings::y8_srand},
-
-		{"t", bindings::y8_time},
-		{"time", bindings::y8_time},
-
-		{"add", bindings::y8_add},
-	}};
-
-	for (const auto &[name, binding] : y8_std) {
-		lua_pushcfunction(_lua, binding);
-		lua_setglobal(_lua, name);
+	for (const auto &binding : y8_std) {
+		lua_pushcfunction(_lua, binding.callback);
+		lua_setglobal(_lua, binding.name);
 	}
 
 	stub("music");
