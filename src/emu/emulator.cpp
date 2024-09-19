@@ -21,12 +21,16 @@
 #include <emu/bindings/misc.hpp>
 #include <emu/bindings/mmio.hpp>
 #include <emu/bindings/rng.hpp>
+#include <emu/bindings/table.hpp>
 #include <emu/bindings/time.hpp>
 #include <emu/bindings/video.hpp>
 #include <hal/hal.hpp>
 
 namespace emu {
 
+// TODO: minify lua header
+/// @brief This header is injected at the start of every cart.
+/// Whatever symbols it brings to the `local` scope will be visible to the cart.
 static constexpr std::string_view app_header = R"(
 local all = function(t)
     if t == nil or #t == 0 then
@@ -55,15 +59,6 @@ local foreach = function(t, f)
     for e in all(t) do
         f(e)
     end
-end
-
-local add = function(t, v)
-    if t == nil then
-        return nil
-    end
-
-    t[#t+1] = v
-    return v
 end
 
 local del = function(t, v)
@@ -159,7 +154,7 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 		BindingCallback &callback;
 	};
 
-	static constexpr std::array<Binding, 54> y8_std{{
+	static constexpr std::array<Binding, 55> y8_std{{
 		{"camera", bindings::y8_camera},
 		{"color", bindings::y8_color},
 		{"pset", bindings::y8_pset},
@@ -220,6 +215,8 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 
 		{"t", bindings::y8_time},
 		{"time", bindings::y8_time},
+
+		{"add", bindings::y8_add},
 	}};
 
 	for (const auto &[name, binding] : y8_std) {

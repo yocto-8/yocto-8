@@ -92,6 +92,7 @@ set(CORE_SOURCES
     ${CORE_ROOT}/emu/bindings/misc.cpp
     ${CORE_ROOT}/emu/bindings/mmio.cpp
     ${CORE_ROOT}/emu/bindings/rng.cpp
+    ${CORE_ROOT}/emu/bindings/table.cpp
     ${CORE_ROOT}/emu/bindings/time.cpp
     ${CORE_ROOT}/emu/bindings/video.cpp
     ${CORE_ROOT}/p8/parser.cpp
