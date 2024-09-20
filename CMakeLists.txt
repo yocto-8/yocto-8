@@ -47,6 +47,8 @@ set(PERF_FLAGS
     "-ffast-math"
 
     "-fno-exceptions"
+
+    "-fno-threadsafe-statics"
 )
 
 set(COMMON_FLAGS ${PERF_FLAGS}
@@ -200,6 +202,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/hardwarestate.cpp
         ${ARCH_ROOT}/cmdthread.cpp
         ${ARCH_ROOT}/main/main.cpp
+        ${CORE_ROOT}/compilerhacks/gcc_stub_verbose_terminate_handler.cpp
     )
     set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
 
