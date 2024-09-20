@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <hardware/dma.h>
 #include <hardware/gpio.h>

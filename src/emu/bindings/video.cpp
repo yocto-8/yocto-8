@@ -2,7 +2,6 @@
 #include "hal/hal.hpp"
 
 #include <cassert>
-#include <cmath>
 #include <concepts>
 #include <lauxlib.h>
 #include <lua.h>
