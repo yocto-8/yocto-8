@@ -138,7 +138,8 @@ set(LUA_SOURCES
     # ${LUA_ROOT}/ltablib.c
     # ${LUA_ROOT}/ltests.c
     ${LUA_ROOT}/ltm.c
-    ${LUA_ROOT}/lundump.c
+
+    # ${LUA_ROOT}/lundump.c
     ${LUA_ROOT}/lvm.c
     ${LUA_ROOT}/lzio.c
 )
@@ -153,7 +154,6 @@ set_source_files_properties(
     ${LUA_ROOT}/llex.c
     ${LUA_ROOT}/lparser.c
     ${LUA_ROOT}/lcode.c
-    ${LUA_ROOT}/lundump.c
     ${LUA_ROOT}/ldebug.c
 
     PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
