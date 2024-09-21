@@ -8,10 +8,6 @@ namespace arch::pico::platform::asupico {
 struct HardwareState {
 	video::SSD1351 ssd1351;
 	std::array<io::PushButton, 6> buttons;
-
-	// we make this live statically rather than on the core1 stack because of
-	// stack size concerns
-	devices::Framebuffer::ClonedArray fb_copy;
 };
 
 extern HardwareState hw;
