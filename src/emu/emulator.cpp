@@ -270,8 +270,6 @@ void Emulator::load_and_inject_header(hal::ReaderCallback *reader, void *ud) {
 		printf("Script exec at load time failed: %s\n", lua_tostring(_lua, -1));
 		panic(lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
-	} else {
-		printf("Loaded segment successfully\n");
 	}
 }
 
