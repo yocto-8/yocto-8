@@ -157,6 +157,15 @@ set_source_files_properties(
     ${LUA_ROOT}/ldebug.c
 
     PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
+
+set_source_files_properties(
+    ${LUA_ROOT}/lvm.c
+
+    # increasing the inlining threshold and using -O3 adds a few KiB of code
+    # size here (which goes to SRAM) but it seems to help execution time by ~5%
+    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -finline-limit=1024 -O3"
+)
+
 add_compile_definitions(LUA_USE_LONGJMP)
 
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
