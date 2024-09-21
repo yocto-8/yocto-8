@@ -4,7 +4,8 @@ import re
 Y8_PATH = "./y8-headless"
 PICO8_PATH = "./pico8"
 
-Y8_BOOT_FOOTER = "RUNNING CARTRIDGE\n"
+Y8_BOOT_FOOTER = "KB at boot\n"
+
 
 def execute_test_rom_y8(rom_path):
     try:
@@ -12,17 +13,16 @@ def execute_test_rom_y8(rom_path):
         # This is the output that would be printed to the terminal
         exit_code = 0
         output = subprocess.check_output(
-            [Y8_PATH, str(rom_path)],
-            stderr=subprocess.STDOUT
+            [Y8_PATH, str(rom_path)], stderr=subprocess.STDOUT
         ).decode("utf-8")
 
         # remove the boot messages
-        output = output[output.find(Y8_BOOT_FOOTER) + len(Y8_BOOT_FOOTER):]
+        output = output[output.find(Y8_BOOT_FOOTER) + len(Y8_BOOT_FOOTER) :]
 
         # remove ====DONE==== ending
-        output = output[:output.find("====DONE====")]
+        output = output[: output.find("====DONE====")]
 
-    except subprocess.CalledProcessError as grepexc:       
+    except subprocess.CalledProcessError as grepexc:
         exit_code = grepexc.returncode
         output = grepexc.output.decode("utf-8")
 
@@ -35,17 +35,20 @@ def execute_test_rom_pico8(rom_path):
     proc = subprocess.Popen(
         [
             PICO8_PATH,
-            "-windowed", "1", 
-            "-sound", "0",
-            "-music", "0",
+            "-windowed",
+            "1",
+            "-sound",
+            "0",
+            "-music",
+            "0",
             "-x",
-            str(rom_path)
+            str(rom_path),
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        universal_newlines=True
+        universal_newlines=True,
     )
-    
+
     output = ""
     for line in proc.stdout:
         if line.startswith("====DONE===="):
@@ -64,10 +67,17 @@ def execute_test_rom_pico8(rom_path):
 def compare_p8_y8_outputs(p8_output, y8_output):
     # compute diff, just import the libs here lol
     import difflib
-    diff = list(difflib.ndiff(p8_output.splitlines(keepends=True), y8_output.splitlines(keepends=True)))
+
+    diff = list(
+        difflib.ndiff(
+            p8_output.splitlines(keepends=True), y8_output.splitlines(keepends=True)
+        )
+    )
 
     assert p8_output == y8_output, f"y8 erroneously caused this diff:\n{''.join(diff)}"
 
 
 def check_sanitizer_issues(output):
-    assert "runtime error" not in output, "Sanitizer errors encountered during execution"
+    assert (
+        "runtime error" not in output
+    ), "Sanitizer errors encountered during execution"
