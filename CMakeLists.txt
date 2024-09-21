@@ -163,6 +163,9 @@ set_source_files_properties(
 
     # increasing the inlining threshold and using -O3 adds a few KiB of code
     # size here (which goes to SRAM) but it seems to help execution time by ~5%
+    #
+    # it might be that a single inline is responsible for this; can we find
+    # which?
     PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -finline-limit=1024 -O3"
 )
 
