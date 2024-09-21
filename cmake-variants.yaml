@@ -36,7 +36,7 @@ arch:
         PICO_BOARD: "asupico"
         PICO_PLATFORM: "rp2350"
         PICO_COMPILER: "pico_arm_cortex_m33_clang"
-        PICO_TOOLCHAIN_PATH: "/home/sdelang/llvm-arm/14/"
+        PICO_TOOLCHAIN_PATH: "/stor/data/toolchain/llvm-arm/14/"
     asuclang18:
       short: PicoPlus2 w/ asu pinout (clang 18)
       long: Pimoroni Pico Plus 2 based setup
@@ -47,7 +47,7 @@ arch:
         PICO_BOARD: "asupico"
         PICO_PLATFORM: "rp2350"
         PICO_COMPILER: "pico_arm_cortex_m33_clang"
-        PICO_TOOLCHAIN_PATH: "/home/sdelang/llvm-arm/18.1.3/"
+        PICO_TOOLCHAIN_PATH: "/stor/data/toolchain/llvm-arm/18.1.3/"
     asuram:
       short: PicoPlus2 w/ asu pinout (RAM)
       long: Pimoroni Pico Plus 2 based setup (RAM)
