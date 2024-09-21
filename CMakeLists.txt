@@ -47,16 +47,6 @@ set(PERF_FLAGS
     "-ffast-math"
 
     "-fno-exceptions"
-
-    "-fno-threadsafe-statics"
-)
-
-set(COMMON_FLAGS ${PERF_FLAGS}
-    "-gsplit-dwarf"
-
-    # ninja opens a pipe so the compiler disables ansi escape sequences by
-    # default. let's force it for now
-    "-fdiagnostics-color=always"
 )
 
 set(LUA_EXTRA_CXXFLAGS
@@ -65,7 +55,16 @@ set(LUA_EXTRA_CXXFLAGS
 
 if(Y8_ARCH STREQUAL "pico")
     # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
+    set(PERF_FLAGS ${PERF_FLAGS} "-fno-threadsafe-statics")
 endif()
+
+set(COMMON_FLAGS ${PERF_FLAGS}
+    "-gsplit-dwarf"
+
+    # ninja opens a pipe so the compiler disables ansi escape sequences by
+    # default. let's force it for now
+    "-fdiagnostics-color=always"
+)
 
 add_link_options(${COMMON_FLAGS})
 add_compile_options(${COMMON_FLAGS})
