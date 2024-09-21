@@ -6,62 +6,71 @@
 namespace emu::bindings {
 
 int y8_add(lua_State *state) {
-	// Equivalent to the following Lua code:
-	//     local add = function(t, v)
-	//         if t == nil then
-	//             return nil
-	//         end
-	//         t[#t+1] = v
-	//         return v
-	//     end
+	// this roughly matches the definition of table.insert as it appears to
+	// match the semantics of `add`
 
-	const auto table_end_index = luaL_len(state, 1) + 1;
-	lua_rawseti(state, 1, table_end_index);
+	const int arg_count = lua_gettop(state);
+
+	if (arg_count < 2) {
+		// PICO-8 returns no value in that case
+		return 0;
+	}
+
+	const int table_size = int(lua_rawlen(state, 1) + 1);
+	int insert_pos = table_size;
+
+	if (arg_count >= 3) {
+		insert_pos = luaL_checkinteger(state, 3);
+
+		// pos must be in [1, e]
+		luaL_argcheck(state,
+		              (lua_Unsigned)insert_pos - 1u < (lua_Unsigned)table_size,
+		              3, "position out of bounds");
+
+		// shift up elements
+		for (int i = table_size; i > insert_pos; i--) {
+			// t[i] = t[i - 1];
+			lua_rawgeti(state, 1, i - 1);
+			lua_rawseti(state, 1, i);
+		}
+
+		// bring the value up for returning later (otherwise the top of the
+		// stack is the index, which is arg #3)
+		// we don't need to do this for arg_count == 2 since arg #2 will be the
+		// top of the stack already
+		lua_pushvalue(state, 2);
+	}
+
+	// push the value for the rawseti
+	lua_pushvalue(state, 2);
+
+	// t[insert_pos] = v
+	lua_rawseti(state, 1, insert_pos);
 
 	return 1;
 }
 
 int y8_foreach(lua_State *state) {
-	// Equivalent to the following Lua code:
-	//     local foreach = function(t, f)
-	//         for e in all(t) do
-	//             f(e)
-	//         end
-	//     end
-	//
-	// where all is defined as the following:
-	//     if t == nil or #t == 0 then
-	//         return function() end
-	//     end
-	//
-	//     local i = 1
-	//     local prev = nil
-	//
-	//     return function()
-	//         if t[i] == prev then
-	//             i += 1
-	//         end
-	//
-	//         while t[i] == nil and i <= #t do
-	//             i += 1
-	//         end
-	//
-	//         prev = t[i]
-	//
-	//         return prev
+	// stack[1]: table
+	// stack[2]: function
 
-	/* table is in the stack at index 't' */
-	lua_pushnil(state); // first key
-	while (lua_next(state, 1) != 0) {
-		// key at -2, value at -1
+	// PICO-8 edge cases for foreach:
+	// - `foreach()` is a noop (so no checking needed, because #nil will be 0)
+	// - `foreach({"foo"})` causes an error (so no checking needed)
+	// - `foreach({"foo"}, 1)` causes an error (so no checking needed)
 
-		// we want to call arg #2 (function) with value at -1
-		lua_pushvalue(state, 2); // now value is at -2
-		lua_pushvalue(state, -2);
-		lua_call(state, 1, 0);
+	const int len = lua_rawlen(state, 1);
 
-		// we want to remove value and keep key for the next iteration
-		lua_pop(state, 1);
+	for (int i = 1; i <= len; ++i) {
+		lua_pushvalue(state, 2); // this gets popped by lua_call
+		// TODO: hack something into the VM to be able to avoid the above push
+		lua_rawgeti(state, 1, i);
+
+		if (!lua_isnil(state, -1)) {
+			// stack[-2]: function
+			// stack[-1]: value
+			lua_call(state, 1, 0);
+		}
 	}
 
 	return 0;
