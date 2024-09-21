@@ -2,7 +2,8 @@ pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
 
-local foo = {}
+local foo = {foo="bar"}  -- hash part of table shouldn't matter
+
 printh(#foo)
 printh(add(foo, 123))
 printh(#foo)
@@ -10,7 +11,7 @@ printh(add(foo, 456))
 printh(#foo)
 printh(add(foo, 789))
 printh(#foo)
-foo[#foo] = nil -- mark as deleted
+foo[#foo] = nil -- mark as deleted; should be overriden next step
 printh(add(foo, 123))
 printh(#foo)
 

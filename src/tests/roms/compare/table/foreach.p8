@@ -9,7 +9,12 @@ foo[1] = 4
 foreach(foo, printh)
 
 printh("with keys")
-local foo = {1, 2, 3, a=123, b=456}
+foo = {1, 2, 3, a=123, b=456}
+foreach(foo, printh)
+
+printh("with dupes")
+s = "foo"
+foo = {s, s, s}
 foreach(foo, printh)
 
 printh("syntax edge cases")
