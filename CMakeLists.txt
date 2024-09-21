@@ -124,7 +124,8 @@ set(LUA_SOURCES
     # ${LUA_ROOT}/ldblib.c
     ${LUA_ROOT}/ldebug.c
     ${LUA_ROOT}/ldo.c
-    ${LUA_ROOT}/ldump.c
+
+    # ${LUA_ROOT}/ldump.c
     ${LUA_ROOT}/lfunc.c
     ${LUA_ROOT}/lgc.c
     ${LUA_ROOT}/linit.c
