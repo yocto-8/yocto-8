@@ -102,6 +102,12 @@ int y8_printh(lua_State *state) {
 	// FIXME: i don't think standard printh in pico-8 uses tostring.
 
 	int n = lua_gettop(state); /* number of arguments */
+
+	// PICO-8 does *not* print a newline on empty input
+	if (n == 0) {
+		return 0;
+	}
+
 	int i;
 	lua_getglobal(state, "tostring");
 	for (i = 1; i <= n; i++) {
