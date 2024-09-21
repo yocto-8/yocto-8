@@ -1,10 +1,10 @@
 #include "pico/time.h"
-#include "video/palette.hpp"
 #include <cstdio>
 #include <hal/hal.hpp>
 
 #include <cmdthread.hpp>
 #include <hardwarestate.hpp>
+#include <pico/rand.h>
 #include <pico/stdio.h>
 
 namespace hal {
@@ -27,20 +27,26 @@ std::uint64_t measure_time_us() {
 void delay_time_us(std::uint64_t time) { sleep_us(time); }
 
 std::span<char> read_repl(std::span<char> target_buffer) {
-	int c = stdio_getchar_timeout_us(0);
+	// FIXME: at current this hangs both the picosystem and my setup if there is
+	// nothing receiving
 
-	if (c == PICO_ERROR_TIMEOUT || c == '\n' || c == '\r') {
-		return {};
-	}
+	// int c = stdio_getchar_timeout_us(0);
 
-	std::size_t i = 0;
-	do {
-		target_buffer[i] = c;
-		c = getchar();
-		++i;
-	} while (c != '\r' && c != '\n');
+	// if (c == PICO_ERROR_TIMEOUT || c == '\n' || c == '\r') {
+	// 	return {};
+	// }
 
-	return {target_buffer.data(), i};
+	// std::size_t i = 0;
+	// do {
+	// 	target_buffer[i] = c;
+	// 	c = getchar();
+	// 	++i;
+	// } while (c != '\r' && c != '\n');
+
+	// return {target_buffer.data(), i};
+	return {};
 }
+
+std::uint32_t get_unique_seed() { return std::uint32_t(get_rand_32()); }
 
 } // namespace hal

@@ -67,4 +67,6 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 	return {};
 }
 
+std::uint32_t get_unique_seed() { return rand(); }
+
 } // namespace hal

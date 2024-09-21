@@ -80,6 +80,9 @@ using ReaderCallback = const char *(void *context, std::size_t *size);
 /// fs_create_open_context. Compatible with @ref FileChunkReaderCallback
 const char *fs_read_buffer(void *context, std::size_t *size);
 
+/// @brief Attempt to get a true random seed.
+std::uint32_t get_unique_seed();
+
 } // namespace hal
 
 #include Y8_HAL_TYPES_HPP

@@ -254,7 +254,7 @@ elseif(Y8_ARCH STREQUAL "pico")
 
     add_executable(${CORE_LIBRARY_TARGET} ${ARCH_SOURCES} ${PLATFORM_SOURCES})
 
-    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore)
+    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore pico_rand)
 
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_INFINITE_LOOP_EXIT)
 

@@ -224,7 +224,7 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	device<devices::DrawStateMisc>.reset();
 	device<devices::ScreenPalette>.reset();
 	device<devices::ClippingRectangle>.reset();
-	device<devices::Random>.set_seed(rand());
+	device<devices::Random>.set_seed(hal::get_unique_seed());
 
 	const auto bind = [&](const char *name, const auto &func) {
 		lua_pushcfunction(_lua, func);
