@@ -111,10 +111,73 @@ inline Point sprite_index_to_position(int sprite_index) {
 }
 
 [[gnu::always_inline]]
+inline void draw_sprite_nostretch(Point sprite_origin, int sprite_width,
+                                  int sprite_height, Point unclipped_origin,
+                                  bool x_flip = false, bool y_flip = false) {
+
+	auto sprite = device<devices::Spritesheet>;
+	auto palette = device<devices::DrawPalette>;
+	auto clip = device<devices::ClippingRectangle>;
+
+	const Point top_left = unclipped_origin.max(clip.top_left());
+	const Point bottom_right =
+		(unclipped_origin.with_offset(sprite_width, sprite_height))
+			.min(clip.bottom_right());
+
+	const auto main_loop = [&](bool x_flip, bool y_flip) {
+		for (int y = top_left.y; y < bottom_right.y; ++y) {
+			for (int x = top_left.x; x < bottom_right.x; ++x) {
+				const auto x_offset = LuaFix16(x - top_left.x);
+				const auto y_offset = LuaFix16(y - top_left.y);
+
+				int sprite_x, sprite_y;
+
+				if (!x_flip) {
+					sprite_x = sprite_origin.x + int(x_offset);
+				} else {
+					sprite_x =
+						sprite_origin.x + sprite_width - 1 - int(x_offset);
+				}
+
+				if (!y_flip) {
+					sprite_y = sprite_origin.y + int(y_offset);
+				} else {
+					sprite_y =
+						sprite_origin.y + sprite_height - 1 - int(y_offset);
+				}
+
+				const std::uint8_t palette_entry =
+					palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
+
+				detail::set_pixel_with_alpha(Point(x, y), palette_entry);
+			}
+		}
+	};
+
+	// we manually specialize the main loop for all x_flip/y_flip combinations
+	// this causes slight code bloat (not by a lot, actually) but improves
+	// performance.
+	if (x_flip && y_flip) {
+		main_loop(true, true);
+	} else if (x_flip && !y_flip) {
+		main_loop(true, false);
+	} else if (!x_flip && y_flip) {
+		main_loop(false, true);
+	} else {
+		main_loop(false, false);
+	}
+}
+
+[[gnu::always_inline]]
 inline void draw_sprite(Point sprite_origin, int sprite_width,
                         int sprite_height, Point unclipped_origin,
                         int target_width, int target_height,
                         bool x_flip = false, bool y_flip = false) {
+	if (sprite_width == target_width && sprite_height == target_height) {
+		return draw_sprite_nostretch(sprite_origin, sprite_width, sprite_height,
+		                             unclipped_origin);
+	}
+
 	auto sprite = device<devices::Spritesheet>;
 	auto palette = device<devices::DrawPalette>;
 	auto clip = device<devices::ClippingRectangle>;
@@ -840,9 +903,9 @@ int y8_map(lua_State *state) {
 				continue;
 			}
 
-			detail::draw_sprite(detail::sprite_index_to_position(tile), 8, 8,
-			                    Point(screen_x_offset, screen_y_offset), 8, 8,
-			                    false, false);
+			detail::draw_sprite_nostretch(
+				detail::sprite_index_to_position(tile), 8, 8,
+				Point(screen_x_offset, screen_y_offset), false, false);
 		}
 	}
 
