@@ -113,6 +113,7 @@ inline void compact() {
 }
 #endif
 
+[[gnu::cold]]
 inline bool ta_init() {
 	heap->free = NULL;
 	heap->used = NULL;

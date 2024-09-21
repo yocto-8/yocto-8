@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <emu/tinyalloc.hpp>
 #include <platform/asupico/asupico.hpp>
 #include <platform/platform.hpp>
 
@@ -16,6 +17,8 @@ void init_hardware() {
 	init_default_frequency();
 	printf("Configuring PSRAM\n");
 	const auto psram_size = init_psram_pimoroni();
+	printf("Configuring PSRAM heap\n");
+	ta_init();
 	printf("PSRAM configured with size %dKiB\n", psram_size / 1024);
 	printf("Configuring buttons\n");
 	init_buttons();

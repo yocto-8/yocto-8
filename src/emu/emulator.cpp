@@ -426,12 +426,6 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
                      bool egc_recently) {
 	(void)ud;
 
-	static bool fuck = false;
-	if (!fuck) {
-		ta_init();
-		fuck = true;
-	}
-
 	// static int heap_use = 0;
 	// heap_use += (nsize - osize);
 
