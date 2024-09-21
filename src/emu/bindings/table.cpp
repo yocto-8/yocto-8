@@ -59,7 +59,7 @@ int y8_foreach(lua_State *state) {
 	// - `foreach({"foo"})` causes an error (so no checking needed)
 	// - `foreach({"foo"}, 1)` causes an error (so no checking needed)
 
-	const int len = lua_rawlen(state, 1);
+	const auto len = int(lua_rawlen(state, 1));
 
 	for (int i = 1; i <= len; ++i) {
 		lua_pushvalue(state, 2); // this gets popped by lua_call
@@ -70,6 +70,9 @@ int y8_foreach(lua_State *state) {
 			// stack[-2]: function
 			// stack[-1]: value
 			lua_call(state, 1, 0);
+		} else {
+			// pop the value and function away
+			lua_settop(state, -2);
 		}
 	}
 
