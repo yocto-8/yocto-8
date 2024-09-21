@@ -68,3 +68,5 @@ inline constexpr auto device =
 	Device(emulator.memory().data.subspan<map_address, Device::map_length>());
 
 } // namespace emu
+
+#include "alloc.hpp"
