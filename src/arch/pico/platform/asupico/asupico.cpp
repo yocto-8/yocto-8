@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <emu/tinyalloc.hpp>
 #include <hardware/clocks.h>
+#include <hardware/structs/pads_qspi.h>
 #include <hardware/structs/qmi.h>
 #include <hardware/structs/xip.h>
 #include <hardware/sync.h>
@@ -19,6 +20,33 @@ HardwareState hw;
 
 void __no_inline_not_in_flash_func(init_flash_frequency)() {
 	uint32_t interrupt_state = save_and_disable_interrupts();
+
+	// pad configuration; see boot2_w25q080.S
+	//     ldr r3, =PADS_QSPI_BASE
+	//     movs r0, INIT_PAD_SCLK
+	//     str r0, [r3, #PADS_QSPI_GPIO_QSPI_SCLK_OFFSET]
+	//     // SDx: disable input Schmitt to reduce delay
+	//     adds r3, #REG_ALIAS_CLR_BITS
+	//     movs r0, #PADS_QSPI_GPIO_QSPI_SD0_SCHMITT_BITS
+	//     str r0, [r3, #PADS_QSPI_GPIO_QSPI_SD0_OFFSET]
+	//     str r0, [r3, #PADS_QSPI_GPIO_QSPI_SD1_OFFSET]
+	//     str r0, [r3, #PADS_QSPI_GPIO_QSPI_SD2_OFFSET]
+	//     str r0, [r3, #PADS_QSPI_GPIO_QSPI_SD3_OFFSET]
+
+	// 0x00000100 [8]     ISO          (1) Pad isolation control
+	// 0x00000080 [7]     OD           (0) Output disable
+	// 0x00000040 [6]     IE           (1) Input enable
+	// 0x00000030 [5:4]   DRIVE        (0x1) Drive strength
+	// 0x00000008 [3]     PUE          (0) Pull up enable
+	// 0x00000004 [2]     PDE          (1) Pull down enable
+	// 0x00000002 [1]     SCHMITT      (1) Enable schmitt trigger
+	// 0x00000001 [0]     SLEWFAST     (0) Slew rate control
+	pads_qspi_hw->io[0] = 2 << PADS_QSPI_GPIO_QSPI_SCLK_DRIVE_LSB |
+	                      PADS_QSPI_GPIO_QSPI_SCLK_SLEWFAST_BITS;
+	pads_qspi_hw->io[1] &= ~PADS_QSPI_GPIO_QSPI_SD0_SCHMITT_BITS;
+	pads_qspi_hw->io[2] &= ~PADS_QSPI_GPIO_QSPI_SD0_SCHMITT_BITS;
+	pads_qspi_hw->io[3] &= ~PADS_QSPI_GPIO_QSPI_SD0_SCHMITT_BITS;
+	pads_qspi_hw->io[4] &= ~PADS_QSPI_GPIO_QSPI_SD0_SCHMITT_BITS;
 
 	qmi_hw->m[0].timing = 1 << QMI_M0_TIMING_COOLDOWN_LSB |
 	                      2 << QMI_M0_TIMING_RXDELAY_LSB |
