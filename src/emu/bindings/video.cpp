@@ -175,7 +175,7 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
                         bool x_flip = false, bool y_flip = false) {
 	if (sprite_width == target_width && sprite_height == target_height) {
 		return draw_sprite_nostretch(sprite_origin, sprite_width, sprite_height,
-		                             unclipped_origin);
+		                             unclipped_origin, x_flip, y_flip);
 	}
 
 	auto sprite = device<devices::Spritesheet>;
