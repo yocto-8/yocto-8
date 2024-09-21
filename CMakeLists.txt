@@ -55,7 +55,18 @@ set(LUA_EXTRA_CXXFLAGS
 
 if(Y8_ARCH STREQUAL "pico")
     # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
-    set(PERF_FLAGS ${PERF_FLAGS} "-fno-threadsafe-statics")
+    set(PERF_FLAGS
+        ${PERF_FLAGS}
+        "-fno-threadsafe-statics"
+
+        # this could save >10KiB of flash space from pointless exception handling
+        # stuff. however, it also switches out the libc/newlib which swaps it out to
+        # an allocator that is way worse in our case.
+        #
+        # if we ever bypass the system malloc it may be worth enabling this, and
+        # removing the compilerhacks
+        # "--specs=nano.specs"
+    )
 endif()
 
 set(COMMON_FLAGS ${PERF_FLAGS}
