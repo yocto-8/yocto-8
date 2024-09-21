@@ -2,6 +2,7 @@
 
 #include "lauxlib.h"
 #include "ldo.h"
+#include "lua.h"
 
 namespace emu::bindings {
 
@@ -61,19 +62,43 @@ int y8_foreach(lua_State *state) {
 
 	const auto len = int(lua_rawlen(state, 1));
 
-	for (int i = 1; i <= len; ++i) {
-		lua_pushvalue(state, 2); // this gets popped by lua_call
+	for (int i = 1; i <= len;) {
 		// TODO: hack something into the VM to be able to avoid the above push
 		lua_rawgeti(state, 1, i);
 
 		if (!lua_isnil(state, -1)) {
+
+			lua_pushvalue(state, 2);
+
+			// duplicate value for the equality check after
+			lua_pushvalue(state, -2);
+
+			// stack[-3]: value
 			// stack[-2]: function
 			// stack[-1]: value
 			lua_call(state, 1, 0);
+
+			// standard PICO-8 accomodates the deranged usecase of calling del
+			// into a table being foreach'd by, apparently, checking whether the
+			// item at the current position got modified. we can do the same
+			// thing, but let's avoid going through the metatable for equality.
+			// if a cart breaks this by using metatables please end my
+			// suffering.
+
+			lua_rawgeti(state, 1, i);
+
+			// stack[-1]: old_value
+			// stack[-2]: new_value
+			if (!lua_rawequal(state, -1, -2)) {
+				continue; // without incrementing
+			}
+
 		} else {
-			// pop the value and function away
-			lua_settop(state, -2);
+			// pop the value away
+			lua_settop(state, -1);
 		}
+
+		++i;
 	}
 
 	return 0;

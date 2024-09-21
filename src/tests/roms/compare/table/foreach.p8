@@ -17,6 +17,14 @@ s = "foo"
 foo = {s, s, s}
 foreach(foo, printh)
 
+printh("completely deranged and evil deletion")
+foo = {"a", "b", "c"}
+local evil_evil_evil = function(x)
+    del(foo, x)
+    printh(x)
+end
+foreach(foo, evil_evil_evil)
+
 printh("syntax edge cases")
 printh(foreach())
 
