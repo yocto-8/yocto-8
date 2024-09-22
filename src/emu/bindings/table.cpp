@@ -1,8 +1,10 @@
 #include "table.hpp"
 
+#include "lapi.h"
 #include "lauxlib.h"
 #include "ldo.h"
 #include "lua.h"
+#include "lvm.h"
 
 namespace emu::bindings {
 
@@ -49,6 +51,57 @@ int y8_add(lua_State *state) {
 	lua_rawseti(state, 1, insert_pos);
 
 	return 1;
+}
+
+int y8_del(lua_State *state) {
+	// stack[1]: table
+	// stack[2]: value
+
+	const auto arg_count = lua_gettop(state);
+
+	if (arg_count < 2) {
+		// PICO-8 returns no value in that case
+		return 0;
+	}
+
+	// NOTE: del only cares about sequences. we do not actually need to iterate
+	// over the hashmap part of the table
+
+	const auto len = int(lua_rawlen(state, 1));
+
+	for (int i = 1; i <= len; ++i) {
+		// TODO: index access here ignores the metatable; do we care?
+		lua_rawgeti(state, 1, i);
+
+		// honor metatable
+		if (equalobj(state, index2addr(state, 2), index2addr(state, -1))) {
+			// found elem to remove
+			// note that by this point, the value is still in the stack (we do
+			// want to return it)
+
+			// shift down the end of the array one to the left
+
+			for (int j = i; j < len; ++j) {
+				// t[j] = t[j + 1];
+				lua_rawgeti(state, 1, j + 1);
+				lua_rawseti(state, 1, j);
+			}
+
+			// finally, set the last elem to nil
+			lua_pushnil(state);
+			lua_rawseti(state, 1, len);
+
+			// return the value
+			return 1;
+		} else {
+			// remove value from stack, we're done inspecting it
+			lua_settop(state, -1);
+		}
+	}
+
+	// PICO-8 returns no value (not nil) when nothing was removed
+	// the callee can *still* check against nil, though.
+	return 0;
 }
 
 int y8_foreach(lua_State *state) {

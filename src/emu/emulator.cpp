@@ -56,26 +56,6 @@ local all = function(t)
     end
 end
 
-local del = function(t, v)
-    if t == nil then
-        return
-    end
-
-    local n=#t
-
-    local i
-    for i=1,n do
-        if t[i] == v then
-            for j = i,n-1 do
-                t[j] = t[j + 1]
-            end
-
-            t[n] = nil
-            return v
-        end
-    end
-end
-
 local count = function(t, v)
     local n = 0
     if v == nil then
@@ -134,7 +114,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 56> y8_std{{
+static constexpr std::array<Binding, 57> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -197,6 +177,7 @@ static constexpr std::array<Binding, 56> y8_std{{
 	{"time", bindings::y8_time},
 
 	{"add", bindings::y8_add},
+	{"del", bindings::y8_del},
 	{"foreach", bindings::y8_foreach},
 }};
 
@@ -327,11 +308,12 @@ void Emulator::run() {
 		// this _update behavior matches pico-8's: if _update60 is defined,
 		// _update is ignored when both are unspecified, flipping will occur at
 		// 30Hz regardless
-		//
-		// FIXME: this is not something we really guarantee here atm:
-		// we should clip to 30fps if between 30 and 60, to 15 if between 30 and
-		// 60 also, what about infinite loops (e.g. one drawing stuff
-		// constantly?) - does it still flip? (doubt it)
+
+		// we however don't clip the framerate to either 15/30/60. just push the
+		// frames as early as we can.
+
+		// TODO: need a mechanism to occasionally flip when draw is never called
+		// (e.g. billion pale dots do that for a loading screen)
 
 		_update_start_time = hal::measure_time_us();
 
