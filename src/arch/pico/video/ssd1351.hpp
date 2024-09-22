@@ -110,12 +110,10 @@ class SSD1351 {
 	template <std::size_t N> using DataBuffer = std::array<std::uint8_t, N>;
 
 	// scale 0x0..0xF
-	[[gnu::always_inline]]
 	void set_brightness(std::uint8_t scale) {
 		write(Command::SET_GLOBAL_CONTRAST, DataBuffer<1>{scale});
 	}
 
-	[[gnu::always_inline]]
 	inline void write(Command command,
 	                  std::span<const std::uint8_t> data = {}) {
 		gpio_put(_pinout.dc, 0);
