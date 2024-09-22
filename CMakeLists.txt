@@ -47,6 +47,8 @@ set(PERF_FLAGS
     "-ffast-math"
 
     "-fno-exceptions"
+
+    # "-fimplicit-constexpr"  # TODO: add on GNU
 )
 
 set(LUA_EXTRA_CXXFLAGS
@@ -145,7 +147,7 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lstring.c
 
     # ${LUA_ROOT}/lstrlib.c
-    ${LUA_ROOT}/ltable.c
+    # ${LUA_ROOT}/ltable.c
 
     # ${LUA_ROOT}/ltablib.c
     # ${LUA_ROOT}/ltests.c
@@ -178,9 +180,8 @@ set_source_files_properties(
     #
     # it might be that a single inline is responsible for this; can we find
     # which?
-    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -finline-limit=1024 -O3"
+    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -finline-limit=200 -Ofast"
 )
-
 add_compile_definitions(LUA_USE_LONGJMP)
 
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")

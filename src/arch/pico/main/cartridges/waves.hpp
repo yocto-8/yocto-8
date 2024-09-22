@@ -4,10 +4,12 @@ static constexpr std::string_view cartridge =
 	R"(pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
-r=64
 
 function _update60() end
 function _draw()
+	local x, y
+	local r = 64
+
 	cls()
 	s=t()
 	for y=-r,r,3 do
