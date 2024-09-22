@@ -3,6 +3,8 @@
 #include "lapi.h"
 #include "lauxlib.h"
 #include "ldo.h"
+#include "lobject.h"
+#include "ltable.h"
 #include "lua.h"
 #include "lvm.h"
 
@@ -113,17 +115,26 @@ int y8_foreach(lua_State *state) {
 	// - `foreach({"foo"})` causes an error (so no checking needed)
 	// - `foreach({"foo"}, 1)` causes an error (so no checking needed)
 
+	// Metatable safety notes:
+	// - This does not respect the metatable of the table for the length
+	//   operator or for the index operator
+	// - This should respect the metatable for item comparison that is used to
+	//   allow deletion of the iterated element during foreach
+
 	const auto len = int(lua_rawlen(state, 1));
 
 	for (int i = 1; i <= len;) {
-		// TODO: hack something into the VM to be able to avoid the above push
-		lua_rawgeti(state, 1, i);
+		lua_rawgeti(state, 1, i); // push table[i]
 
 		if (!lua_isnil(state, -1)) {
+			// save/push current value of table[i] for later check
+			lua_pushvalue(state, -1);
 
+			// prepare call to function(table[i]):
+			// push function
 			lua_pushvalue(state, 2);
 
-			// duplicate value for the equality check after
+			// push value
 			lua_pushvalue(state, -2);
 
 			// stack[-3]: value
@@ -131,24 +142,25 @@ int y8_foreach(lua_State *state) {
 			// stack[-1]: value
 			lua_call(state, 1, 0);
 
+			// now:
+			// stack[-1]: value
+
 			// standard PICO-8 accomodates the deranged usecase of calling del
 			// into a table being foreach'd by, apparently, checking whether the
-			// item at the current position got modified. we can do the same
-			// thing, but let's avoid going through the metatable for equality.
-			// if a cart breaks this by using metatables please end my
-			// suffering.
+			// item at the current position got modified.
 
-			lua_rawgeti(state, 1, i);
+			// lookup values (avoid pushing)
+			const TValue *table = index2addr(state, 1);
+			const TValue *old_value = index2addr(state, -1);
+			const TValue *new_value = luaH_getint(hvalue(table), i);
 
-			// stack[-1]: old_value
-			// stack[-2]: new_value
-			if (!lua_rawequal(state, -1, -2)) {
-				continue; // without incrementing
+			if (!equalobj(state, old_value, new_value)) {
+				lua_settop(state, -1); // pop value
+				continue;              // skip incrementing
 			}
-
+			lua_settop(state, -1); // pop value
 		} else {
-			// pop the value away
-			lua_settop(state, -1);
+			lua_settop(state, -1); // pop the value pushed by rawgeti
 		}
 
 		++i;
