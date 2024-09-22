@@ -47,16 +47,23 @@ set(PERF_FLAGS
     "-ffast-math"
 
     "-fno-exceptions"
-
-    # "-fimplicit-constexpr"  # TODO: add on GNU
 )
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(PERF_FLAGS ${PERF_FLAGS}
+        "-fimplicit-constexpr"
+    )
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(PERF_FLAGS ${PERF_FLAGS}
+        "-flto=thin"
+    )
+endif()
 
 set(LUA_EXTRA_CXXFLAGS
     "-Wno-implicit-fallthrough -Wno-unused-function"
 )
 
 if(Y8_ARCH STREQUAL "pico")
-    # set(PERF_FLAGS ${PERF_FLAGS} "-flto=thin")
     set(PERF_FLAGS
         ${PERF_FLAGS}
         "-fno-threadsafe-statics"
