@@ -110,7 +110,7 @@ inline Point sprite_index_to_position(int sprite_index) {
 	        (sprite_index / sprites_per_row) * 8};
 }
 
-[[gnu::always_inline]]
+[[gnu::always_inline, gnu::flatten]]
 inline void draw_sprite_nostretch(Point sprite_origin, int sprite_width,
                                   int sprite_height, Point unclipped_origin,
                                   bool x_flip = false, bool y_flip = false) {
@@ -168,7 +168,7 @@ inline void draw_sprite_nostretch(Point sprite_origin, int sprite_width,
 	}
 }
 
-[[gnu::always_inline]]
+[[gnu::always_inline, gnu::flatten]]
 inline void draw_sprite(Point sprite_origin, int sprite_width,
                         int sprite_height, Point unclipped_origin,
                         int target_width, int target_height,
