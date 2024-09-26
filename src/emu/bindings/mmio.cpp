@@ -41,7 +41,7 @@ int y8_peek4(lua_State *state) {
 	const std::uint32_t qword =
 		byte_at(addr + 0) << 0 | byte_at(addr + 1) << 8 |
 		byte_at(addr + 2) << 16 | byte_at(addr + 3) << 24;
-	lua_pushnumber(state, LuaFix16::from_fix16(qword));
+	lua_pushnumber(state, LuaFix16::from_fix16(int(qword)));
 	return 1;
 }
 
