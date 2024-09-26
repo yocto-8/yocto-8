@@ -22,6 +22,7 @@ printh(tostr(b, true))
 printh(tostr(c, true))
 printh(tostr(d, true))
 
+-- FIXME: actually all peek* poke* can do the variadic thing
 -- TODO: test memcpy/memset wraparound behavior
 -- TODO: check memcpy/memset wraparound behavior
 -- TODO: implement peek operators
