@@ -193,7 +193,7 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	const auto default_palette = hal::get_default_palette();
 	std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
 
-	_lua = lua_newstate(y8_lua_realloc, &_memory_buffer);
+	_lua = lua_newstate(y8_lua_realloc, &_memory_buffer, _memory.data());
 
 #ifdef Y8_EXPERIMENTAL_GENGC
 	printf("Buggy Lua 5.2 Generational GC enabled\n");
