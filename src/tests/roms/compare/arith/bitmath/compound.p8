@@ -32,4 +32,9 @@ local x = 0xAAAA.BBBB
 x >><= s
 printh(tostr(x, true))
 
+-- test integer division for good measure
+local x = 5
+x \= 5
+print(tostr(x, true))
+
 printh("====DONE====")
