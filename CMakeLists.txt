@@ -29,7 +29,7 @@ add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
 message("Following definitions set: [${Y8_DEFINITIONS}]")
 
 if(Y8_ARCH STREQUAL "desktop")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold -Wl,--thinlto-cache-dir=./llvmcache")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
 elseif(Y8_ARCH STREQUAL "pico")
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
     include(vendor/pico-sdk/pico_sdk_init.cmake)
@@ -54,9 +54,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         "-fimplicit-constexpr"
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(PERF_FLAGS ${PERF_FLAGS}
-        "-flto=thin"
-    )
+    if(Y8_ARCH STREQUAL "pico")
+        set(PERF_FLAGS ${PERF_FLAGS}
+            "-flto=thin"
+        )
+    endif()
 endif()
 
 set(LUA_EXTRA_CXXFLAGS
