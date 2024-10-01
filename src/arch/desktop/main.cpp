@@ -1,20 +1,8 @@
 #include <cstdio>
-#include <fstream>
-#include <string>
 
 #include <emu/emulator.hpp>
+#include <hal/hal.hpp>
 #include <p8/parser.hpp>
-
-std::string string_from_file(std::ifstream &file) {
-	file.seekg(0, std::ios_base::end);
-	const auto size = file.tellg();
-	file.seekg(0, std::ios_base::beg);
-
-	std::string ret(size, '\0');
-	file.read(ret.data(), ret.size());
-
-	return ret;
-}
 
 static std::array<std::byte, 1024 * 1024 * 8> yolo_heap;
 
@@ -28,21 +16,14 @@ int main(int argc, char **argv) {
 
 	printf("Loading game from '%s'\n", argv[1]);
 
-	std::ifstream cartridge(argv[1]);
-
-	if (!cartridge) {
-		printf("Failed to open cartridge\n");
+	hal::FileReaderContext cart;
+	if (hal::fs_create_open_context(argv[1], cart) !=
+	    hal::FileOpenStatus::SUCCESS) {
+		printf("Failed to load cartridge from %s\n", argv[1]);
 		return 1;
 	}
 
-	cartridge.exceptions(std::ios_base::failbit);
-
-	const std::string source = string_from_file(cartridge);
-
-	// FIXME: fs reader outright
-	emu::StringReader reader{source};
-	const auto parse_err =
-		p8::parse(emu::StringReader::reader_callback, &reader);
+	const auto parse_err = p8::parse(hal::fs_read_buffer, &cart);
 
 	switch (parse_err) {
 	case p8::ParserStatus::OK:
