@@ -5,7 +5,7 @@
 
 namespace pico = arch::pico;
 
-#include "cartridges/closed/fluid.hpp"
+#include "cartridges/closed/conway.hpp"
 // #include "cartridges/rgbcal.hpp"
 
 int main() {

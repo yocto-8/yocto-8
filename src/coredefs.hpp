@@ -1,6 +1,7 @@
 #pragma once
 
 #include "luaconf.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 
@@ -19,5 +20,6 @@ using PicoAddr = u16;
 
 #define debug_assert(x) assert(x)
 #define release_assert(x) assert(x)
+#define release_abort(reason) assert(false && (reason))
 
 } // namespace y8
