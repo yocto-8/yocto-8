@@ -170,8 +170,6 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 			auto sprite_flags = emu::device<devices::SpriteFlags>;
 			char c;
 			while (r.consume_if(c, [](char c) { return hex_digit(c) != -1; })) {
-				putchar(c);
-
 				if (_current_gff_nibble % 2 == 0) {
 					sprite_flags.flags_for(_current_gff_nibble / 2) |=
 						hex_digit(c) << 4;
@@ -182,7 +180,6 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 				++_current_gff_nibble;
 			}
 			r.consume_until_next_line();
-			putchar('\n');
 			break;
 		}
 
