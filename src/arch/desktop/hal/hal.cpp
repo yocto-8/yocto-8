@@ -1,14 +1,13 @@
 #include <cstdio>
 #include <hal/hal.hpp>
 #include <SFML/Window/Keyboard.hpp>
+#include <string>
 
 #include <sys/time.h>
 
 #include "../window.hpp"
-#include "devices/image.hpp"
-#include "devices/screenpalette.hpp"
+#include "hal/types.hpp"
 #include <emu/emulator.hpp>
-#include <iostream>
 #include <unistd.h>
 
 namespace hal {
@@ -65,6 +64,23 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 	// 	return target_buffer.subspan(0, size_bytes);
 	// }
 	return {};
+}
+
+FileOpenStatus fs_create_open_context(std::string_view path,
+                                      FileReaderContext &ctx) {
+	ctx.file = fopen(std::string(path).c_str(), "rb");
+	return ctx.file != nullptr ? FileOpenStatus::SUCCESS : FileOpenStatus::FAIL;
+}
+
+void fs_destroy_open_context(FileReaderContext &ctx) { fclose(ctx.file); }
+
+const char *fs_read_buffer(void *context, std::size_t *size) {
+	FileReaderContext &real_context =
+		*static_cast<FileReaderContext *>(context);
+
+	*size = fread(real_context.buf.data(), 1, real_context.buf.size(),
+	              real_context.file);
+	return real_context.buf.data();
 }
 
 std::uint32_t get_unique_seed() { return rand(); }
