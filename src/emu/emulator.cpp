@@ -246,12 +246,6 @@ void Emulator::load_and_inject_header(hal::ReaderCallback *reader, void *ud) {
 		panic(lua_tostring(_lua, -1));
 		lua_pop(_lua, 1);
 	}
-
-	if (lua_pcall(_lua, 0, 0, 0) != 0) {
-		printf("Script exec at load time failed: %s\n", lua_tostring(_lua, -1));
-		panic(lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
-	}
 }
 
 void Emulator::exec(std::string_view buf) {
@@ -284,6 +278,12 @@ void Emulator::handle_repl() {
 
 void Emulator::run() {
 	hal::reset_timer();
+
+	if (lua_pcall(_lua, 0, 0, 0) != 0) {
+		printf("Script exec at load time failed: %s\n", lua_tostring(_lua, -1));
+		panic(lua_tostring(_lua, -1));
+		lua_pop(_lua, 1);
+	}
 
 	_frame_target_time = 1'000'000u / get_fps_target();
 
