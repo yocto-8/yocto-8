@@ -39,14 +39,21 @@ int main(int argc, char **argv) {
 
 	const std::string source = string_from_file(cartridge);
 
-	p8::Parser parser(source);
+	// FIXME: fs reader outright
+	emu::StringReader reader{source};
+	const auto parse_err =
+		p8::parse(emu::StringReader::reader_callback, &reader);
 
-	printf("Opened %d byte cartridge\n", int(source.size()));
+	switch (parse_err) {
+	case p8::ParserStatus::OK:
+		break;
+
+	default:
+		printf("Parsing error %d!\n", int(parse_err));
+		break;
+	}
 
 	printf("RUNNING CARTRIDGE\n");
-
-	while (parser.parse_line())
-		;
 
 	emu::emulator.run();
 }
