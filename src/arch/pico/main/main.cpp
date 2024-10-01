@@ -5,16 +5,15 @@
 
 namespace pico = arch::pico;
 
-#include "cartridges/closed/conway.hpp"
+#include "cartridges/closed/fluid.hpp"
 // #include "cartridges/rgbcal.hpp"
 
 int main() {
 	pico::platform::init_hardware();
 
-	p8::Parser parser(cartridge);
-
-	while (parser.parse_line())
-		;
+	emu::StringReader reader{cartridge};
+	// TODO: err handling
+	p8::parse(emu::StringReader::reader_callback, &reader);
 
 	emu::emulator.run();
 }
