@@ -47,6 +47,17 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 	return {};
 }
 
+// filesystem stubs
+
+FileOpenStatus fs_create_open_context(std::string_view path,
+                                      FileReaderContext &ctx) {
+	return FileOpenStatus::FAIL;
+}
+
+void fs_destroy_open_context(FileReaderContext &ctx) {}
+
+const char *fs_read_buffer(void *context, std::size_t *size) { return nullptr; }
+
 std::uint32_t get_unique_seed() { return std::uint32_t(get_rand_32()); }
 
 } // namespace hal

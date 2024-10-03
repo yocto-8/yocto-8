@@ -1,5 +1,9 @@
 #include "parser.hpp"
+#include "coredefs.hpp"
+#include "hal/hal.hpp"
 #include "p8/lookahead.hpp"
+
+#include <array>
 
 #include <devices/image.hpp>
 #include <devices/map.hpp>
@@ -54,7 +58,7 @@ int hex_digit(char c) {
 	return -1;
 }
 
-const std::array<std::pair<std::string_view, Parser::State>, 7>
+static constexpr std::array<std::pair<std::string_view, Parser::State>, 7>
 	state_matchers_leading_newline{{
 		{"\n__lua__", Parser::State::PARSING_LUA},
 		{"\n__gfx__", Parser::State::PARSING_GFX},
@@ -86,8 +90,6 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 			     state_matchers_leading_newline) {
 				// matches without the leading newline?
 				if (r.peek_matches(to_match.substr(1))) {
-					// this string_view is known to be nul-terminated
-					printf("Parsing %s block\n", to_match.substr(1).data());
 					_current_state = matched_state;
 					r.consume_until_next_line();
 					return true;
@@ -106,7 +108,7 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 
 		if (_current_state == State::EXPECT_BLOCK) {
 			// failed to match any block, fail
-			return ParserStatus::BAD_INITIAL_BLOCK;
+			return ParserStatus::BAD_BLOCK_HEADER;
 		}
 
 		switch (_current_state) {
@@ -130,10 +132,8 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		}
 
 		case State::PARSING_LUA: {
-			LuaBlockReaderState lua_block_state{
-				.parser = this, .reader = &r, .eof = false};
-			emu::emulator.load_and_inject_header(lua_block_reader_callback,
-			                                     &lua_block_state);
+			LuaBlockReaderState lua_block_state{r};
+			emu::emulator.load_and_inject_header(lua_block_state.get_reader());
 			_current_state = State::EXPECT_BLOCK;
 			break;
 		}
@@ -141,7 +141,8 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		case State::PARSING_GFX: {
 			auto sprite_sheet = emu::device<devices::Spritesheet>;
 			char c;
-			while (r.consume_if(c, [](char c) { return hex_digit(c) != -1; })) {
+			while (
+				r.consume_if([](char c) { return hex_digit(c) != -1; }, &c)) {
 				sprite_sheet.set_nibble(_current_gfx_nibble, hex_digit(c));
 				++_current_gfx_nibble;
 			}
@@ -153,7 +154,8 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		case State::PARSING_MAP: {
 			auto map = emu::device<devices::Map>;
 			char c;
-			while (r.consume_if(c, [](char c) { return hex_digit(c) != -1; })) {
+			while (
+				r.consume_if([](char c) { return hex_digit(c) != -1; }, &c)) {
 				if (_current_tile_nibble % 2 == 0) {
 					map.data[_current_tile_nibble / 2] |= hex_digit(c) << 4;
 				} else {
@@ -169,7 +171,8 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		case State::PARSING_GFF: {
 			auto sprite_flags = emu::device<devices::SpriteFlags>;
 			char c;
-			while (r.consume_if(c, [](char c) { return hex_digit(c) != -1; })) {
+			while (
+				r.consume_if([](char c) { return hex_digit(c) != -1; }, &c)) {
 				if (_current_gff_nibble % 2 == 0) {
 					sprite_flags.flags_for(_current_gff_nibble / 2) |=
 						hex_digit(c) << 4;
@@ -192,25 +195,85 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 	return ParserStatus::OK;
 }
 
-const char *lua_block_reader_callback(void *ud, std::size_t *size) {
+const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 	LuaBlockReaderState &state = *static_cast<LuaBlockReaderState *>(ud);
-	LookaheadReader &r = *state.reader;
+	LookaheadReader &r = *state._reader;
+
+	// Are we parsing an include?
+	if (state._is_including) {
+		// Try to continue reading from it
+		const char *buf = hal::fs_read_buffer(&state._include_reader, size);
+
+		if (buf != nullptr) {
+			return buf;
+		} else {
+			// Stop trying to read from include if it finished reading
+			hal::fs_destroy_open_context(state._include_reader);
+			state._is_including = false;
+			*size = 0;
+			// Fallthrough to the usual handling
+		}
+	}
 
 	// Last buffer read stopped at a newline?
 	if (r.peek_char() == '\n') {
-		// Can we match a cartridge block?
+		// Can we match a new cartridge block?
 		for (const auto &[to_match, matched_state] :
 		     state_matchers_leading_newline) {
 			if (r.peek_matches(to_match)) {
 				// New block? return to parent
 				r.consume_char(); // Eat the newline
 				*size = 0;
-				state.eof = true;
+				state._is_main_eof = true;
 				return nullptr;
+			}
+		}
+
+		// Can we match a `#include` block?
+		if (r.peek_matches("\n#include")) {
+			r.consume_matches("\n#include");
+
+			// Consume spaces
+			while (r.consume_if([](char c) { return c == ' ' || c == '\t'; }))
+				;
+
+			// Parse filename into a buffer
+			std::array<char, 128> include_fname;
+			const auto out_buf = r.consume_into(
+				[](char c) { return c != ' ' && c != '\n'; }, include_fname);
+			const std::string_view out{out_buf.begin(), out_buf.end()};
+
+			// Consume the `#include` line, but **keep** the newline.
+			//
+			// This is a dumb trick to ensure we are jumping a line after the
+			// include, even if the included file doesn't have any final
+			// newline character.
+			while (r.consume_if([](char c) { return c == ' '; }))
+				;
+
+			printf("Including file \"%.*s\"\n", int(out.size()), out.data());
+
+			if (hal::fs_create_open_context(out, state._include_reader) ==
+			    hal::FileOpenStatus::SUCCESS) {
+				// Start reading from the included file.
+				state._is_including = true;
+
+				// Inject a newline at the start of the include, otherwise it
+				// may get merged with the previous line.
+				// We will actually be reading from the buffer on the next call
+				// to this callback.
+				static constexpr std::array<char, 1> _newline_buf = {'\n'};
+				*size = 1;
+				return _newline_buf.data();
+			} else {
+				// TODO: error handling
+				printf("Include failed!\n");
+				release_abort("Failed to open include");
 			}
 		}
 	}
 
+	// Read this line for Lua
 	int chars_read = 0;
 	const char *buf = r.consume_rest_of_current_buffer_while(
 		[&chars_read](char c) {

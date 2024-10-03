@@ -24,7 +24,7 @@ void reset_timer();
 /// @brief Measure and return the current time in microseconds.
 /// @warning This may overflow after around 584542 years. I won't be the
 /// maintainer by then, so not my problem.
-std::uint64_t measure_time_us();
+[[nodiscard]] std::uint64_t measure_time_us();
 
 /// @brief Wait for approximately @p time microseconds.
 void delay_time_us(std::uint64_t time);
@@ -33,7 +33,7 @@ void delay_time_us(std::uint64_t time);
 void load_rgb_palette(std::span<std::uint32_t, 32> new_palette);
 
 /// @brief Gets the default/precalibrated color for this platform.
-std::span<const std::uint32_t, 32> get_default_palette();
+[[nodiscard]] std::span<const std::uint32_t, 32> get_default_palette();
 
 /// @brief Reads user input from the standard input into the provided buffer, if
 /// supported. Non-blocking. Used for debugging; exceeding buffer size does not
@@ -50,8 +50,8 @@ enum class FileOpenStatus { SUCCESS, FAIL };
 /// @brief Opens a file with the given path in the filesystem in a blocking
 /// fashion. Initializes the `out` context.
 /// @returns FileOpenStatus::SUCCESS is the file is readable, FAIL otherwise.
-FileOpenStatus fs_create_open_context(std::string_view path,
-                                      FileReaderContext &out);
+[[nodiscard]] FileOpenStatus fs_create_open_context(std::string_view path,
+                                                    FileReaderContext &out);
 
 /// @brief Closes/destroys a file read context. Should not be called if file
 /// open had failed with any non-SUCCESS status. No further reader callback
@@ -78,10 +78,10 @@ using ReaderCallback = const char *(void *context, std::size_t *size);
 /// @brief Reader callback for a file, where `context` is a pointer to an object
 /// of type @ref FileReaderContext as previously returned by @ref
 /// fs_create_open_context. Compatible with @ref FileChunkReaderCallback
-const char *fs_read_buffer(void *context, std::size_t *size);
+[[nodiscard]] const char *fs_read_buffer(void *context, std::size_t *size);
 
 /// @brief Attempt to get a true random seed.
-std::uint32_t get_unique_seed();
+[[nodiscard]] std::uint32_t get_unique_seed();
 
 } // namespace hal
 

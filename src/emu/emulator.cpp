@@ -34,51 +34,52 @@ namespace emu {
 static constexpr std::string_view app_header =
 	R"(
 local all = function(t)
-    if t == nil or #t == 0 then
-        return function() end
-    end
+	if t == nil or #t == 0 then
+		return function() end
+	end
 
-    local i = 1
-    local prev = nil
+	local i = 1
+	local prev = nil
 
-    return function()
-        if t[i] == prev then
-            i += 1
-        end
+	return function()
+		if t[i] == prev then
+			i += 1
+		end
 
-        while t[i] == nil and i <= #t do
-            i += 1
-        end
+		while t[i] == nil and i <= #t do
+			i += 1
+		end
 
-        prev = t[i]
+		prev = t[i]
 
-        return prev
-    end
+		return prev
+	end
 end
 
 local count = function(t, v)
-    local n = 0
-    if v == nil then
-        for i = 1,#t do
-            if t[i] ~= nil then
-                n += 1
-            end
-        end
-    else
-        for i = 1,#t do
-            if t[i] == v then
-                n += 1
-            end
-        end
-    end
-    return n
+	local n = 0
+	if v == nil then
+		for i = 1,#t do
+			if t[i] ~= nil then
+				n += 1
+			end
+		end
+	else
+		for i = 1,#t do
+			if t[i] == v then
+				n += 1
+			end
+		end
+	end
+	return n
 end
 
 function __panic(msg)
-    printh("PANIC: " .. msg)
-    print(":(", 0, 0, 7)
-    print(msg)
-end)"
+	printh("PANIC: " .. msg)
+	print(":(", 0, 0, 7)
+	print(msg)
+end
+)"
 
 	/// This re-exports certain globals into the `local` scope of the cart.
     /// Calling these is faster, but there is a 200 limit on locals (including
@@ -96,13 +97,11 @@ end)"
     /// However, it also results in longer upvalue construction time
     /// per-function... For how carts normally behave, this is probably fine.
 
-	R"(
-local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach =
-      color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach
-	)"
+	R"(local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach =
+color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach
+)"
 
-	R"(printh(stat(0) .. "KB at boot")
-)";
+	R"(printh(stat(0) .. "KB at boot"))";
 
 using BindingCallback = int(lua_State *);
 
@@ -230,9 +229,8 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	hal::load_rgb_palette(_palette);
 }
 
-void Emulator::load_and_inject_header(hal::ReaderCallback *reader, void *ud) {
-	CartImporterReader state{.header_reader{app_header},
-	                         .cart_reader = SourceBufferReader(reader, ud)};
+void Emulator::load_and_inject_header(Reader reader) {
+	CartImporterReader state{.header_reader{app_header}, .cart_reader = reader};
 
 	const int load_status = lua_load(
 		_lua,

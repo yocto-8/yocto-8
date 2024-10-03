@@ -80,6 +80,11 @@ const char *fs_read_buffer(void *context, std::size_t *size) {
 
 	*size = fread(real_context.buf.data(), 1, real_context.buf.size(),
 	              real_context.file);
+
+	if (*size == 0) {
+		return nullptr;
+	}
+
 	return real_context.buf.data();
 }
 

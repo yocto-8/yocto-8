@@ -1,8 +1,7 @@
 #pragma once
 
-#include <array>
-#include <string_view>
-
+#include "hal/types.hpp"
+#include <emu/bufferio.hpp>
 #include <hal/hal.hpp>
 #include <p8/lookahead.hpp>
 
@@ -31,8 +30,8 @@ enum class ParserStatus {
 	/// Failed to match version line
 	BAD_VERSION_LINE,
 
-	/// Failed to match the initial block
-	BAD_INITIAL_BLOCK,
+	/// Failed to match a block when one was expected
+	BAD_BLOCK_HEADER,
 };
 
 namespace detail {
@@ -62,21 +61,26 @@ class Parser {
 	State get_current_state() const { return _current_state; }
 
 	private:
-	static const std::array<std::pair<std::string_view, Parser::State>, 7>
-		_state_matchers;
-
 	State _current_state;
 
 	std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble;
 };
 
-struct LuaBlockReaderState {
-	Parser *parser;
-	LookaheadReader *reader;
-	bool eof;
-};
+class LuaBlockReaderState {
+	public:
+	LuaBlockReaderState(LookaheadReader &reader)
+		: _reader(&reader), _is_main_eof(false), _is_including(false) {}
 
-const char *lua_block_reader_callback(void *ud, std::size_t *size);
+	static const char *reader_callback(void *ud, std::size_t *size);
+	emu::Reader get_reader() { return {reader_callback, this}; }
+
+	private:
+	LookaheadReader *_reader;
+	bool _is_main_eof;
+
+	hal::FileReaderContext _include_reader;
+	bool _is_including;
+};
 
 } // namespace detail
 

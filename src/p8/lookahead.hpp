@@ -62,16 +62,34 @@ class LookaheadReader {
 		return '\0';
 	}
 
-	/// Consumes characters as long as `predicate(output_char)` is true.
-	/// Character is written to `output_char` even if `predicate` fails.
+	/// Consumes characters as long as `predicate(c)` is true.
+	/// Character is written to `*output_char` even if `predicate` fails.
 	/// The character that fails the `predicate` is NOT consumed.
-	template <class Func> bool consume_if(char &output_char, Func &&predicate) {
-		output_char = peek_char();
-		if (predicate(output_char)) {
+	template <class Func>
+	bool consume_if(Func &&predicate, char *output_char = nullptr) {
+		char c = peek_char();
+		if (output_char != nullptr) {
+			*output_char = c;
+		}
+		if (predicate(c)) {
 			consume_char();
 			return true;
 		}
 		return false;
+	}
+
+	template <class Func>
+	std::span<char> consume_into(Func &&predicate,
+	                             std::span<char> output_buffer) {
+		// FIXME: proper error handling when exceeding buffer size
+		std::size_t i;
+		for (i = 0; i < output_buffer.size(); ++i) {
+			if (!consume_if(predicate, &output_buffer[i])) {
+				break;
+			}
+		}
+
+		return output_buffer.subspan(0, i);
 	}
 
 	/// Returns whether the next char will be an EOF without consuming it.
