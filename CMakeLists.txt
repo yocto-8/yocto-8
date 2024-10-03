@@ -172,12 +172,16 @@ set_source_files_properties(${LUA_SOURCES} COMPILE_FLAGS ${LUA_EXTRA_CXXFLAGS})
 
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
-set_source_files_properties(
+set(SIZE_SENSITIVE_SOURCES
     ${LUA_ROOT}/llex.c
     ${LUA_ROOT}/lparser.c
     ${LUA_ROOT}/lcode.c
     ${LUA_ROOT}/ldebug.c
 
+    ${CORE_ROOT}/p8/parser.cpp
+)
+
+set_source_files_properties(${SIZE_SENSITIVE_SOURCES}
     PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
 
 set_source_files_properties(
