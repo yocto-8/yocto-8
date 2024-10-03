@@ -97,6 +97,11 @@ int y8_stat(lua_State *state) {
 
 int y8_exit(lua_State *state) { std::exit(lua_tounsigned(state, 1)); }
 
+int y8_gc(lua_State *state) {
+	lua_gc(state, LUA_GCCOLLECT, 0);
+	return 0;
+}
+
 int y8_printh(lua_State *state) {
 	// based on lua standard print()
 	// FIXME: i don't think standard printh in pico-8 uses tostring.
