@@ -101,7 +101,7 @@ end
 color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach
 )"
 
-	R"(printh(stat(0) .. "KB at boot"))";
+	R"(_gc(); printh(stat(0) .. "KB at boot"))";
 
 using BindingCallback = int(lua_State *);
 
