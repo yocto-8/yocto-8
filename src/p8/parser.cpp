@@ -240,7 +240,8 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 			// Parse filename into a buffer
 			std::array<char, 128> include_fname;
 			const auto out_buf = r.consume_into(
-				[](char c) { return c != ' ' && c != '\n'; }, include_fname);
+				[](char c) { return c != ' ' && c != '\n' && c != '\r'; },
+				include_fname);
 			const std::string_view out{out_buf.begin(), out_buf.end()};
 
 			// Consume the `#include` line, but **keep** the newline.
