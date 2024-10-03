@@ -107,7 +107,6 @@ endif()
 
 set(CORE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/")
 set(CORE_SOURCES
-    ${CORE_ROOT}/devices/image.cpp
     ${CORE_ROOT}/emu/emulator.cpp
     ${CORE_ROOT}/emu/bindings/input.cpp
     ${CORE_ROOT}/emu/bindings/math.cpp
