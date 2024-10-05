@@ -110,128 +110,83 @@ inline Point sprite_index_to_position(int sprite_index) {
 	        (sprite_index / sprites_per_row) * 8};
 }
 
-[[gnu::always_inline, gnu::flatten]]
-inline void draw_sprite_nostretch(Point sprite_origin, int sprite_width,
-                                  int sprite_height, Point unclipped_origin,
-                                  bool x_flip = false, bool y_flip = false) {
-
-	auto sprite = device<devices::Spritesheet>;
-	auto palette = device<devices::DrawPalette>;
-	auto clip = device<devices::ClippingRectangle>;
-
-	const Point top_left = unclipped_origin.max(clip.top_left());
-	const Point bottom_right =
-		(unclipped_origin.with_offset(sprite_width, sprite_height))
-			.min(clip.bottom_right());
-
-	const auto main_loop = [&](bool x_flip, bool y_flip) {
-		for (int y = top_left.y; y < bottom_right.y; ++y) {
-			for (int x = top_left.x; x < bottom_right.x; ++x) {
-				const auto x_offset = LuaFix16(x - top_left.x);
-				const auto y_offset = LuaFix16(y - top_left.y);
-
-				int sprite_x, sprite_y;
-
-				if (!x_flip) {
-					sprite_x = sprite_origin.x + int(x_offset);
-				} else {
-					sprite_x =
-						sprite_origin.x + sprite_width - 1 - int(x_offset);
-				}
-
-				if (!y_flip) {
-					sprite_y = sprite_origin.y + int(y_offset);
-				} else {
-					sprite_y =
-						sprite_origin.y + sprite_height - 1 - int(y_offset);
-				}
-
-				const std::uint8_t palette_entry =
-					palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
-
-				detail::set_pixel_with_alpha(Point(x, y), palette_entry);
-			}
-		}
-	};
-
-	// we manually specialize the main loop for all x_flip/y_flip combinations
-	// this causes slight code bloat (not by a lot, actually) but improves
-	// performance.
-	if (x_flip && y_flip) {
-		main_loop(true, true);
-	} else if (x_flip && !y_flip) {
-		main_loop(true, false);
-	} else if (!x_flip && y_flip) {
-		main_loop(false, true);
-	} else {
-		main_loop(false, false);
-	}
-}
-
+// aggressive inlining because there can be big opportunities for code
+// simplification when some parameters are known
 [[gnu::always_inline, gnu::flatten]]
 inline void draw_sprite(Point sprite_origin, int sprite_width,
-                        int sprite_height, Point unclipped_origin,
+                        int sprite_height, Point target_origin,
                         int target_width, int target_height,
                         bool x_flip = false, bool y_flip = false) {
-	if (sprite_width == target_width && sprite_height == target_height) {
-		return draw_sprite_nostretch(sprite_origin, sprite_width, sprite_height,
-		                             unclipped_origin, x_flip, y_flip);
-	}
-
 	auto sprite = device<devices::Spritesheet>;
 	auto palette = device<devices::DrawPalette>;
 	auto clip = device<devices::ClippingRectangle>;
 
-	const Point top_left = unclipped_origin.max(clip.top_left());
-	const Point bottom_right =
-		(unclipped_origin.with_offset(target_width, target_height))
+	// convert from negative target size to positive target size, but with
+	// flipped sprite flag
+	if (target_width < 0) {
+		x_flip = !x_flip;
+		target_width = -target_width;
+		target_origin.x -= target_width;
+	}
+
+	if (target_height < 0) {
+		y_flip = !y_flip;
+		target_height = -target_height;
+		target_origin.y -= target_height;
+	}
+
+	// compute screenspace coordinates (possibly out-of-bounds, incl. negative)
+	const Point target_tl = target_origin;
+	const Point target_br = target_tl.with_offset(target_width, target_height);
+
+	// compute screenspace clipped coordinates
+	const Point clipped_tl = target_origin.max(clip.top_left());
+	const Point clipped_br =
+		target_origin.with_offset(target_width, target_height)
 			.min(clip.bottom_right());
 
-	const auto main_loop = [&](bool x_flip, bool y_flip) {
-		for (int y = top_left.y; y < bottom_right.y; ++y) {
-			for (int x = top_left.x; x < bottom_right.x; ++x) {
-				const auto x_offset =
-					(LuaFix16(x - top_left.x) * sprite_width) /
-					LuaFix16(bottom_right.x - top_left.x);
-				const auto y_offset =
-					(LuaFix16(y - top_left.y) * sprite_height) /
-					LuaFix16(bottom_right.y - top_left.y);
+	// TODO: fast path if sprite_width == target_width and sprite_height ==
+	// target_height, to avoid the division.
 
-				int sprite_x, sprite_y;
+	// step value added to the sprite coordinate for each real pixel
+	// this will be flipped later when using x_ or y_ flip
+	LuaFix16 x_spr_step = LuaFix16(sprite_width) / LuaFix16(target_width);
+	LuaFix16 y_spr_step = LuaFix16(sprite_height) / LuaFix16(target_height);
 
-				if (!x_flip) {
-					sprite_x = sprite_origin.x + int(x_offset);
-				} else {
-					sprite_x =
-						sprite_origin.x + sprite_width - 1 - int(x_offset);
-				}
+	// x/y_spr_start aren't sprite_origin, because we need to precalculate by
+	// how many sprite pixels the clipping would have shifted
+	LuaFix16 x_spr_start, y_spr_start;
 
-				if (!y_flip) {
-					sprite_y = sprite_origin.y + int(y_offset);
-				} else {
-					sprite_y =
-						sprite_origin.y + sprite_height - 1 - int(y_offset);
-				}
-
-				const std::uint8_t palette_entry =
-					palette.get_color(sprite.get_pixel(sprite_x, sprite_y));
-
-				detail::set_pixel_with_alpha(Point(x, y), palette_entry);
-			}
-		}
-	};
-
-	// we manually specialize the main loop for all x_flip/y_flip combinations
-	// this causes slight code bloat (not by a lot, actually) but improves
-	// performance.
-	if (x_flip && y_flip) {
-		main_loop(true, true);
-	} else if (x_flip && !y_flip) {
-		main_loop(true, false);
-	} else if (!x_flip && y_flip) {
-		main_loop(false, true);
+	if (!x_flip) {
+		x_spr_start = LuaFix16(sprite_origin.x) +
+		              LuaFix16(clipped_tl.x - target_tl.x) * x_spr_step;
 	} else {
-		main_loop(false, false);
+		x_spr_step = -x_spr_step;
+		x_spr_start = LuaFix16(sprite_origin.x + sprite_width - 1) +
+		              LuaFix16(target_br.x - clipped_br.x) * x_spr_step;
+	}
+
+	if (!y_flip) {
+		y_spr_start = LuaFix16(sprite_origin.y) +
+		              LuaFix16(clipped_tl.y - target_tl.y) * y_spr_step;
+	} else {
+		y_spr_step = -y_spr_step;
+		y_spr_start = LuaFix16(sprite_origin.y + sprite_height - 1) +
+		              LuaFix16(target_br.y - clipped_br.y) * y_spr_step;
+	}
+
+	auto sprite_y = y_spr_start;
+	for (int y = clipped_tl.y; y < clipped_br.y; ++y) {
+		auto sprite_x = x_spr_start;
+		for (int x = clipped_tl.x; x < clipped_br.x; ++x) {
+			const std::uint8_t palette_entry = palette.get_color(
+				sprite.get_pixel(int(sprite_x), int(sprite_y)));
+
+			detail::set_pixel_with_alpha(Point(x, y), palette_entry);
+
+			sprite_x += x_spr_step;
+		}
+		sprite_y += y_spr_step;
 	}
 }
 
@@ -699,6 +654,10 @@ int y8_sspr(lua_State *state) {
 		y_flip = lua_toboolean(state, 10);
 	}
 
+	// printf("spr (%d, %d) size (%d, %d) orig (%d, %d) target (%d, %d)\n",
+	//        sprite_origin_x, sprite_origin_y, sprite_width, sprite_height,
+	//        world_origin_x, world_origin_y, target_width, target_height);
+
 	detail::draw_sprite(Point(sprite_origin_x, sprite_origin_y), sprite_width,
 	                    sprite_height, unclipped_origin, target_width,
 	                    target_height, x_flip, y_flip);
@@ -903,9 +862,9 @@ int y8_map(lua_State *state) {
 				continue;
 			}
 
-			detail::draw_sprite_nostretch(
-				detail::sprite_index_to_position(tile), 8, 8,
-				Point(screen_x_offset, screen_y_offset), false, false);
+			detail::draw_sprite(detail::sprite_index_to_position(tile), 8, 8,
+			                    Point(screen_x_offset, screen_y_offset), false,
+			                    false);
 		}
 	}
 
