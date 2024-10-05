@@ -309,4 +309,30 @@ int y8_split(lua_State *state) {
 	return 1;
 }
 
+int y8_unpack(lua_State *state) {
+	// stack[1]: table
+	// stack[2] (optional default 1): first index to unpack
+	// stack[3] (optional default #tbl): last index to unpack
+
+	const auto arg_count = lua_gettop(state);
+
+	int start_index = 1;
+	if (arg_count >= 2) {
+		start_index = lua_tounsigned(state, 2);
+	}
+
+	int end_index;
+	if (arg_count >= 3) {
+		end_index = lua_tounsigned(state, 3);
+	} else {
+		end_index = int(lua_rawlen(state, 1));
+	}
+
+	for (int i = start_index; i <= end_index; ++i) {
+		lua_rawgeti(state, 1, i);
+	}
+
+	return end_index - start_index + 1;
+}
+
 } // namespace emu::bindings
