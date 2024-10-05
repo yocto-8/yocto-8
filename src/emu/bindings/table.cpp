@@ -179,11 +179,7 @@ void set_split_element(lua_State *state, int element_index,
 	lua_Number parsed_number;
 	int is_number = 0; // int because of lua_tonumberx, but functionally a bool
 
-	fprintf(stderr, "%d\n", lua_gettop(state));
-
 	lua_pushlstring(state, str.data(), str.size());
-
-	fprintf(stderr, "%d\n", lua_gettop(state));
 
 	if (parse_numeric) {
 		// we cannot use luaO_str2d directly because it assumes the input string
@@ -191,7 +187,6 @@ void set_split_element(lua_State *state, int element_index,
 		// end.
 		// the one we push on the stack is fine
 		parsed_number = lua_tonumberx(state, -1, &is_number);
-		fprintf(stderr, "%d\n", lua_gettop(state));
 	}
 
 	// stack[-1]: string
@@ -201,13 +196,9 @@ void set_split_element(lua_State *state, int element_index,
 		lua_pushnumber(state, parsed_number);
 	}
 
-	fprintf(stderr, "%d\n", lua_gettop(state));
-
 	// stack[-2]: table to push this to
 	// stack[-1]: string or number to set at index element_index
 	lua_rawseti(state, -2, element_index);
-
-	fprintf(stderr, "%d\n", lua_gettop(state));
 }
 
 } // namespace
