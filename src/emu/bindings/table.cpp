@@ -318,12 +318,12 @@ int y8_unpack(lua_State *state) {
 
 	int start_index = 1;
 	if (arg_count >= 2) {
-		start_index = lua_tounsigned(state, 2);
+		start_index = lua_tointeger(state, 2);
 	}
 
 	int end_index;
 	if (arg_count >= 3) {
-		end_index = lua_tounsigned(state, 3);
+		end_index = lua_tointeger(state, 3);
 	} else {
 		end_index = int(lua_rawlen(state, 1));
 	}

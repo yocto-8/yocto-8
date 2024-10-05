@@ -11,5 +11,6 @@ int y8_printh(lua_State *state);
 int y8_tostr(lua_State *state);
 int y8_tonum(lua_State *state);
 int y8_sub(lua_State *state);
+int y8_ord(lua_State *state);
 
 } // namespace emu::bindings

@@ -97,8 +97,8 @@ end
     /// However, it also results in longer upvalue construction time
     /// per-function... For how carts normally behave, this is probably fine.
 
-	R"(local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split, unpack =
-color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split, unpack
+	R"(local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split, unpack, ord =
+color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split, unpack, ord
 )"
 
 	R"(_gc(); printh(stat(0) .. "KB at boot"))";
@@ -113,7 +113,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 61> y8_std{{
+static constexpr std::array<Binding, 62> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -168,6 +168,7 @@ static constexpr std::array<Binding, 61> y8_std{{
 	{"tonum", bindings::y8_tonum},
 	{"stat", bindings::y8_stat},
 	{"sub", bindings::y8_sub},
+	{"ord", bindings::y8_ord},
 	{"_exit", bindings::y8_exit},
 	{"_gc", bindings::y8_gc},
 

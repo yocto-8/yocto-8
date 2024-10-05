@@ -352,4 +352,36 @@ int y8_sub(lua_State *L) {
 	return 1;
 }
 
+int y8_ord(lua_State *state) {
+	const auto arg_count = lua_gettop(state);
+
+	std::string_view input;
+	{ // read input into a string_view
+		std::size_t input_size;
+		const char *input_buf = lua_tolstring(state, 1, &input_size);
+		input = {input_buf, input_size};
+	}
+
+	int start_index = 1;
+	if (arg_count >= 2) {
+		start_index = lua_tointeger(state, 2);
+	}
+
+	int count = 1;
+	if (arg_count >= 3) {
+		count = lua_tointeger(state, 3);
+	}
+
+	for (int i = start_index; i < start_index + count; ++i) {
+		int str_index = i - 1;
+		if (str_index >= 0 && str_index < int(input.size())) {
+			lua_pushunsigned(state, input[str_index]);
+		} else {
+			lua_pushnil(state);
+		}
+	}
+
+	return count;
+}
+
 } // namespace emu::bindings
