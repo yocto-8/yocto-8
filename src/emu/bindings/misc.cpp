@@ -1,5 +1,6 @@
 #include "fix16.h"
 #include "hal/hal.hpp"
+#include "lobject.h"
 
 #include <cassert>
 #include <cinttypes>
@@ -307,17 +308,15 @@ int y8_tonum(lua_State *state) {
 	const bool is_shifted = (flags >> 1) & 0b1;
 	const bool is_return_zero_on_fail = (flags >> 2) & 0b1;
 
-	if (input.find('e') != input.npos) {
-		emu::emulator.panic("tonum error: Found 'e', currently unsupported "
-		                    "scientific notation");
-	}
-
-	if (is_hex || is_shifted) {
-		emu::emulator.panic("tonum error: Unsupported flags");
-	}
-
 	int isnum = 0; // to treat as boolean
-	const lua_Number number = lua_tonumberx(state, 1, &isnum);
+	int parse_mask = LPARSE_ALLOW_EXPONENT;
+	if (is_hex) {
+		parse_mask |= LPARSE_HEX;
+	}
+	if (is_shifted) {
+		parse_mask |= LPARSE_SHIFT;
+	}
+	const lua_Number number = lua_tonumberx(state, 1, &isnum, parse_mask);
 
 	if (isnum || is_return_zero_on_fail) {
 		lua_pushnumber(state, number);
