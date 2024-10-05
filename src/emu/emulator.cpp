@@ -113,7 +113,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 59> y8_std{{
+static constexpr std::array<Binding, 60> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -165,6 +165,7 @@ static constexpr std::array<Binding, 59> y8_std{{
 	{"cursor", bindings::y8_cursor},
 	{"printh", bindings::y8_printh},
 	{"tostr", bindings::y8_tostr},
+	{"tonum", bindings::y8_tonum},
 	{"stat", bindings::y8_stat},
 	{"sub", bindings::y8_sub},
 	{"_exit", bindings::y8_exit},

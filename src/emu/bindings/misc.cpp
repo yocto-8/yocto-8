@@ -290,6 +290,43 @@ int y8_tostr(lua_State *state) {
 	return luaL_error(state, "Unexpected input to tostr()");
 }
 
+int y8_tonum(lua_State *state) {
+	// args bound checking is not required:
+	// empty or non-string will result in no return by default
+
+	std::string_view input;
+	{ // read input into a string_view
+		std::size_t input_size;
+		const char *input_buf = lua_tolstring(state, 1, &input_size);
+		input = {input_buf, input_size};
+	}
+
+	unsigned flags = lua_tounsigned(state, 2);
+
+	const bool is_hex = (flags >> 0) & 0b1;
+	const bool is_shifted = (flags >> 1) & 0b1;
+	const bool is_return_zero_on_fail = (flags >> 2) & 0b1;
+
+	if (input.find('e') != input.npos) {
+		emu::emulator.panic("tonum error: Found 'e', currently unsupported "
+		                    "scientific notation");
+	}
+
+	if (is_hex || is_shifted) {
+		emu::emulator.panic("tonum error: Unsupported flags");
+	}
+
+	int isnum = 0; // to treat as boolean
+	const lua_Number number = lua_tonumberx(state, 1, &isnum);
+
+	if (isnum || is_return_zero_on_fail) {
+		lua_pushnumber(state, number);
+		return 1;
+	}
+
+	return 0;
+}
+
 // based on lua standard sub()
 static size_t posrelat(ptrdiff_t pos, size_t len) {
 	if (pos >= 0)
