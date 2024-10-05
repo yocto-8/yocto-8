@@ -97,7 +97,7 @@ int y8_del(lua_State *state) {
 			return 1;
 		} else {
 			// remove value from stack, we're done inspecting it
-			lua_settop(state, -1);
+			lua_settop(state, -2);
 		}
 	}
 
@@ -155,12 +155,12 @@ int y8_foreach(lua_State *state) {
 			const TValue *new_value = luaH_getint(hvalue(table), i);
 
 			if (!equalobj(state, old_value, new_value)) {
-				lua_settop(state, -1); // pop value
+				lua_settop(state, -2); // pop value
 				continue;              // skip incrementing
 			}
-			lua_settop(state, -1); // pop value
+			lua_settop(state, -2); // pop value
 		} else {
-			lua_settop(state, -1); // pop the value pushed by rawgeti
+			lua_settop(state, -2); // pop the value pushed by rawgeti
 		}
 
 		++i;
