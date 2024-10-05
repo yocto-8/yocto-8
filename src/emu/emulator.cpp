@@ -97,8 +97,8 @@ end
     /// However, it also results in longer upvalue construction time
     /// per-function... For how carts normally behave, this is probably fine.
 
-	R"(local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach =
-color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach
+	R"(local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split =
+color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split
 )"
 
 	R"(_gc(); printh(stat(0) .. "KB at boot"))";
@@ -113,7 +113,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 58> y8_std{{
+static constexpr std::array<Binding, 59> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -179,6 +179,7 @@ static constexpr std::array<Binding, 58> y8_std{{
 	{"add", bindings::y8_add},
 	{"del", bindings::y8_del},
 	{"foreach", bindings::y8_foreach},
+	{"split", bindings::y8_split},
 }};
 
 Emulator::~Emulator() {
