@@ -26,6 +26,9 @@ add_y8_definition_flag(Y8_DEBUG_MEMCHECK OFF "On PSRAM-enabled systems, run a qu
 add_y8_definition_flag(Y8_EXPERIMENTAL_GENGC ON "Enable the experimental Lua 5.2 generational GC, which is known to have bugs but can prove beneficial for performance")
 add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
 
+# force disabling the use of ctype for lua so that we handle UTF-8 ourselves
+add_compile_definitions(LUA_USE_CTYPE=0)
+
 message("Following definitions set: [${Y8_DEFINITIONS}]")
 
 if(Y8_ARCH STREQUAL "desktop")
