@@ -45,8 +45,6 @@ set(PERF_FLAGS
     # is a net gain, for some reason
     # TODO: recheck performance, maybe it's not relevant
     "-ffast-math"
-
-    "-fno-exceptions"
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -91,7 +89,7 @@ set(COMMON_FLAGS ${PERF_FLAGS}
 add_link_options(${COMMON_FLAGS})
 add_compile_options(${COMMON_FLAGS})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti -fno-exceptions")
 
 # this is a weird hack that defines a core library on the desktop platform
 # (which avoids rebuilding everything when doing headless/gui builds)
