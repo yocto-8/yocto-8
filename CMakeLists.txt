@@ -170,20 +170,6 @@ set(LUA_SOURCES
 set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
 set_source_files_properties(${LUA_SOURCES} COMPILE_FLAGS ${LUA_EXTRA_CXXFLAGS})
 
-# we care more about code size than about performance for some functionality.
-# for these, use lighter optimization levels
-set(SIZE_SENSITIVE_SOURCES
-    ${LUA_ROOT}/llex.c
-    ${LUA_ROOT}/lparser.c
-    ${LUA_ROOT}/lcode.c
-    ${LUA_ROOT}/ldebug.c
-
-    ${CORE_ROOT}/p8/parser.cpp
-)
-
-set_source_files_properties(${SIZE_SENSITIVE_SOURCES}
-    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
-
 set_source_files_properties(
     ${LUA_ROOT}/lvm.c
 
@@ -204,6 +190,22 @@ set(FIXMATH_SOURCES
     ${FIXMATH_ROOT}/fix16_trig.c
 )
 set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
+
+# we care more about code size than about performance for some functionality.
+# for these, use lighter optimization levels
+set(SIZE_SENSITIVE_SOURCES
+    ${LUA_ROOT}/llex.c
+    ${LUA_ROOT}/lparser.c
+    ${LUA_ROOT}/lcode.c
+    ${LUA_ROOT}/ldebug.c
+
+    ${CORE_ROOT}/p8/parser.cpp
+
+    ${FIXMATH_ROOT}/fix16_str.c
+)
+
+set_source_files_properties(${SIZE_SENSITIVE_SOURCES}
+    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
 
 if(Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
