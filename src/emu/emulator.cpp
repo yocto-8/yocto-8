@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <lauxlib.h>
+#include <ldo.h>
 #include <lua.h>
 #include <lualib.h>
 
@@ -259,7 +260,7 @@ void Emulator::trigger_load_from_vm(std::string_view cart_path) {
 	            cart_path.size());
 	_persistent_state.load_path_cstr[cart_path.size()] = '\0';
 
-	throw EmulatorResetException();
+	throw EmulatorResetRequest();
 }
 
 bool Emulator::load_from_path(std::string_view cart_path) {
@@ -332,7 +333,7 @@ void Emulator::run_until_shutdown() {
 	for (;;) {
 		try {
 			run_once();
-		} catch (const EmulatorResetException &e) {
+		} catch (const EmulatorResetRequest &e) {
 			lua_close(_lua);
 			init(_backup_heap);
 			load_from_path(_persistent_state.load_path_cstr.data());

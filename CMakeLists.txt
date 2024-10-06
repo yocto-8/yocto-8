@@ -185,8 +185,9 @@ set_source_files_properties(
     # which?
     PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -finline-limit=200 -Ofast"
 )
-add_compile_definitions(LUA_USE_LONGJMP)
 
+# Commented out: for now, use C++ exceptions, not longjmp.
+# add_compile_definitions(LUA_USE_LONGJMP)
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
 set(FIXMATH_SOURCES
     ${FIXMATH_ROOT}/fix16_exp.c

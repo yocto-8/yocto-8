@@ -12,8 +12,6 @@
 
 namespace emu {
 
-struct EmulatorResetException {};
-
 struct EmulatorPersistentState {
 	std::array<char, 128> load_path_cstr;
 };
