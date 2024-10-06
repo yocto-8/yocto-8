@@ -10,5 +10,5 @@ int main() {
 
 	// hardcoded to `bios_cartridge`
 	emu::emulator.load_from_path("/y8/bios.p8");
-	emu::emulator.run();
+	emu::emulator.run_until_shutdown();
 }

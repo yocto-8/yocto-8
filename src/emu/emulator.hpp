@@ -12,25 +12,31 @@
 
 namespace emu {
 
+struct EmulatorResetException {};
+
+struct EmulatorPersistentState {
+	std::array<char, 128> load_path_cstr;
+};
+
 class Emulator {
 	public:
 	constexpr Emulator() = default;
 	~Emulator();
 
 	void init(std::span<std::byte> backup_heap_buffer);
-	void unbind_globals();
 	void bind_globals();
-	void clear_state();
 
 	void set_active_cart_path(std::string_view cart_path);
 
+	void trigger_load_from_vm(std::string_view cart_path);
 	bool load_from_path(std::string_view cart_path);
 	void load_and_inject_header(Reader reader);
 	void exec(std::string_view buf);
 
 	void handle_repl();
 
-	void run();
+	void run_until_shutdown();
+	void run_once();
 	void flip();
 
 	int get_fps_target() const;
@@ -55,6 +61,7 @@ class Emulator {
 	Emulator &operator=(const Emulator &) = delete;
 
 	private:
+	EmulatorPersistentState _persistent_state;
 	std::span<std::byte> _backup_heap;
 	std::array<std::uint8_t, 65536> _memory;
 	std::array<std::uint32_t, 32> _palette;

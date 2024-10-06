@@ -114,7 +114,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 67> y8_std{{
+static constexpr std::array<Binding, 68> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -150,6 +150,7 @@ static constexpr std::array<Binding, 67> y8_std{{
 	{"memcpy", bindings::y8_memcpy},
 	{"memset", bindings::y8_memset},
 	{"reload", bindings::y8_reload},
+	{"load", bindings::y8_load},
 
 	{"abs", bindings::y8_abs},
 	{"flr", bindings::y8_flr},
@@ -207,26 +208,23 @@ void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 	_lua = lua_newstate(y8_lua_realloc, &_backup_heap, _memory.data());
 
 #ifdef Y8_EXPERIMENTAL_GENGC
-	printf("Buggy Lua 5.2 Generational GC enabled\n");
+	// printf("Buggy Lua 5.2 Generational GC enabled\n");
 	luaC_changemode(_lua, KGC_GEN);
 #endif
 	hal::load_rgb_palette(_palette);
 
-	// More initialization is done in clear_state, which happens upon cart
-	// loading
-}
-
-void Emulator::unbind_globals() {
-	// Remove reference to global table
-	lua_pushnil(_lua);
-	lua_rawseti(_lua, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-
-	// GC what can be GC'd
-	lua_gc(_lua, LUA_GCCOLLECT, 0);
-
 	// Recreate global table with 128 preallocated hashmap records
 	lua_createtable(_lua, 0, 128);
 	lua_rawseti(_lua, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+
+	bind_globals();
+
+	_memory.fill(0);
+	device<devices::DrawPalette>.reset();
+	device<devices::DrawStateMisc>.reset();
+	device<devices::ScreenPalette>.reset();
+	device<devices::ClippingRectangle>.reset();
+	device<devices::Random>.set_seed(hal::get_unique_seed());
 }
 
 void Emulator::bind_globals() {
@@ -247,28 +245,26 @@ void Emulator::bind_globals() {
 	stub("sfx");
 }
 
-void Emulator::clear_state() {
-	unbind_globals();
-	lua_gc(_lua, LUA_GCCOLLECT, 0);
-
-	bind_globals();
-
-	_memory.fill(0);
-	device<devices::DrawPalette>.reset();
-	device<devices::DrawStateMisc>.reset();
-	device<devices::ScreenPalette>.reset();
-	device<devices::ClippingRectangle>.reset();
-	device<devices::Random>.set_seed(hal::get_unique_seed());
-}
-
 void Emulator::set_active_cart_path(std::string_view cart_path) {
 	lua_pushlstring(_lua, cart_path.data(), cart_path.size());
 	lua_setglobal(_lua, "__cart_name");
 }
 
-bool Emulator::load_from_path(std::string_view cart_path) {
-	clear_state();
+void Emulator::trigger_load_from_vm(std::string_view cart_path) {
+	if (cart_path.size() >= _persistent_state.load_path_cstr.size() - 1) {
+		panic("Path to load() is too long");
+	}
 
+	std::memcpy(_persistent_state.load_path_cstr.data(), cart_path.data(),
+	            cart_path.size());
+	_persistent_state.load_path_cstr[cart_path.size()] = '\0';
+
+	throw EmulatorResetException();
+}
+
+bool Emulator::load_from_path(std::string_view cart_path) {
+	printf("Loading cart from \"%.*s\"\n", int(cart_path.size()),
+	       cart_path.data());
 	set_active_cart_path(cart_path);
 
 	hal::FileReaderContext reader;
@@ -332,7 +328,19 @@ void Emulator::handle_repl() {
 #endif
 }
 
-void Emulator::run() {
+void Emulator::run_until_shutdown() {
+	for (;;) {
+		try {
+			run_once();
+		} catch (const EmulatorResetException &e) {
+			lua_close(_lua);
+			init(_backup_heap);
+			load_from_path(_persistent_state.load_path_cstr.data());
+		}
+	}
+}
+
+void Emulator::run_once() {
 	hal::reset_timer();
 
 	if (lua_pcall(_lua, 0, 0, 0) != 0) {

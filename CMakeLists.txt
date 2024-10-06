@@ -34,6 +34,7 @@ message("Following definitions set: [${Y8_DEFINITIONS}]")
 if(Y8_ARCH STREQUAL "desktop")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
 elseif(Y8_ARCH STREQUAL "pico")
+    set(PICO_CXX_ENABLE_EXCEPTIONS 1)
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 else()
@@ -95,7 +96,7 @@ set(COMMON_FLAGS ${PERF_FLAGS}
 add_link_options(${COMMON_FLAGS})
 add_compile_options(${COMMON_FLAGS})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fno-rtti -fno-exceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fexceptions -fno-rtti")
 
 # this is a weird hack that defines a core library on the desktop platform
 # (which avoids rebuilding everything when doing headless/gui builds)

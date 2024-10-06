@@ -195,4 +195,22 @@ int y8_reload(lua_State *state) {
 	return 0;
 }
 
+int y8_load(lua_State *state) {
+	const auto argument_count = lua_gettop(state);
+
+	std::string_view cart_path;
+	{
+		std::size_t cart_path_len;
+		const char *cart_path_buf = lua_tolstring(state, 1, &cart_path_len);
+		cart_path = {cart_path_buf, cart_path_len};
+	}
+
+	if (cart_path != "") {
+		// will throw
+		emu::emulator.trigger_load_from_vm(cart_path);
+	}
+
+	return 0;
+}
+
 } // namespace emu::bindings

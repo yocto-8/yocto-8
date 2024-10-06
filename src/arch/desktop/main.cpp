@@ -25,8 +25,6 @@ int main(int argc, char **argv) {
 	printf("Setting root directory to '%s'\n", cart_dir.c_str());
 	chdir(cart_dir.c_str());
 
-	printf("Loading game from '%s'\n", cart_path.c_str());
-
 	const auto success = emu::emulator.load_from_path(cart_path);
 	printf("Loaded with status: %d\n", success);
 
@@ -36,7 +34,7 @@ int main(int argc, char **argv) {
 
 	printf("RUNNING CARTRIDGE\n");
 
-	emu::emulator.run();
+	emu::emulator.run_until_shutdown();
 
 	return 0;
 }

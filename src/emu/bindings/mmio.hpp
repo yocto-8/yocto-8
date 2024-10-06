@@ -16,5 +16,6 @@ int y8_memcpy(lua_State *state);
 int y8_memset(lua_State *state);
 
 int y8_reload(lua_State *state);
+int y8_load(lua_State *state);
 
 } // namespace emu::bindings
