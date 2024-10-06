@@ -17,7 +17,7 @@ class Emulator {
 	constexpr Emulator() = default;
 	~Emulator();
 
-	void init(std::span<std::byte> memory_buffer);
+	void init(std::span<std::byte> backup_heap_buffer);
 
 	void set_active_cart_path(std::string_view cart_path);
 
@@ -40,7 +40,7 @@ class Emulator {
 
 	constexpr Memory memory() { return Memory{std::span(_memory)}; }
 
-	auto get_memory_alloc_buffer() const { return _memory_buffer; }
+	auto get_backup_heap_buffer() const { return _backup_heap; }
 
 	auto &palette() { return _palette; }
 
@@ -52,7 +52,7 @@ class Emulator {
 	Emulator &operator=(const Emulator &) = delete;
 
 	private:
-	std::span<std::byte> _memory_buffer;
+	std::span<std::byte> _backup_heap;
 	std::array<std::uint8_t, 65536> _memory = {};
 	std::array<std::uint32_t, 32> _palette = {};
 	lua_State *_lua = nullptr;
