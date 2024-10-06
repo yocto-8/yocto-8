@@ -863,8 +863,7 @@ int y8_map(lua_State *state) {
 			}
 
 			detail::draw_sprite(detail::sprite_index_to_position(tile), 8, 8,
-			                    Point(screen_x_offset, screen_y_offset), false,
-			                    false);
+			                    Point(screen_x_offset, screen_y_offset), 8, 8);
 		}
 	}
 
