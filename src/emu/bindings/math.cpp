@@ -93,4 +93,10 @@ int y8_bor(lua_State *state) {
 	return 1;
 }
 
+int y8_sgn(lua_State *state) {
+	const auto x = lua_tonumber(state, 1);
+	lua_pushinteger(state, x >= 0 ? 1 : -1);
+	return 1;
+}
+
 } // namespace emu::bindings
