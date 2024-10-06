@@ -18,6 +18,7 @@ class Emulator {
 	~Emulator();
 
 	void init(std::span<std::byte> backup_heap_buffer);
+	void unbind_globals();
 	void bind_globals();
 	void clear_state();
 

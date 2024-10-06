@@ -212,7 +212,21 @@ void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 #endif
 	hal::load_rgb_palette(_palette);
 
-	clear_state();
+	// More initialization is done in clear_state, which happens upon cart
+	// loading
+}
+
+void Emulator::unbind_globals() {
+	// Remove reference to global table
+	lua_pushnil(_lua);
+	lua_rawseti(_lua, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+
+	// GC what can be GC'd
+	lua_gc(_lua, LUA_GCCOLLECT, 0);
+
+	// Recreate global table with 128 preallocated hashmap records
+	lua_createtable(_lua, 0, 128);
+	lua_rawseti(_lua, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
 }
 
 void Emulator::bind_globals() {
@@ -234,8 +248,7 @@ void Emulator::bind_globals() {
 }
 
 void Emulator::clear_state() {
-	// unbind_globals();
-
+	unbind_globals();
 	lua_gc(_lua, LUA_GCCOLLECT, 0);
 
 	bind_globals();
@@ -254,6 +267,8 @@ void Emulator::set_active_cart_path(std::string_view cart_path) {
 }
 
 bool Emulator::load_from_path(std::string_view cart_path) {
+	clear_state();
+
 	set_active_cart_path(cart_path);
 
 	hal::FileReaderContext reader;
