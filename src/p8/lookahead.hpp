@@ -13,13 +13,13 @@ class LookaheadReader {
 	LookaheadReader(hal::ReaderCallback &reader, void *ud)
 		: _fs_reader(reader), _fs_ud(ud), _fs_buffer(nullptr),
 		  _fs_buffer_offset(0), _fs_buffer_size(0),
-		  _walkback_offset(_walkback_buffer.size()) {}
+		  _backtrack_offset(_backtrack_buffer.size()) {}
 
 	/// Consumes and returns the next character in the stream. '\0' signals EOF.
 	char consume_char() {
-		// Do we have stuff to read from the walkback buffer?
-		if (_walkback_offset < _walkback_buffer.size()) {
-			return _walkback_buffer[_walkback_offset++];
+		// Do we have stuff to read from the backtrack buffer?
+		if (_backtrack_offset < _backtrack_buffer.size()) {
+			return _backtrack_buffer[_backtrack_offset++];
 		}
 
 		// Anything left to read from the fs buffer?
@@ -41,9 +41,9 @@ class LookaheadReader {
 	/// Does NOT consume input. Looks ahead for one character and returns it.
 	/// '\0' signals EOF.
 	char peek_char() {
-		// Do we have stuff to read from the walkback buffer?
-		if (_walkback_offset < _walkback_buffer.size()) {
-			return _walkback_buffer[_walkback_offset];
+		// Do we have stuff to read from the backtrack buffer?
+		if (_backtrack_offset < _backtrack_buffer.size()) {
+			return _backtrack_buffer[_backtrack_offset];
 		}
 
 		// Anything left to read from the fs buffer?
@@ -108,10 +108,10 @@ class LookaheadReader {
 	}
 
 	template <class Func> void peek_foreach_while(Func &&callback) {
-		// Iterate over what can be from the current walkback buffer
-		for (std::size_t i = _walkback_offset; i < _walkback_buffer.size();
+		// Iterate over what can be from the current backtrack buffer
+		for (std::size_t i = _backtrack_offset; i < _backtrack_buffer.size();
 		     ++i) {
-			if (!callback(_walkback_buffer[i])) {
+			if (!callback(_backtrack_buffer[i])) {
 				return;
 			}
 		}
@@ -133,18 +133,20 @@ class LookaheadReader {
 		}
 
 		// Filesystem buffer exhausted.
-		// Migrate to the walkback buffer if possible
-		if (_fs_buffer_size < _remaining_walkback_size()) {
-			// Move backward the current walkback buffer
-			std::memmove(
-				_walkback_buffer.data() + _walkback_offset - _fs_buffer_size,
-				_walkback_buffer.data() + _walkback_offset, _fs_buffer_size);
-			_walkback_offset -= _fs_buffer_size;
+		// Migrate to the backtrack buffer if possible
+		while (_remaining_fs_buffer_size() < _remaining_backtrack_size()) {
+			// Move backward the current backtrack buffer
+			std::memmove(_backtrack_buffer.data() + _backtrack_offset -
+			                 _remaining_fs_buffer_size(),
+			             _backtrack_buffer.data() + _backtrack_offset,
+			             _remaining_fs_buffer_size());
+			_backtrack_offset -= _remaining_fs_buffer_size();
 
-			// Copy the existing fs buffer into the end of the walkback buffer
-			std::memcpy(_walkback_buffer.data() + _walkback_buffer.size() -
-			                _fs_buffer_size,
-			            _fs_buffer, _fs_buffer_size);
+			// Copy the existing fs buffer into the end of the backtrack buffer
+			std::memcpy(_backtrack_buffer.data() + _backtrack_buffer.size() -
+			                _remaining_fs_buffer_size(),
+			            _fs_buffer + _fs_buffer_offset,
+			            _remaining_fs_buffer_size());
 
 			// Now that the fs buffer is backed up, override it with a new chunk
 			// (of an unknown, potentially different size, still)
@@ -162,15 +164,15 @@ class LookaheadReader {
 			}
 
 			// Falling through here? Maybe we received a short buffer, and still
-			// got space to migrate to the walkback buffer.
+			// got space to migrate to the backtrack buffer.
 		}
 
-		release_abort("peeked too far into the input");
+		release_abort("tried to peek beyond backtrack buffer");
 	}
 
 	/// Does NOT consume input. Looks ahead for a given match. The given match
-	/// must be smaller than the walkback buffer. Returns `true` only if a match
-	/// was found.
+	/// must be smaller than the backtrack buffer. Returns `true` only if a
+	/// match was found.
 	bool peek_matches(std::string_view to_match) {
 		std::size_t i = 0;
 		bool mismatched = false;
@@ -197,7 +199,7 @@ class LookaheadReader {
 	}
 
 	/// Consumes as many bytes from the current buffer (either fs buffer or
-	/// walkback buffer) to either exhaust it or make the predicate false. The
+	/// backtrack buffer) to either exhaust it or make the predicate false. The
 	/// number of bytes consumed will be written to `*size` and the pointer to
 	/// the start of the consumed buffer will be returned.
 	/// That returned pointer will be invalidated as soon as any other call
@@ -208,18 +210,18 @@ class LookaheadReader {
 	template <class Func>
 	const char *consume_rest_of_current_buffer_while(Func &&predicate,
 	                                                 std::size_t *size) {
-		if (_walkback_offset < _walkback_buffer.size()) {
-			// Consume from the walkback buffer
+		if (_backtrack_offset < _backtrack_buffer.size()) {
+			// Consume from the backtrack buffer
 			std::size_t i;
-			for (i = _walkback_offset; i < _walkback_buffer.size(); ++i) {
-				if (!predicate(_walkback_buffer[i])) {
+			for (i = _backtrack_offset; i < _backtrack_buffer.size(); ++i) {
+				if (!predicate(_backtrack_buffer[i])) {
 					break;
 				}
 			}
 
-			const char *ret = _walkback_buffer.data() + _walkback_offset;
-			*size = i - _walkback_offset;
-			_walkback_offset = i; // consume these
+			const char *ret = _backtrack_buffer.data() + _backtrack_offset;
+			*size = i - _backtrack_offset;
+			_backtrack_offset = i; // consume these
 
 			return ret;
 		}
@@ -256,9 +258,7 @@ class LookaheadReader {
 		_fs_buffer_offset = 0;
 	}
 
-	std::size_t _remaining_walkback_size() {
-		return _walkback_buffer.size() - _walkback_offset;
-	}
+	std::size_t _remaining_backtrack_size() { return _backtrack_offset; }
 
 	std::size_t _remaining_fs_buffer_size() {
 		return _fs_buffer_size - _fs_buffer_offset;
@@ -271,8 +271,8 @@ class LookaheadReader {
 	std::size_t _fs_buffer_offset;
 	std::size_t _fs_buffer_size;
 
-	std::array<char, 256> _walkback_buffer;
-	std::size_t _walkback_offset;
+	std::array<char, 256> _backtrack_buffer;
+	std::size_t _backtrack_offset;
 };
 
 } // namespace p8
