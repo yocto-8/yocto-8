@@ -122,7 +122,7 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 	auto clip = device<devices::ClippingRectangle>;
 
 	// convert from negative target size to positive target size, but with
-	// flipped sprite flag
+	// flipped sprite coords
 	if (target_width < 0) {
 		x_flip = !x_flip;
 		target_width = -target_width;
@@ -145,13 +145,18 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 		target_origin.with_offset(target_width, target_height)
 			.min(clip.bottom_right());
 
-	// TODO: fast path if sprite_width == target_width and sprite_height ==
-	// target_height, to avoid the division.
-
 	// step value added to the sprite coordinate for each real pixel
 	// this will be flipped later when using x_ or y_ flip
-	LuaFix16 x_spr_step = LuaFix16(sprite_width) / LuaFix16(target_width);
-	LuaFix16 y_spr_step = LuaFix16(sprite_height) / LuaFix16(target_height);
+	LuaFix16 x_spr_step = 1, y_spr_step = 1;
+
+	// only bother computing the divisions if doing a stretched draw
+	if (sprite_width != target_width) {
+		x_spr_step = LuaFix16(sprite_width) / LuaFix16(target_width);
+	}
+
+	if (sprite_height != target_height) {
+		y_spr_step = LuaFix16(sprite_height) / LuaFix16(target_height);
+	}
 
 	// x/y_spr_start aren't sprite_origin, because we need to precalculate by
 	// how many sprite pixels the clipping would have shifted
