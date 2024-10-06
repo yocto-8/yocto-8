@@ -67,15 +67,36 @@ int y8_sqrt(lua_State *state) {
 
 int y8_shl(lua_State *state) {
 	const auto x = lua_tonumber(state, 1);
-	const auto bits = lua_tounsigned(state, 2);
-	lua_pushnumber(state, LuaFix16::from_fix16(x.value << bits));
+	const auto bits = lua_tonumber(state, 2);
+	lua_pushnumber(state, x << bits);
 	return 1;
 }
 
 int y8_shr(lua_State *state) {
 	const auto x = lua_tonumber(state, 1);
-	const auto bits = lua_tounsigned(state, 2);
-	lua_pushnumber(state, LuaFix16::from_fix16(x.value >> bits));
+	const auto bits = lua_tonumber(state, 2);
+	lua_pushnumber(state, x >> bits);
+	return 1;
+}
+
+int y8_lshr(lua_State *state) {
+	const auto x = lua_tonumber(state, 1);
+	const auto bits = lua_tonumber(state, 2);
+	lua_pushnumber(state, x.unsigned_right_shift(bits));
+	return 1;
+}
+
+int y8_rotl(lua_State *state) {
+	const auto x = lua_tonumber(state, 1);
+	const auto bits = lua_tonumber(state, 2);
+	lua_pushnumber(state, x.rotate_left(bits));
+	return 1;
+}
+
+int y8_rotr(lua_State *state) {
+	const auto x = lua_tonumber(state, 1);
+	const auto bits = lua_tonumber(state, 2);
+	lua_pushnumber(state, x.rotate_right(bits));
 	return 1;
 }
 
