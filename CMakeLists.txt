@@ -87,6 +87,9 @@ set(COMMON_FLAGS ${PERF_FLAGS}
     # ninja opens a pipe so the compiler disables ansi escape sequences by
     # default. let's force it for now
     "-fdiagnostics-color=always"
+
+    # relative path
+    "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/src/=src/"
 )
 
 add_link_options(${COMMON_FLAGS})

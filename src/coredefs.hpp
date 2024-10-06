@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 
 namespace y8 {
 
@@ -18,8 +19,18 @@ using Number = LuaFix16;
 using RawFix16 = fix16_t;
 using PicoAddr = u16;
 
+// FIXME: this should print to stderr, but this results in code bloat on pico
+// builds. why is that?
+
+#define release_abort(reason)                                                  \
+	printf("Runtime BUG (%s:%d): %s\n", __FILE__, __LINE__, reason);           \
+	std::abort();
+
 #define debug_assert(x) assert(x)
-#define release_assert(x) assert(x)
-#define release_abort(reason) assert(false && (reason))
+
+#define release_assert(x)                                                      \
+	if (!(x)) [[unlikely]] {                                                   \
+		release_abort(#x)                                                      \
+	}
 
 } // namespace y8

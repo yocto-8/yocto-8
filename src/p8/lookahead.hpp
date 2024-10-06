@@ -165,7 +165,7 @@ class LookaheadReader {
 			// got space to migrate to the walkback buffer.
 		}
 
-		release_abort("Y8 BUG: peeked too far into the input");
+		release_abort("peeked too far into the input");
 	}
 
 	/// Does NOT consume input. Looks ahead for a given match. The given match
