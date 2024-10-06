@@ -190,6 +190,8 @@ int y8_reload(lua_State *state) {
 	}
 
 	p8::parse(hal::fs_read_buffer, &reader, config);
+
+	hal::fs_destroy_open_context(reader);
 	return 0;
 }
 

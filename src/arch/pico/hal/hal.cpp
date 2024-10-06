@@ -1,7 +1,10 @@
+#include "emu/bufferio.hpp"
 #include "pico/time.h"
 #include <cstdio>
 #include <hal/hal.hpp>
+#include <hal/types.hpp>
 
+#include "../main/bios.hpp"
 #include <cmdthread.hpp>
 #include <hardwarestate.hpp>
 #include <pico/rand.h>
@@ -51,12 +54,31 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 
 FileOpenStatus fs_create_open_context(std::string_view path,
                                       FileReaderContext &ctx) {
+	if (path == "/y8/bios.p8") {
+		ctx.is_bios_read = true;
+		ctx.reader.bios_reader = emu::StringReader(bios_cartridge);
+		return FileOpenStatus::SUCCESS;
+	}
+
 	return FileOpenStatus::FAIL;
 }
 
-void fs_destroy_open_context(FileReaderContext &ctx) {}
+void fs_destroy_open_context(FileReaderContext &ctx) {
+	// no-op for now
+	(void)ctx;
+}
 
-const char *fs_read_buffer(void *context, std::size_t *size) { return nullptr; }
+const char *fs_read_buffer(void *context, std::size_t *size) {
+	FileReaderContext &real_context =
+		*static_cast<FileReaderContext *>(context);
+
+	if (real_context.is_bios_read) {
+		emu::StringReader &bios_reader = real_context.reader.bios_reader;
+		return bios_reader.get_reader()(size);
+	}
+
+	return nullptr;
+}
 
 std::uint32_t get_unique_seed() { return std::uint32_t(get_rand_32()); }
 

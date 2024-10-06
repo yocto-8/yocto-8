@@ -21,6 +21,7 @@ class Emulator {
 
 	void set_active_cart_path(std::string_view cart_path);
 
+	bool load_from_path(std::string_view cart_path);
 	void load_and_inject_header(Reader reader);
 	void exec(std::string_view buf);
 

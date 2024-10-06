@@ -84,5 +84,3 @@ using ReaderCallback = const char *(void *context, std::size_t *size);
 [[nodiscard]] std::uint32_t get_unique_seed();
 
 } // namespace hal
-
-#include Y8_HAL_TYPES_HPP

@@ -27,26 +27,16 @@ int main(int argc, char **argv) {
 
 	printf("Loading game from '%s'\n", cart_path.c_str());
 
-	hal::FileReaderContext cart;
-	if (hal::fs_create_open_context(cart_path.c_str(), cart) !=
-	    hal::FileOpenStatus::SUCCESS) {
-		printf("Failed to load cartridge from %s\n", cart_path.c_str());
-		return 1;
-	}
+	const auto success = emu::emulator.load_from_path(cart_path);
+	printf("Loaded with status: %d\n", success);
 
-	const auto parse_err = p8::parse(hal::fs_read_buffer, &cart);
-
-	switch (parse_err) {
-	case p8::ParserStatus::OK:
-		break;
-
-	default:
-		printf("Parsing error %d!\n", int(parse_err));
+	if (!success) {
 		return 1;
 	}
 
 	printf("RUNNING CARTRIDGE\n");
 
-	emu::emulator.set_active_cart_path(cart_path);
 	emu::emulator.run();
+
+	return 0;
 }

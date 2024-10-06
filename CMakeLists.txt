@@ -326,7 +326,6 @@ target_compile_options(${CORE_LIBRARY_TARGET}
 )
 
 target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC ${Y8_DEFINITIONS})
-target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_HAL_TYPES_HPP=\"${ARCH_HAL_ROOT}/types.hpp\")
 
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"

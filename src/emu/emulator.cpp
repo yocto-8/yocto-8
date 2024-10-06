@@ -25,6 +25,7 @@
 #include <emu/bindings/time.hpp>
 #include <emu/bindings/video.hpp>
 #include <hal/hal.hpp>
+#include <p8/parser.hpp>
 
 namespace emu {
 
@@ -243,6 +244,25 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 void Emulator::set_active_cart_path(std::string_view cart_path) {
 	lua_pushlstring(_lua, cart_path.data(), cart_path.size());
 	lua_setglobal(_lua, "__cart_name");
+}
+
+bool Emulator::load_from_path(std::string_view cart_path) {
+	set_active_cart_path(cart_path);
+
+	hal::FileReaderContext reader;
+
+	const hal::FileOpenStatus status =
+		hal::fs_create_open_context(cart_path, reader);
+
+	if (status != hal::FileOpenStatus::SUCCESS) {
+		return false;
+	}
+
+	p8::parse(hal::fs_read_buffer, &reader);
+
+	hal::fs_destroy_open_context(reader);
+
+	return true;
 }
 
 void Emulator::load_and_inject_header(Reader reader) {
