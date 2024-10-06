@@ -180,6 +180,9 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 		              LuaFix16(target_br.y - clipped_br.y) * y_spr_step;
 	}
 
+	// TODO: could this be made faster by calculating it as an offset within
+	// the framebuffer directly?
+
 	auto sprite_y = y_spr_start;
 	for (int y = clipped_tl.y; y < clipped_br.y; ++y) {
 		auto sprite_x = x_spr_start;
