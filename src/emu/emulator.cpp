@@ -210,35 +210,42 @@ void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 	printf("Buggy Lua 5.2 Generational GC enabled\n");
 	luaC_changemode(_lua, KGC_GEN);
 #endif
+	hal::load_rgb_palette(_palette);
+
+	clear_state();
+}
+
+void Emulator::bind_globals() {
 	luaL_openlibs(_lua);
 
-	device<devices::DrawPalette>.reset();
-	device<devices::DrawStateMisc>.reset();
-	device<devices::ScreenPalette>.reset();
-	device<devices::ClippingRectangle>.reset();
-	device<devices::Random>.set_seed(hal::get_unique_seed());
-
-	const auto bind = [&](const char *name, const auto &func) {
-		lua_pushcfunction(_lua, func);
-		lua_setglobal(_lua, name);
-	};
-
 	const auto stub = [&](const char *name) {
-		bind(name, [](lua_State *) {
+		lua_register(_lua, name, [](lua_State *) {
 			// printf("unimplemented blahblah\n");
 			return 0;
 		});
 	};
 
 	for (const auto &binding : y8_std) {
-		lua_pushcfunction(_lua, binding.callback);
-		lua_setglobal(_lua, binding.name);
+		lua_register(_lua, binding.name, binding.callback);
 	}
 
 	stub("music");
 	stub("sfx");
+}
 
-	hal::load_rgb_palette(_palette);
+void Emulator::clear_state() {
+	// unbind_globals();
+
+	lua_gc(_lua, LUA_GCCOLLECT, 0);
+
+	bind_globals();
+
+	_memory.fill(0);
+	device<devices::DrawPalette>.reset();
+	device<devices::DrawStateMisc>.reset();
+	device<devices::ScreenPalette>.reset();
+	device<devices::ClippingRectangle>.reset();
+	device<devices::Random>.set_seed(hal::get_unique_seed());
 }
 
 void Emulator::set_active_cart_path(std::string_view cart_path) {
@@ -431,6 +438,6 @@ void Emulator::panic(const char *message) {
 #endif
 }
 
-constinit Emulator emulator;
+Emulator emulator;
 
 } // namespace emu

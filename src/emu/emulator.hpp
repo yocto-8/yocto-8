@@ -18,6 +18,8 @@ class Emulator {
 	~Emulator();
 
 	void init(std::span<std::byte> backup_heap_buffer);
+	void bind_globals();
+	void clear_state();
 
 	void set_active_cart_path(std::string_view cart_path);
 
@@ -53,8 +55,8 @@ class Emulator {
 
 	private:
 	std::span<std::byte> _backup_heap;
-	std::array<std::uint8_t, 65536> _memory = {};
-	std::array<std::uint32_t, 32> _palette = {};
+	std::array<std::uint8_t, 65536> _memory;
+	std::array<std::uint32_t, 32> _palette;
 	lua_State *_lua = nullptr;
 
 	std::uint64_t _update_start_time = 0;
@@ -64,7 +66,7 @@ class Emulator {
 
 // void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize);
 
-extern constinit Emulator emulator;
+extern Emulator emulator;
 
 template <class Device, std::uint16_t map_address = Device::default_map_address>
 inline constexpr auto device =
