@@ -47,5 +47,6 @@ int main(int argc, char **argv) {
 
 	printf("RUNNING CARTRIDGE\n");
 
+	emu::emulator.set_active_cart_path(cart_path);
 	emu::emulator.run();
 }

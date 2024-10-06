@@ -45,7 +45,7 @@ struct Memory : MMIODevice<65536> {
 		std::memmove(&data[dst], &data[src], bytes);
 	}
 
-	void memset(std::uint16_t dst, std::uint16_t val, std::size_t bytes) const {
+	void memset(std::uint16_t dst, std::uint8_t val, std::size_t bytes) const {
 		std::memset(&data[dst], val, bytes);
 	}
 };

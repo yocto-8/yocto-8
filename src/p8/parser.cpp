@@ -58,19 +58,20 @@ int hex_digit(char c) {
 	return -1;
 }
 
-static constexpr std::array<std::pair<std::string_view, Parser::State>, 7>
+static constexpr std::array<std::pair<std::string_view, ParserState>, 7>
 	state_matchers_leading_newline{{
-		{"\n__lua__", Parser::State::PARSING_LUA},
-		{"\n__gfx__", Parser::State::PARSING_GFX},
-		{"\n__label__", Parser::State::PARSING_LABEL},
-		{"\n__gff__", Parser::State::PARSING_GFF},
-		{"\n__map__", Parser::State::PARSING_MAP},
-		{"\n__sfx__", Parser::State::PARSING_SFX},
-		{"\n__music__", Parser::State::PARSING_MUSIC},
+		{"\n__lua__", ParserState::PARSING_LUA},
+		{"\n__gfx__", ParserState::PARSING_GFX},
+		{"\n__label__", ParserState::PARSING_LABEL},
+		{"\n__gff__", ParserState::PARSING_GFF},
+		{"\n__map__", ParserState::PARSING_MAP},
+		{"\n__sfx__", ParserState::PARSING_SFX},
+		{"\n__music__", ParserState::PARSING_MUSIC},
 	}};
 
-Parser::Parser()
-	: _current_state(State::EXPECT_HEADER), _current_gfx_nibble(0),
+Parser::Parser(ParserMapConfig map_config)
+	: _map_config(map_config), _current_state(ParserState::EXPECT_HEADER),
+	  _current_gfx_nibble(0),
 	  _current_tile_nibble(2 * 128 * 32), // we start on the bottom 32 rows
 	  _current_gff_nibble(0) {}
 
@@ -80,11 +81,19 @@ Parser::Parser()
 	}
 
 ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
+	using namespace y8;
+
+	// Clear the target memory region
+	if (_map_config.clear_memory) {
+		emu::emulator.memory().memset(_map_config.target_region_start, 0,
+		                              _map_config.region_size);
+	}
+
 	LookaheadReader r(fs_reader, fs_ud);
 
 	const auto try_read_block_header = [&]() -> bool {
-		if (_current_state != State::EXPECT_HEADER &&
-		    _current_state != State::EXPECT_VERSION) {
+		if (_current_state != ParserState::EXPECT_HEADER &&
+		    _current_state != ParserState::EXPECT_VERSION) {
 
 			for (const auto &[to_match, matched_state] :
 			     state_matchers_leading_newline) {
@@ -106,39 +115,46 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 			continue;
 		}
 
-		if (_current_state == State::EXPECT_BLOCK) {
+		// Caller doesn't want to parse this section?
+		// Skip to the next line (faster than handling it later).
+		if ((_map_config.state_mask & u32(_current_state)) == 0) {
+			r.consume_until_next_line();
+			continue;
+		}
+
+		if (_current_state == ParserState::EXPECT_BLOCK) {
 			// failed to match any block, fail
 			return ParserStatus::BAD_BLOCK_HEADER;
 		}
 
 		switch (_current_state) {
-		case State::EXPECT_HEADER: {
+		case ParserState::EXPECT_HEADER: {
 			// allow trash or space after this
 			PARSER_CHECK(
 				r.consume_matches("pico-8 cartridge // http://www.pico-8.com"),
 				ParserStatus::BAD_CARTRIDGE_HEADER);
 			r.consume_until_next_line();
-			_current_state = State::EXPECT_VERSION;
+			_current_state = ParserState::EXPECT_VERSION;
 			break;
 		}
 
-		case State::EXPECT_VERSION: {
+		case ParserState::EXPECT_VERSION: {
 			// allow any version string after this
 			PARSER_CHECK(r.consume_matches("version "),
 			             ParserStatus::BAD_VERSION_LINE);
 			r.consume_until_next_line();
-			_current_state = State::EXPECT_BLOCK;
+			_current_state = ParserState::EXPECT_BLOCK;
 			break;
 		}
 
-		case State::PARSING_LUA: {
+		case ParserState::PARSING_LUA: {
 			LuaBlockReaderState lua_block_state{r};
 			emu::emulator.load_and_inject_header(lua_block_state.get_reader());
-			_current_state = State::EXPECT_BLOCK;
+			_current_state = ParserState::EXPECT_BLOCK;
 			break;
 		}
 
-		case State::PARSING_GFX: {
+		case ParserState::PARSING_GFX: {
 			auto sprite_sheet = emu::device<devices::Spritesheet>;
 			char c;
 			while (
@@ -151,7 +167,7 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 			break;
 		}
 
-		case State::PARSING_MAP: {
+		case ParserState::PARSING_MAP: {
 			auto map = emu::device<devices::Map>;
 			char c;
 			while (
@@ -168,7 +184,7 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 			break;
 		}
 
-		case State::PARSING_GFF: {
+		case ParserState::PARSING_GFF: {
 			auto sprite_flags = emu::device<devices::SpriteFlags>;
 			char c;
 			while (
@@ -284,5 +300,9 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 		size);
 
 	return buf;
+}
+
+void Parser::optimize_map_config() {
+	// TODO: if some regions are known to be OOB then skip them
 }
 } // namespace p8::detail

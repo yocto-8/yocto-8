@@ -19,6 +19,8 @@ class Emulator {
 
 	void init(std::span<std::byte> memory_buffer);
 
+	void set_active_cart_path(std::string_view cart_path);
+
 	void load_and_inject_header(Reader reader);
 	void exec(std::string_view buf);
 

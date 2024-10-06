@@ -113,7 +113,7 @@ struct Binding {
 	BindingCallback &callback;
 };
 
-static constexpr std::array<Binding, 62> y8_std{{
+static constexpr std::array<Binding, 63> y8_std{{
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -148,6 +148,7 @@ static constexpr std::array<Binding, 62> y8_std{{
 	{"poke4", bindings::y8_poke4},
 	{"memcpy", bindings::y8_memcpy},
 	{"memset", bindings::y8_memset},
+	{"reload", bindings::y8_reload},
 
 	{"abs", bindings::y8_abs},
 	{"flr", bindings::y8_flr},
@@ -232,6 +233,11 @@ void Emulator::init(std::span<std::byte> memory_buffer) {
 	stub("sfx");
 
 	hal::load_rgb_palette(_palette);
+}
+
+void Emulator::set_active_cart_path(std::string_view cart_path) {
+	lua_pushlstring(_lua, cart_path.data(), cart_path.size());
+	lua_setglobal(_lua, "__cart_name");
 }
 
 void Emulator::load_and_inject_header(Reader reader) {

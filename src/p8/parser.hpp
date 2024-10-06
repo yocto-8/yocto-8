@@ -1,5 +1,6 @@
 #pragma once
 
+#include "coredefs.hpp"
 #include "hal/types.hpp"
 #include <emu/bufferio.hpp>
 #include <hal/hal.hpp>
@@ -34,34 +35,48 @@ enum class ParserStatus {
 	BAD_BLOCK_HEADER,
 };
 
+enum class ParserState {
+	EXPECT_HEADER = 1 << 0,
+	EXPECT_VERSION = 1 << 1,
+	EXPECT_BLOCK = 1 << 2,
+	PARSING_LUA = 1 << 3,
+	PARSING_GFX = 1 << 4,
+	PARSING_LABEL = 1 << 5,
+	PARSING_GFF = 1 << 6,
+	PARSING_MAP = 1 << 7,
+	PARSING_SFX = 1 << 8,
+	PARSING_MUSIC = 1 << 9,
+	DONE = 1 << 10,
+};
+
+struct ParserMapConfig {
+	y8::PicoAddr target_region_start = 0x0000;
+	y8::PicoAddr source_region_start = 0x0000;
+	y8::u32 region_size = 0x10000;
+	y8::u32 state_mask = 0xFFFFFFFF;
+	bool clear_memory = false;
+
+	ParserMapConfig &disable_state(ParserState to_disable) {
+		state_mask &= ~y8::u32(to_disable);
+		return *this;
+	}
+};
+
 namespace detail {
 
 class Parser {
 	public:
-	enum class State {
-		EXPECT_HEADER,
-		EXPECT_VERSION,
-		EXPECT_BLOCK,
-		PARSING_LUA,
-		PARSING_GFX,
-		PARSING_LABEL,
-		PARSING_GFF,
-		PARSING_MAP,
-		PARSING_SFX,
-		PARSING_MUSIC,
-		DONE,
-
-		ERRORS_BEGIN,
-		ERROR_UNKNOWN_HEADER = ERRORS_BEGIN
-	};
-
-	Parser();
+	Parser(ParserMapConfig map_config = {});
 
 	ParserStatus consume(hal::ReaderCallback &fs_reader, void *fs_ud);
-	State get_current_state() const { return _current_state; }
+	ParserState get_current_state() const { return _current_state; }
 
 	private:
-	State _current_state;
+	void optimize_map_config();
+
+	ParserMapConfig _map_config;
+
+	ParserState _current_state;
 
 	std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble;
 };
@@ -84,8 +99,9 @@ class LuaBlockReaderState {
 
 } // namespace detail
 
-inline ParserStatus parse(hal::ReaderCallback &reader, void *ud) {
-	return detail::Parser{}.consume(reader, ud);
+inline ParserStatus parse(hal::ReaderCallback &reader, void *ud,
+                          ParserMapConfig map_config = {}) {
+	return detail::Parser{map_config}.consume(reader, ud);
 }
 
 } // namespace p8

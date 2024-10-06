@@ -1,4 +1,7 @@
 #include "mmio.hpp"
+#include "hal/hal.hpp"
+#include "hal/types.hpp"
+#include "p8/parser.hpp"
 
 #include <coredefs.hpp>
 #include <emu/emulator.hpp>
@@ -136,6 +139,57 @@ int y8_memset(lua_State *state) {
 
 	emulator.memory().memset(dst, val, len);
 
+	return 0;
+}
+
+int y8_reload(lua_State *state) {
+	const auto argument_count = lua_gettop(state);
+
+	p8::ParserMapConfig config{
+		.target_region_start = y8::PicoAddr(lua_tounsigned(state, 1)),
+		.source_region_start = y8::PicoAddr(lua_tounsigned(state, 2)),
+		.region_size = argument_count >= 3 ? lua_tounsigned(state, 3) : 0x4300,
+		.clear_memory = true};
+
+	config.disable_state(p8::ParserState::PARSING_LUA);
+
+	int cart_name_stack_pos;
+	if (argument_count >= 4) {
+		cart_name_stack_pos = 4;
+	} else {
+		lua_getglobal(state, "__cart_name");
+		cart_name_stack_pos = -1;
+	}
+
+	std::string_view cart_path;
+	{
+		std::size_t cart_path_len;
+		const char *cart_path_buf =
+			lua_tolstring(state, cart_name_stack_pos, &cart_path_len);
+		cart_path = {cart_path_buf, cart_path_len};
+	}
+
+	// __cart_name still on the stack; doesn't matter, will get cleared
+
+	if (config.source_region_start != 0x0000 ||
+	    config.target_region_start != 0x0000 || config.region_size < 0x4300) {
+		printf("STUB reload(): Currently not supporting non-default memory "
+		       "region; this might cause corruption!\n");
+	}
+
+	hal::FileReaderContext reader;
+
+	const hal::FileOpenStatus status =
+		hal::fs_create_open_context(cart_path, reader);
+
+	if (status != hal::FileOpenStatus::SUCCESS) {
+		// FIXME: needs some form of debug here that's better than this
+		printf("reload from '%.*s' failed, skipping\n", int(cart_path.size()),
+		       cart_path.data());
+		return 0;
+	}
+
+	p8::parse(hal::fs_read_buffer, &reader, config);
 	return 0;
 }
 
