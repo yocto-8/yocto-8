@@ -9,17 +9,16 @@ yocto-8 is a high-performance PICO-8 implementation that aims to run unmodified 
 
 That's the plan anyway -- see [the current progress](#plans).
 
-> [!IMPORTANT]
-> See the tag [`rp2040-obsoleted`](https://github.com/yocto-8/yocto-8/tree/rp2040-obsoleted) for the branch used for the RP2040/PicoSystem ports of yocto-8.
->
-> The project should start moving away to RP2350-based design for performance and PSRAM interfacing reasons.
-
 The main implementation goals are:
-- To reach good PICO-8 compatibility
-- To be as fast as possible and to reduce the dynamic memory footprint as much as possible
+- To reach good PICO-8 compatibility.
+- To be really fast, even if that entails modding Lua.
+- To minimize the dynamic memory footprint as much as possible.
+    - Dynamic allocations are basically forbidden outside of Lua.
+    - Dual-heap support, prioritizing a faster heap.
 - To be generally portable to platforms with a high quality C++20 toolchain (it's _not great_ yet, but the plumbing is there for porting)
 
-The current plan is not to be a PICO-8 devkit, that is, it will not provide any editor tools.
+The current plan is not to be a PICO-8 devkit, that is, it will not provide any editor tools.  
+[Support PICO-8 development, buy PICO-8 (and maybe Picotron or Voxatron)!](https://www.lexaloffle.com/pico-8.php)
 
 yocto = pico².
 
@@ -31,7 +30,7 @@ With some modifications, **some** demos and games run. **Don't expect it to run 
 - Many APIs are left unimplemented.
 - Many APIs are not fully tested and may be incorrect.
 - Audio support is completely non-existent currently.
-- No filesystem support available yet (on either desktop or embedded).
+- Filesystem support is an early WIP and completely unimplemented on pico.
 - There is no UI (yet).
 
 It is possible to build and run yocto-8 on the desktop which is currently the preferred way for implementing new API features due to facilitated debugging and allowing a faster development cycle in general. The main target remains the embedded implementation.
@@ -60,11 +59,7 @@ There are (uncertain) plans to design a real handheld. The main two contenders a
 
 # Supported platforms
 
-- `Y8_ARCH=desktop`: Desktop (both with a SFML frontend and headless), primarily for testing
-
-RP2350 isn't supported yet, but is planned. The `asupico` configuration should be ported to RP2350 (most likely the [Pimoroni Pico Plus 2](https://shop.pimoroni.com/products/pimoroni-pico-plus-2?variant=42092668289107) because it has PSRAM). Currently I have not documented the wiring, and probably won't for a while as I change hardware.
-
-## Abandoned & incomplete, tag [`rp2040-obsoleted`](https://github.com/yocto-8/yocto-8/tree/rp2040-obsoleted)
+Not all platforms are regularly tested, there might be regressions, etc. etc.
 
 <div align="center">
 
@@ -73,17 +68,26 @@ yocto-8 running [Celeste Classic](https://mattmakesgames.itch.io/celesteclassic)
 
 </div>
 
+- `Y8_ARCH=desktop`: Desktop (`y8` SFML frontend, `y8-headless` no graphics), primarily for testing
 - `Y8_ARCH=pico`: Raspberry Pi Pico based platforms
-    - `Y8_PLATFORM=asupico`: My setup (Pico+SSD1351 display+8MB PSRAM+push buttons)
+    - `Y8_PLATFORM=asupico`: RP2350 M33, my setup ([Pimoroni Pico Plus 2](https://shop.pimoroni.com/products/pimoroni-pico-plus-2?variant=42092668289107) with onboard PSRAM+SSD1351 display+push buttons although not yet)
     - `Y8_PLATFORM=picosystem`: [Pimoroni PicoSystem](https://shop.pimoroni.com/products/picosystem)
+
+> [!IMPORTANT]
+> RP2040 ports for yocto-8 no longer support external PSRAM.  
+> RP2350 with PSRAM is recommended.  
+> Because PICO-8 emulates a Lua heap limit of 2MB; no amount of magic will allow
+> all games run on a MCU with a tenth of that.
 
 # Pros and cons against a SBC-based solution
 
 Pros:
-- ~Instant bootup
-- Some extra appeal: hackable firmware and allowing to support a niche specific-purpose device
-- Usually lower cost
-- It should be possible to drive power draw quite a bit lower
+- Extremely fast bootup
+- Fully hackable firmware
+- The fuzzy warm feeling of a fully custom specific-purpose game console
+- Possible to make it open hardware
+- Probably lower cost
+- Probably lower power
 
 Cons:
 - SBCs-based solutions are more general purpose (e.g. cheap emulation handhelds)
