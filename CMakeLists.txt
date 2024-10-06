@@ -247,6 +247,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/cmdthread.cpp
         ${ARCH_ROOT}/main/main.cpp
         ${CORE_ROOT}/compilerhacks/gcc_stub_verbose_terminate_handler.cpp
+        ${CORE_ROOT}/compilerhacks/gcc_exception_static_alloc.cpp
     )
     set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
 
