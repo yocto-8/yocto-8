@@ -145,7 +145,8 @@ set(LUA_SOURCES
 
     # ${LUA_ROOT}/lmathlib.c
     ${LUA_ROOT}/lmem.c
-    ${LUA_ROOT}/loadlib.c
+
+    # ${LUA_ROOT}/loadlib.c
     ${LUA_ROOT}/lobject.c
     ${LUA_ROOT}/lopcodes.c
 
