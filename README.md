@@ -4,8 +4,9 @@
 
 ## (WIP) high-performance PICO-8 cartridge runner for the Raspberry Pi Pico 2.
 
-yocto-8 is a high-performance PICO-8 implementation that aims to run unmodified games.  
-[PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console.
+yocto-8 is a high-performance PICO-8 implementation that aims to run unmodified games.
+
+[PICO-8](https://www.lexaloffle.com/pico-8.php) is a fantasy game console from Lexaloffle which allows you to create, edit, share and play small games in a virtual console. **This project and its developers are unaffiliated with PICO-8.**
 
 That's the plan anyway -- see [the current progress](#plans).
 
