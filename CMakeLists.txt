@@ -289,6 +289,12 @@ elseif(Y8_ARCH STREQUAL "pico")
         message(FATAL_ERROR "Y8_PLATFORM not specified, illegal or not supported on the \"pico\" arch")
     endif()
 
+    set_property(
+        SOURCE ${ARCH_SOURCES} ${PLATFORM_SOURCES}
+        APPEND PROPERTY COMPILE_OPTIONS
+        "-flto"
+    )
+
     add_executable(${CORE_LIBRARY_TARGET} ${ARCH_SOURCES} ${PLATFORM_SOURCES})
 
     target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore pico_rand)
