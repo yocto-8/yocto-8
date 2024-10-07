@@ -6,12 +6,21 @@
 #include <hardwarestate.hpp>
 #include <video/palette.hpp>
 
+// provided by linker script
+extern "C" {
+extern char __heap_start, __heap_end;
+}
+
 namespace arch::pico::platform {
 
 void init_hardware() {
 	using namespace asupico;
 
 	init_stdio();
+
+	printf("Flash size: %d bytes\n", PICO_FLASH_SIZE_BYTES);
+	printf(" Heap size: %d bytes\n", &__heap_end - &__heap_start);
+
 	printf("Configuring frequency and clock divisors\n");
 	init_flash_frequency();
 	init_default_frequency();
