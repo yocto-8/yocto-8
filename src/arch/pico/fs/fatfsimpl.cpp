@@ -33,7 +33,7 @@ DSTATUS disk_status(BYTE pdrv) {
 
 // Only support a fixed section size
 DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count) {
-	printf("Initiating read (sector %d count %d)\n", sector, count);
+	// printf("Initiating read (sector %d count %d)\n", sector, count);
 	switch (pdrv) {
 	case FAT_DEVICE_FLASH:
 		static_assert(FF_MIN_SS == FF_MAX_SS);
@@ -59,7 +59,7 @@ void __no_inline_not_in_flash_func(flash_fatfs_write)(
 }
 
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count) {
-	printf("Initiating write (sector %d count %d)\n", sector, count);
+	// printf("Initiating write (sector %d count %d)\n", sector, count);
 	switch (pdrv) {
 	case FAT_DEVICE_FLASH: {
 		std::size_t sector_offset = sector * FF_MAX_SS;
