@@ -1,9 +1,12 @@
+#include "fs/types.hpp"
+#include <array>
 #include <cstdint>
 #include <pico/stdio.h>
 #include <platform/asupico/asupico.hpp>
 
 #include <cstdio>
 #include <emu/tinyalloc.hpp>
+#include <ff.h>
 #include <hardware/clocks.h>
 #include <hardware/structs/pads_qspi.h>
 #include <hardware/structs/qmi.h>
@@ -296,6 +299,34 @@ void init_video_ssd1351() {
 	asupico::hw.ssd1351.init(
 		{.spi = video_spi,
 	     .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6}});
+}
+
+void init_flash_fatfs() {
+	FRESULT res;
+
+	res = f_mount(&asupico::hw.flash_fatfs, "0:/", 1);
+	if (res != FR_OK) {
+		printf("Failed to mount flash FatFS (err=%d)\n", res);
+
+		// format flash partition
+		std::array<char, FF_MAX_SS> work_buffer;
+		MKFS_PARM fmt_opt = {FM_ANY, 0, 0, 0, 0};
+		res = f_mkfs("0:", &fmt_opt, work_buffer.data(), work_buffer.size());
+
+		if (res != FR_OK) {
+			printf("Failed to format flash FatFS (err=%d)\n", res);
+			release_abort("FatFS failed");
+		}
+
+		res = f_mount(&asupico::hw.flash_fatfs, "0:/", 1);
+		if (res != FR_OK) {
+			printf("Failed to mount flash FatFS after formatting (err=%d)\n",
+			       res);
+			release_abort("FatFS failed");
+		}
+
+		printf("Successfully formatted flash FatFS\n");
+	}
 }
 
 } // namespace arch::pico::platform::asupico

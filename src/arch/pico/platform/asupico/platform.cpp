@@ -1,5 +1,7 @@
+#include "fs/types.hpp"
 #include <cstdio>
 #include <emu/tinyalloc.hpp>
+#include <pico/flash.h>
 #include <platform/asupico/asupico.hpp>
 #include <platform/platform.hpp>
 
@@ -9,6 +11,7 @@
 // provided by linker script
 extern "C" {
 extern char __heap_start, __heap_end;
+extern char __flash_binary_start, __flash_binary_end;
 }
 
 namespace arch::pico::platform {
@@ -18,8 +21,12 @@ void init_hardware() {
 
 	init_stdio();
 
-	printf("Flash size: %d bytes\n", PICO_FLASH_SIZE_BYTES);
-	printf(" Heap size: %d bytes\n", &__heap_end - &__heap_start);
+	printf("   Flash size: %d bytes\n", PICO_FLASH_SIZE_BYTES);
+	printf("Firmware size: %d bytes (reserved: %d)\n", y8_firmware_size,
+	       Y8_RESERVED_FIRMWARE_SIZE);
+	release_assert(y8_firmware_size < Y8_RESERVED_FIRMWARE_SIZE);
+	printf("Int. FAT size: %d bytes\n", y8_fatfs_size);
+	printf("    Heap size: %d bytes\n", &__heap_end - &__heap_start);
 
 	printf("Configuring frequency and clock divisors\n");
 	init_flash_frequency();
@@ -33,8 +40,11 @@ void init_hardware() {
 	init_buttons();
 	printf("Configuring video\n");
 	init_video_ssd1351();
-	printf("Booting command thread\n"); // should be done after all hw init
-	init_cmd_thread();
+	printf("Booting command thread\n");
+	init_cmd_thread(); // should be done after most hw init
+	printf("Configuring FatFS (flash)\n");
+	init_flash_fatfs(); // should be done after command thread init (for flash
+	                    // lock mechanism reasons)
 	printf("Configuring emulator\n");
 	init_emulator(psram_size);
 	printf("Hardware init done\n");
