@@ -31,13 +31,18 @@ static std::uint64_t timer_start_micros;
 
 // TODO: headless: time accounting should be less shite
 
-void reset_timer() { timer_start_micros = measure_time_us(); }
+std::uint64_t absolute_timer_value() {
+	struct timeval tv;
+	gettimeofday(&tv, nullptr);
+	return (1000000 * std::uint64_t(tv.tv_sec) + std::uint64_t(tv.tv_usec));
+}
+
+void reset_timer() { timer_start_micros = absolute_timer_value(); }
 
 std::uint64_t measure_time_us() {
 	struct timeval tv;
 	gettimeofday(&tv, nullptr);
-	return (1000000 * std::uint64_t(tv.tv_sec) + std::uint64_t(tv.tv_usec)) -
-	       timer_start_micros;
+	return absolute_timer_value() - timer_start_micros;
 }
 
 void delay_time_us(std::uint64_t time) { usleep(time); }
