@@ -64,7 +64,8 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 endif()
 
 set(LUA_EXTRA_CXXFLAGS
-    "-Wno-implicit-fallthrough -Wno-unused-function"
+    "-Wno-implicit-fallthrough"
+    "-Wno-unused-function"
 )
 
 if(Y8_ARCH STREQUAL "pico")
@@ -83,7 +84,6 @@ if(Y8_ARCH STREQUAL "pico")
 endif()
 
 set(COMMON_FLAGS ${PERF_FLAGS}
-    "-gsplit-dwarf"
 
     # ninja opens a pipe so the compiler disables ansi escape sequences by
     # default. let's force it for now
@@ -93,7 +93,7 @@ set(COMMON_FLAGS ${PERF_FLAGS}
     "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/src/=src/"
 )
 
-add_link_options(${COMMON_FLAGS})
+add_link_options(${COMMON_FLAGS} "-flto=auto")
 add_compile_options(${COMMON_FLAGS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fexceptions -fno-rtti")
@@ -173,17 +173,24 @@ set(LUA_SOURCES
 
 # compile Lua as C++ - we need this for the fixmath black magic
 set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
-set_source_files_properties(${LUA_SOURCES} COMPILE_FLAGS ${LUA_EXTRA_CXXFLAGS})
+set_property(
+    SOURCE ${LUA_SOURCES}
+    APPEND PROPERTY COMPILE_OPTIONS
+    ${LUA_EXTRA_CXXFLAGS}
+)
 
-set_source_files_properties(
-    ${LUA_ROOT}/lvm.c
+set_property(
+    SOURCE ${LUA_ROOT}/lvm.c
+    APPEND PROPERTY COMPILE_OPTIONS
 
     # increasing the inlining threshold and using -O3 adds a few KiB of code
     # size here (which goes to SRAM) but it seems to help execution time by ~5%
     #
     # it might be that a single inline is responsible for this; can we find
     # which?
-    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -finline-limit=200 -Ofast"
+    ${LUA_EXTRA_CXXFLAGS}
+    "-finline-limit=200"
+    "-Ofast"
 )
 
 # Commented out: for now, use C++ exceptions, not longjmp.
@@ -210,8 +217,17 @@ set(SIZE_SENSITIVE_SOURCES
     ${FIXMATH_ROOT}/fix16_str.c
 )
 
-set_source_files_properties(${SIZE_SENSITIVE_SOURCES}
-    PROPERTIES COMPILE_FLAGS "${LUA_EXTRA_CXXFLAGS} -Os")
+set_property(
+    SOURCE ${SIZE_SENSITIVE_SOURCES}
+    APPEND PROPERTY COMPILE_OPTIONS
+    "-Os"
+)
+
+set_property(
+    SOURCE ${CORE_SOURCES} ${LUA_SOURCES} ${FIXMATH_SOURCES}
+    APPEND PROPERTY COMPILE_OPTIONS
+    "-flto"
+)
 
 if(Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
