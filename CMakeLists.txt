@@ -204,6 +204,11 @@ set(FIXMATH_SOURCES
 )
 set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 
+set(FATFS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fatfs/")
+set(FATFS_SOURCES
+    ${FATFS_ROOT}/ff.c
+)
+
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
 set(SIZE_SENSITIVE_SOURCES
@@ -264,6 +269,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/main/main.cpp
         ${CORE_ROOT}/compilerhacks/gcc_stub_verbose_terminate_handler.cpp
         ${CORE_ROOT}/compilerhacks/gcc_exception_static_alloc.cpp
+        ${FATFS_SOURCES}
     )
     set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
 
