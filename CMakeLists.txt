@@ -266,6 +266,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/hal/hal.cpp
         ${ARCH_ROOT}/hardwarestate.cpp
         ${ARCH_ROOT}/cmdthread.cpp
+        ${ARCH_ROOT}/fs/fatfsimpl.cpp
         ${ARCH_ROOT}/main/main.cpp
         ${CORE_ROOT}/compilerhacks/gcc_stub_verbose_terminate_handler.cpp
         ${CORE_ROOT}/compilerhacks/gcc_exception_static_alloc.cpp
@@ -302,6 +303,10 @@ elseif(Y8_ARCH STREQUAL "pico")
     )
 
     add_executable(${CORE_LIBRARY_TARGET} ${ARCH_SOURCES} ${PLATFORM_SOURCES})
+
+    target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fatfs/"
+    )
 
     target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore pico_rand)
 
