@@ -6,9 +6,11 @@
 
 #include "../main/bios.hpp"
 #include <cmdthread.hpp>
+#include <hardware/pwm.h>
 #include <hardwarestate.hpp>
 #include <pico/rand.h>
 #include <pico/stdio.h>
+#include <pico/stdlib.h>
 
 namespace hal {
 
@@ -27,7 +29,13 @@ std::uint64_t measure_time_us() {
 	return absolute_time_diff_us(pico::state.timer_start, current_time);
 }
 
-void delay_time_us(std::uint64_t time) { sleep_us(time); }
+void delay_time_us(std::uint64_t time) {
+	// squared to compensate for non-linear power vs brightness curve
+	pwm_set_gpio_level(PICO_DEFAULT_LED_PIN, 0);
+	sleep_us(time);
+	pwm_set_gpio_level(PICO_DEFAULT_LED_PIN,
+	                   Y8_LED_PWM_SCALE * Y8_LED_PWM_SCALE);
+}
 
 std::span<char> read_repl(std::span<char> target_buffer) {
 	// FIXME: at current this hangs both the picosystem and my setup if there is

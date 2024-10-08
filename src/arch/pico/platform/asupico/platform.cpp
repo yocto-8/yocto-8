@@ -36,8 +36,8 @@ void init_hardware() {
 	printf("Configuring PSRAM heap\n");
 	ta_init();
 	printf("PSRAM configured with size %dKiB\n", psram_size / 1024);
-	printf("Configuring buttons\n");
-	init_buttons();
+	printf("Configuring GPIO\n");
+	init_basic_gpio();
 	printf("Configuring video\n");
 	init_video_ssd1351();
 	printf("Booting command thread\n");

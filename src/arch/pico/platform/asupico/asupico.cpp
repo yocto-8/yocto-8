@@ -1,6 +1,7 @@
 #include "fs/types.hpp"
 #include <array>
 #include <cstdint>
+#include <hardware/pwm.h>
 #include <pico/stdio.h>
 #include <platform/asupico/asupico.hpp>
 
@@ -84,7 +85,11 @@ void init_default_frequency() {
 
 void init_stdio() { stdio_init_all(); }
 
-void init_buttons() {
+void init_basic_gpio() {
+	gpio_set_function(PICO_DEFAULT_LED_PIN, GPIO_FUNC_PWM);
+	pwm_set_enabled(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN), true);
+	pwm_set_wrap(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN), 65535);
+
 	hw.buttons[0].init(16);
 	hw.buttons[1].init(18);
 	hw.buttons[2].init(17);

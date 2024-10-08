@@ -26,6 +26,7 @@ add_y8_definition_flag(Y8_DEBUG_MEMCHECK OFF "On PSRAM-enabled systems, run a qu
 add_y8_definition_flag(Y8_EXPERIMENTAL_GENGC ON "Enable the experimental Lua 5.2 generational GC, which is known to have bugs but can prove beneficial for performance")
 add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
 add_y8_definition_string(Y8_RESERVED_FIRMWARE_SIZE 395264 "Reserved firmware size, in bytes. The rest may be used for the internal FAT storage. Modifying firmware size will break existing partitions. Defaults to 386KiB")
+add_y8_definition_string(Y8_LED_PWM_SCALE 80 "Max PWM value (out of 255) for the main onboard LED, if relevant.")
 
 # force disabling the use of ctype for lua so that we handle UTF-8 ourselves
 add_compile_definitions(LUA_USE_CTYPE=0)
@@ -309,7 +310,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fatfs/"
     )
 
-    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore pico_rand pico_flash)
+    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore pico_rand pico_flash hardware_pwm)
 
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_INFINITE_LOOP_EXIT)
 
