@@ -25,7 +25,7 @@ endfunction()
 add_y8_definition_flag(Y8_DEBUG_MEMCHECK OFF "On PSRAM-enabled systems, run a quick memory test script to sanity check whether the PSRAM appears functional and stable. If the memcheck fails, an error will be logged and the PSRAM heap will be disabled")
 add_y8_definition_flag(Y8_EXPERIMENTAL_GENGC ON "Enable the experimental Lua 5.2 generational GC, which is known to have bugs but can prove beneficial for performance")
 add_y8_definition_flag(Y8_LUA_REPL ON "Enable the stdin Lua REPL")
-add_y8_definition_string(Y8_RESERVED_FIRMWARE_SIZE 395264 "Reserved firmware size, in bytes. The rest may be used for the internal FAT storage. Modifying firmware size will break existing partitions. Defaults to 386KiB")
+add_y8_definition_string(Y8_RESERVED_FIRMWARE_SIZE 397312 "Reserved firmware size, in bytes. Must align to 4096. The rest may be used for the internal FAT storage. Modifying firmware size will break existing partitions. Defaults to 386KiB (up-aligned to 4K page)")
 add_y8_definition_string(Y8_LED_PWM_SCALE 80 "Max PWM value (out of 255) for the main onboard LED, if relevant.")
 
 # force disabling the use of ctype for lua so that we handle UTF-8 ourselves
@@ -209,6 +209,7 @@ set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 set(FATFS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fatfs/")
 set(FATFS_SOURCES
     ${FATFS_ROOT}/ff.c
+    ${FATFS_ROOT}/ffunicode.c
 )
 
 # we care more about code size than about performance for some functionality.
@@ -269,9 +270,14 @@ elseif(Y8_ARCH STREQUAL "pico")
         ${ARCH_ROOT}/hardwarestate.cpp
         ${ARCH_ROOT}/cmdthread.cpp
         ${ARCH_ROOT}/fs/fatfsimpl.cpp
+        ${ARCH_ROOT}/fs/hwinit.cpp
+        ${ARCH_ROOT}/usb/usb_descriptors.cpp
+        ${ARCH_ROOT}/usb/hwinit.cpp
+        ${ARCH_ROOT}/usb/msc_disk.cpp
         ${ARCH_ROOT}/main/main.cpp
         ${CORE_ROOT}/compilerhacks/gcc_stub_verbose_terminate_handler.cpp
-        ${CORE_ROOT}/compilerhacks/gcc_exception_static_alloc.cpp
+
+        # ${CORE_ROOT}/compilerhacks/gcc_exception_static_alloc.cpp
         ${FATFS_SOURCES}
     )
     set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
@@ -308,9 +314,19 @@ elseif(Y8_ARCH STREQUAL "pico")
 
     target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fatfs/"
+        "${ARCH_ROOT}/usb/"
     )
 
-    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC pico_stdlib pico_multicore pico_rand pico_flash hardware_pwm)
+    target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC
+        pico_stdlib
+        pico_multicore
+        pico_rand
+        pico_flash
+        hardware_pwm
+        pico_unique_id
+        tinyusb_device
+        tinyusb_board
+    )
 
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_INFINITE_LOOP_EXIT)
 

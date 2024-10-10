@@ -22,5 +22,7 @@ inline const std::size_t y8_fatfs_size =
 inline char *y8_fatfs_base_nocache = reinterpret_cast<char *>(
 	XIP_NOCACHE_NOALLOC_BASE + Y8_RESERVED_FIRMWARE_SIZE);
 
+static_assert(Y8_RESERVED_FIRMWARE_SIZE % 4096 == 0, "Firmware size must land on 4K page boundary!");
+
 inline char *y8_fatfs_base_cache =
 	reinterpret_cast<char *>(XIP_BASE + Y8_RESERVED_FIRMWARE_SIZE);

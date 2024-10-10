@@ -1,4 +1,6 @@
 #include "fs/types.hpp"
+#include <arch/pico/fs/hwinit.hpp>
+#include <arch/pico/usb/hwinit.hpp>
 #include <cstdio>
 #include <emu/tinyalloc.hpp>
 #include <pico/flash.h>
@@ -45,6 +47,8 @@ void init_hardware() {
 	printf("Configuring FatFS (flash)\n");
 	init_flash_fatfs(); // should be done after command thread init (for flash
 	                    // lock mechanism reasons)
+	printf("Initializing USB\n");
+	init_usb_device();
 	printf("Configuring emulator\n");
 	init_emulator(psram_size);
 	printf("Hardware init done\n");

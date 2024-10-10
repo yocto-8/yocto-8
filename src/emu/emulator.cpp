@@ -403,6 +403,8 @@ void Emulator::flip() {
 	lua_gc(_lua, LUA_GCSTEP, 100);
 #endif
 
+	hal::post_frame_hooks();
+
 	const auto taken_time = hal::measure_time_us() - _frame_start_time;
 
 	if (taken_time < _frame_target_time) {

@@ -45,6 +45,8 @@ std::uint64_t measure_time_us() {
 	return absolute_timer_value() - timer_start_micros;
 }
 
+void post_frame_hooks() {}
+
 void delay_time_us(std::uint64_t time) { usleep(time); }
 
 void load_rgb_palette(

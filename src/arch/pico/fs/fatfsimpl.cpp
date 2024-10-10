@@ -101,6 +101,7 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff) {
 		case GET_BLOCK_SIZE: // erase block size: 4K
 			static_assert(FF_MIN_SS == 4096);
 			*static_cast<DWORD *>(buff) = 1;
+			return RES_OK;
 		default:
 			return RES_PARERR;
 		}

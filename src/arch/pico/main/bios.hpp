@@ -1,6 +1,7 @@
-#pragma once
+#include <string_view>
 
-#include "cartridges/closed/orbys.hpp"
-
-// temporary hack while we do not have fs stuff
-constexpr std::string_view bios_cartridge = cartridge;
+std::string_view bios_cartridge =
+	R"(pico-8 cartridge // http://www.pico-8.com
+version 32
+__lua__
+print("Y8 bios", 8, 8); flip(); load("/flash/y8/shell.p8"))";

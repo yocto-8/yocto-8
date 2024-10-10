@@ -22,6 +22,5 @@ void init_basic_gpio();
 void init_emulator(std::size_t psram_size);
 std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)();
 void init_video_ssd1351();
-void init_flash_fatfs();
 
 } // namespace arch::pico::platform::asupico

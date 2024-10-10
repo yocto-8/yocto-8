@@ -11,6 +11,7 @@
 #include <pico/rand.h>
 #include <pico/stdio.h>
 #include <pico/stdlib.h>
+#include <tusb.h>
 
 namespace hal {
 
@@ -37,6 +38,8 @@ void delay_time_us(std::uint64_t time) {
 	                   Y8_LED_PWM_SCALE * Y8_LED_PWM_SCALE);
 }
 
+void post_frame_hooks() { tud_task(); }
+
 std::span<char> read_repl(std::span<char> target_buffer) {
 	// FIXME: at current this hangs both the picosystem and my setup if there is
 	// nothing receiving
@@ -58,22 +61,37 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 	return {};
 }
 
-// filesystem stubs
-
 FileOpenStatus fs_create_open_context(std::string_view path,
                                       FileReaderContext &ctx) {
-	if (path == "/y8/bios.p8") {
+	if (path == "/bios/bios.p8") {
 		ctx.is_bios_read = true;
 		ctx.reader.bios_reader = emu::StringReader(bios_cartridge);
 		return FileOpenStatus::SUCCESS;
 	}
 
-	return FileOpenStatus::FAIL;
+	// std::string_view is not a C string...
+	std::array<char, 128> filename_c_buffer;
+
+	if (path.size() + 1 > filename_c_buffer.size()) {
+		return FileOpenStatus::FAIL;
+	}
+
+	std::memcpy(filename_c_buffer.data(), path.data(), path.size());
+	filename_c_buffer[path.size()] = '\0';
+
+	if (const auto open_status =
+	        f_open(&ctx.reader.fs_reader, filename_c_buffer.data(), FA_READ);
+	    open_status != FR_OK) {
+		return FileOpenStatus::FAIL;
+	}
+
+	return FileOpenStatus::SUCCESS;
 }
 
 void fs_destroy_open_context(FileReaderContext &ctx) {
-	// no-op for now
-	(void)ctx;
+	if (!ctx.is_bios_read) {
+		f_close(&ctx.reader.fs_reader);
+	}
 }
 
 const char *fs_read_buffer(void *context, std::size_t *size) {
@@ -83,6 +101,16 @@ const char *fs_read_buffer(void *context, std::size_t *size) {
 	if (real_context.is_bios_read) {
 		emu::StringReader &bios_reader = real_context.reader.bios_reader;
 		return bios_reader.get_reader()(size);
+	} else {
+		if (f_read(&real_context.reader.fs_reader,
+		           real_context.read_buffer.data(),
+		           real_context.read_buffer.size(), size) != FR_OK) {
+			// TODO: error handling
+			*size = 0;
+			return nullptr;
+		}
+
+		return *size != 0 ? real_context.read_buffer.data() : nullptr;
 	}
 
 	return nullptr;

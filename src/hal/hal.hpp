@@ -26,6 +26,10 @@ void reset_timer();
 /// maintainer by then, so not my problem.
 [[nodiscard]] std::uint64_t measure_time_us();
 
+/// @brief Function called just prior to sleeping before the next tick, usually
+/// to do some hardware housekeeping.
+void post_frame_hooks();
+
 /// @brief Wait for approximately @p time microseconds.
 void delay_time_us(std::uint64_t time);
 
