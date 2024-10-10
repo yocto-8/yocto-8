@@ -332,6 +332,8 @@ void init_flash_fatfs() {
 
 		printf("Successfully formatted flash FatFS\n");
 	}
+
+	f_setlabel("0:y8-flash");
 }
 
 } // namespace arch::pico::platform::asupico
