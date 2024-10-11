@@ -5,13 +5,15 @@
 #include <cstring>
 #include <cxxabi.h>
 
-std::array<std::uint8_t, 1024> exception_buffer;
-std::size_t exception_buffer_offset = 0;
-std::size_t allocated_exceptions = 0;
+static std::array<std::uint8_t, 1024> exception_buffer;
+static std::size_t exception_buffer_offset = 0;
+static std::size_t allocated_exceptions = 0;
 
 // HACK: Must be >= the size of __cxxabiv1::__cxa_refcounted_exception
 // we don't have access to the definition(?)
 static constexpr std::size_t cxa_exception_size = 128;
+
+static constexpr std::size_t cxa_alignment = 8;
 
 extern "C" {
 
@@ -27,6 +29,11 @@ extern "C" {
 // we raise either way.
 
 void *__cxa_allocate_exception(unsigned int p_size) noexcept {
+	// upalign p_size for next alloc
+	if (p_size % cxa_alignment != 0) {
+		p_size += cxa_alignment - (p_size % cxa_alignment);
+	}
+
 	std::size_t alloc_size = p_size + cxa_exception_size;
 
 	if (exception_buffer_offset + alloc_size >= exception_buffer.size()) {
