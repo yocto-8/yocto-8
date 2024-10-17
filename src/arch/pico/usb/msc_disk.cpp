@@ -105,7 +105,8 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset,
 	release_assert(offset == 0);
 	release_assert(bufsize == 4096);
 
-	if (disk_read(0, static_cast<BYTE*>(buffer), lba, bufsize / 4096) != RES_OK) {
+	if (disk_read(0, static_cast<BYTE *>(buffer), lba, bufsize / 4096) !=
+	    RES_OK) {
 		return -1;
 	}
 
@@ -124,7 +125,8 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset,
 	release_assert(offset == 0);
 	release_assert(bufsize == 4096);
 
-	if (disk_write(0, static_cast<const BYTE*>(buffer), lba, bufsize / 4096) != RES_OK) {
+	if (disk_write(0, static_cast<const BYTE *>(buffer), lba, bufsize / 4096) !=
+	    RES_OK) {
 		return -1;
 	}
 

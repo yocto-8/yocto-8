@@ -33,8 +33,6 @@ void init_flash_fatfs() {
 	}
 
 	f_setlabel("/flash/y8-flash");
-
-	f_mkdir("/flash/wtf/");
 }
 
 } // namespace arch::pico

@@ -9,6 +9,8 @@
 
 #include <cstdio>
 #include <hardware/flash.h>
+#include <hardware/sync.h>
+#include <pico/bootrom.h>
 #include <pico/platform/sections.h>
 
 // SAFETY NOTES:
@@ -51,11 +53,46 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count) {
 	return RES_PARERR;
 }
 
+#define FLASH_BLOCK_ERASE_CMD 0xd8
+
 void __no_inline_not_in_flash_func(flash_fatfs_write)(
 	const BYTE *source_buffer, std::size_t sector_flash_offset,
 	std::size_t byte_count) {
+	uint32_t interrupt_state = save_and_disable_interrupts();
+
+#if PICO_RP2040
 	flash_range_erase(sector_flash_offset, byte_count);
 	flash_range_program(sector_flash_offset, source_buffer, byte_count);
+#else
+	// hacky code path that avoids reinitializing XIP
+	// initializing XIP through boot2 causes issues on some boards for some
+	// reason
+
+	rom_connect_internal_flash_fn connect_internal_flash_func =
+		(rom_connect_internal_flash_fn)rom_func_lookup_inline(
+			ROM_FUNC_CONNECT_INTERNAL_FLASH);
+	rom_flash_range_erase_fn flash_range_erase_func =
+		(rom_flash_range_erase_fn)rom_func_lookup_inline(
+			ROM_FUNC_FLASH_RANGE_ERASE);
+	rom_flash_range_program_fn flash_range_program_func =
+		(rom_flash_range_program_fn)rom_func_lookup_inline(
+			ROM_FUNC_FLASH_RANGE_PROGRAM);
+	rom_flash_flush_cache_fn flash_flush_cache_func =
+		(rom_flash_flush_cache_fn)rom_func_lookup_inline(
+			ROM_FUNC_FLASH_FLUSH_CACHE);
+	assert(connect_internal_flash_func && flash_range_erase_func &&
+	       flash_range_program_func && flash_flush_cache_func);
+
+	connect_internal_flash_func();
+	flash_range_erase_func(sector_flash_offset, byte_count, FLASH_BLOCK_SIZE,
+	                       FLASH_BLOCK_ERASE_CMD);
+	flash_range_program_func(sector_flash_offset, source_buffer, byte_count);
+	flash_flush_cache_func();
+
+	__compiler_memory_barrier();
+#endif
+
+	restore_interrupts(interrupt_state);
 }
 
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count) {
