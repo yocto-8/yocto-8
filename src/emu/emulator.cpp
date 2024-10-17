@@ -457,8 +457,9 @@ void Emulator::panic(const char *message) {
 	hal::present_frame();
 
 #ifdef Y8_INFINITE_LOOP_EXIT
-	for (;;)
-		;
+	for (;;) {
+		hal::present_frame();
+	}
 #else
 	exit(1);
 #endif
