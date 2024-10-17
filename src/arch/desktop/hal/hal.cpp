@@ -73,6 +73,10 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 	return {};
 }
 
+void fs_set_working_directory(std::string_view path) {
+	chdir(std::string(path).c_str());
+}
+
 FileOpenStatus fs_create_open_context(std::string_view path,
                                       FileReaderContext &ctx) {
 	ctx.file = fopen(std::string(path).c_str(), "rb");

@@ -44,21 +44,34 @@ std::span<char> read_repl(std::span<char> target_buffer) {
 	// FIXME: at current this hangs both the picosystem and my setup if there is
 	// nothing receiving
 
-	// int c = stdio_getchar_timeout_us(0);
+	int c = stdio_getchar_timeout_us(0);
 
-	// if (c == PICO_ERROR_TIMEOUT || c == '\n' || c == '\r') {
-	// 	return {};
-	// }
+	if (c == PICO_ERROR_TIMEOUT || c == '\n' || c == '\r') {
+		return {};
+	}
 
-	// std::size_t i = 0;
-	// do {
-	// 	target_buffer[i] = c;
-	// 	c = getchar();
-	// 	++i;
-	// } while (c != '\r' && c != '\n');
+	std::size_t i = 0;
+	do {
+		target_buffer[i] = c;
+		c = getchar();
+		++i;
+	} while (c != '\r' && c != '\n');
 
-	// return {target_buffer.data(), i};
-	return {};
+	return {target_buffer.data(), i};
+}
+
+void fs_set_working_directory(std::string_view path) {
+	// std::string_view is not a C string...
+	std::array<char, 128> filename_c_buffer;
+
+	if (path.size() + 1 > filename_c_buffer.size()) {
+		return; // TODO: error status; or just exceptions...?
+	}
+
+	std::memcpy(filename_c_buffer.data(), path.data(), path.size());
+	filename_c_buffer[path.size()] = '\0';
+
+	f_chdir(filename_c_buffer.data());
 }
 
 FileOpenStatus fs_create_open_context(std::string_view path,

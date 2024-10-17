@@ -51,8 +51,14 @@ struct FileReaderContext;
 
 enum class FileOpenStatus { SUCCESS, FAIL };
 
+/// @brief Sets the active working directory to the given path. Following this,
+/// files can be opened
+void fs_set_working_directory(std::string_view path);
+
 /// @brief Opens a file with the given path in the filesystem in a blocking
 /// fashion. Initializes the `out` context.
+/// The path is resolved according to the current working directory, unless an
+/// absolute path is given.
 /// @returns FileOpenStatus::SUCCESS is the file is readable, FAIL otherwise.
 [[nodiscard]] FileOpenStatus fs_create_open_context(std::string_view path,
                                                     FileReaderContext &out);

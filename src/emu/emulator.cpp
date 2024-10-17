@@ -268,6 +268,12 @@ bool Emulator::load_from_path(std::string_view cart_path) {
 	       cart_path.data());
 	set_active_cart_path(cart_path);
 
+	if (const auto last_dash_pos = cart_path.find_last_of("/\\");
+	    last_dash_pos != cart_path.npos) {
+
+		hal::fs_set_working_directory(cart_path.substr(0, last_dash_pos));
+	}
+
 	hal::FileReaderContext reader;
 
 	const hal::FileOpenStatus status =
@@ -458,6 +464,7 @@ void Emulator::panic(const char *message) {
 
 #ifdef Y8_INFINITE_LOOP_EXIT
 	for (;;) {
+		handle_repl();
 		hal::present_frame();
 	}
 #else

@@ -16,16 +16,7 @@ int main(int argc, char **argv) {
 
 	emu::emulator.init(yolo_heap);
 
-	// for now chdir straight up here. later on we need proper vfs stuff
-	// this also only handles linux paths
-	std::string cart_path = std::string(argv[1]);
-	const std::string cart_dir = cart_path.substr(0, cart_path.rfind('/'));
-	cart_path = cart_path.substr(cart_dir.size() + 1);
-
-	printf("Setting root directory to '%s'\n", cart_dir.c_str());
-	chdir(cart_dir.c_str());
-
-	const auto success = emu::emulator.load_from_path(cart_path);
+	const auto success = emu::emulator.load_from_path(argv[1]);
 	printf("Loaded with status: %d\n", success);
 
 	if (!success) {
