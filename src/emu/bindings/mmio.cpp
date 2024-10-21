@@ -189,7 +189,14 @@ int y8_reload(lua_State *state) {
 		return 0;
 	}
 
-	p8::parse(hal::fs_read_buffer, &reader, config);
+	if (const auto parse_status =
+	        p8::parse(hal::fs_read_buffer, &reader, config);
+	    parse_status != p8::ParserStatus::OK) {
+		printf("reload from '%.*s' failed with error code %d, only partial "
+		       "read!\n",
+		       int(cart_path.size()), cart_path.data(), int(parse_status));
+		return 0;
+	}
 
 	hal::fs_destroy_open_context(reader);
 	return 0;

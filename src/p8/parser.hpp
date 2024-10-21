@@ -36,6 +36,12 @@ enum class ParserStatus {
 
 	/// Failed to match a block when one was expected
 	BAD_BLOCK_HEADER,
+
+	/// Failed to match a flag (first byte) in a music block
+	BAD_MUSIC_FLAG,
+
+	/// Failed to match a sfx pattern in a music block
+	BAD_MUSIC_PATTERN,
 };
 
 enum class ParserState {
@@ -82,7 +88,8 @@ class Parser {
 
 	ParserState _current_state;
 
-	std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble;
+	std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble,
+		_current_music_pattern;
 
 	global_State *_lua_global_state;
 };

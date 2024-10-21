@@ -5,6 +5,7 @@
 #include "p8/lookahead.hpp"
 #include <devices/image.hpp>
 #include <devices/map.hpp>
+#include <devices/music.hpp>
 #include <devices/spriteflags.hpp>
 #include <emu/bufferio.hpp>
 #include <emu/emulator.hpp>
@@ -74,7 +75,8 @@ Parser::Parser(ParserMapConfig map_config, global_State *lua_global_state)
 	: _map_config(map_config), _current_state(ParserState::EXPECT_HEADER),
 	  _current_gfx_nibble(0),
 	  _current_tile_nibble(2 * 128 * 32), // we start on the bottom 32 rows
-	  _current_gff_nibble(0), _lua_global_state(lua_global_state) {}
+	  _current_gff_nibble(0), _current_music_pattern(0),
+	  _lua_global_state(lua_global_state) {}
 
 #define PARSER_CHECK(cond, err_code)                                           \
 	if (!(cond)) {                                                             \
@@ -169,6 +171,10 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		}
 
 		case ParserState::PARSING_MAP: {
+			// TODO: deduplicate a bunch of this by reading pairs of nibbles
+			// instead, add some abstraction for it that can read malformed
+			// files
+			// should apply to the gfx, map, gff, sfx, music blocks
 			auto map = emu::device<devices::Map>;
 			char c;
 			while (
@@ -199,6 +205,56 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 				}
 				++_current_gff_nibble;
 			}
+			r.consume_until_next_line();
+			break;
+		}
+
+		case ParserState::PARSING_SFX: {
+			r.consume_until_next_line();
+			break;
+		}
+
+		case ParserState::PARSING_MUSIC: {
+			auto music = emu::device<devices::Music>;
+
+			if (r.consume_empty_line()) {
+				break;
+			}
+
+			// consider `0c 727c7f7f`
+
+			// in the example, parse `0c` into `flag`
+			int flag_high = hex_digit(r.consume_char());
+			int flag_low = hex_digit(r.consume_char());
+			if (flag_low == -1 || flag_high == -1) {
+				return ParserStatus::BAD_MUSIC_FLAG;
+			}
+			u8 flag = (flag_high << 4) | flag_low;
+
+			// in the example, consume the space
+			if (r.consume_char() != ' ') {
+				return ParserStatus::BAD_MUSIC_FLAG;
+			}
+
+			// in the example, consume all four bytes as a pattern description
+			for (int i = 0; i < 4; ++i) {
+				int pattern_high = hex_digit(r.consume_char());
+				int pattern_low = hex_digit(r.consume_char());
+				if (pattern_low == -1 || pattern_high == -1) {
+					return ParserStatus::BAD_MUSIC_PATTERN;
+				}
+
+				u8 pattern = (pattern_high << 4) | pattern_low;
+
+				// `flag` contains four flags at the least significant bits
+				// each flag is mapped to one pattern, at the MSB.
+				// i.e. flag 0 goes to patterns[0], etc.
+				pattern |= ((flag >> i) & 0b1) << 7;
+
+				// store in memory, with the proper memory format
+				music.get(_current_music_pattern * 4 + i) = pattern;
+			}
+
 			r.consume_until_next_line();
 			break;
 		}

@@ -198,6 +198,23 @@ class LookaheadReader {
 		} while (c != '\n' && c != '\0');
 	}
 
+	/// Consumes spaces. Then, if a newline is found, consumes it and returns
+	/// `true`. If other non-newline characters are found, returns false.
+	bool consume_empty_line() {
+		while (consume_if([](char c) { return c == ' ' || c == '\t'; }))
+			;
+
+		char c = peek_char();
+		// consumed all leading spaces, and encountered a newline?
+		// then the line was truly space-only/empty
+		if (c == '\r' || c == '\n') {
+			consume_until_next_line();
+			return true;
+		}
+
+		return false;
+	}
+
 	/// Consumes as many bytes from the current buffer (either fs buffer or
 	/// backtrack buffer) to either exhaust it or make the predicate false. The
 	/// number of bytes consumed will be written to `*size` and the pointer to

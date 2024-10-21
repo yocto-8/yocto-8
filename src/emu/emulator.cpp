@@ -291,7 +291,13 @@ bool Emulator::load_from_path(std::string_view cart_path) {
 		return false;
 	}
 
-	p8::parse(hal::fs_read_buffer, &reader, {}, _lua->l_G);
+	if (const auto parse_status =
+	        p8::parse(hal::fs_read_buffer, &reader, {}, _lua->l_G);
+	    parse_status != p8::ParserStatus::OK) {
+		printf("Load from '%.*s' failed with error code %d!\n",
+		       int(cart_path.size()), cart_path.data(), int(parse_status));
+		return false;
+	}
 
 	hal::fs_destroy_open_context(reader);
 
