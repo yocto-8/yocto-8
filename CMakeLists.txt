@@ -38,6 +38,7 @@ if(Y8_ARCH STREQUAL "desktop")
 elseif(Y8_ARCH STREQUAL "pico")
     set(PICO_CXX_ENABLE_EXCEPTIONS 1)
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
+    set(LTO_FLAGS "-flto=auto")
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 else()
     message(FATAL_ERROR "Y8_ARCH not specified or illegal")
@@ -95,7 +96,7 @@ set(COMMON_FLAGS ${PERF_FLAGS}
     "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/src/=src/"
 )
 
-add_link_options(${COMMON_FLAGS} "-flto=auto")
+add_link_options(${COMMON_FLAGS} ${LTO_FLAGS})
 add_compile_options(${COMMON_FLAGS})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fexceptions -fno-rtti")
@@ -234,7 +235,7 @@ set_property(
 set_property(
     SOURCE ${CORE_SOURCES} ${LUA_SOURCES} ${FIXMATH_SOURCES}
     APPEND PROPERTY COMPILE_OPTIONS
-    "-flto"
+    ${LTO_FLAGS}
 )
 
 if(Y8_ARCH STREQUAL "desktop")
@@ -306,7 +307,7 @@ elseif(Y8_ARCH STREQUAL "pico")
     set_property(
         SOURCE ${ARCH_SOURCES} ${PLATFORM_SOURCES}
         APPEND PROPERTY COMPILE_OPTIONS
-        "-flto"
+        ${LTO_FLAGS}
     )
 
     add_executable(${CORE_LIBRARY_TARGET} ${ARCH_SOURCES} ${PLATFORM_SOURCES})
