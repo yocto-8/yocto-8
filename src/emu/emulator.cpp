@@ -346,6 +346,7 @@ void Emulator::run_until_shutdown() {
 	for (;;) {
 		try {
 			run_once();
+			break;
 		} catch (const EmulatorResetRequest &e) {
 			lua_close(_lua);
 			init(_backup_heap);
