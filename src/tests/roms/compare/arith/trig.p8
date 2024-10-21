@@ -25,4 +25,22 @@ assert_isclose(cos(-0.75), 0.0)
 assert_isclose(cos(-0.9), 0.8089)
 printh("beyond normal range cases")
 assert_isclose(cos(100), 1.0)
+
+printh("trivial atan2 cases")
+assert_isclose(atan2(1, 0), 0.0)
+assert_isclose(atan2(1, 1), 0.875)
+assert_isclose(atan2(0, 1), 0.75)
+printh("negative atan2 cases")
+assert_isclose(atan2(-1, 1), 0.625)
+assert_isclose(atan2(-1, 0), 0.5)
+assert_isclose(atan2(-1, -1), 0.375)
+assert_isclose(atan2(0, -1), 0.25)
+assert_isclose(atan2(1, -1), 0.125)
+
+printh("large unit vectors")
+assert_isclose(atan2(99, 99), 0.875)
+
+printh("special atan2 cases")
+assert_isclose(atan2(0, 0), 0.25)
+
 printh("====DONE====")

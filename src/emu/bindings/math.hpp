@@ -11,6 +11,7 @@ int y8_min(lua_State *state);
 int y8_max(lua_State *state);
 int y8_sin(lua_State *state);
 int y8_cos(lua_State *state);
+int y8_atan2(lua_State *state);
 int y8_sqrt(lua_State *state);
 int y8_shl(lua_State *state);
 int y8_shr(lua_State *state);

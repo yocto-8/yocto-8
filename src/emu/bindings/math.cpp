@@ -48,19 +48,31 @@ int y8_max(lua_State *state) {
 }
 
 int y8_sin(lua_State *state) {
-	const auto x = luaL_checknumber(state, 1);
+	const auto x = lua_tonumber(state, 1);
 	lua_pushnumber(state, -(x * (LuaFix16::from_fix16(TWO_PI))).sin());
 	return 1;
 }
 
 int y8_cos(lua_State *state) {
-	const auto x = luaL_checknumber(state, 1);
+	const auto x = lua_tonumber(state, 1);
 	lua_pushnumber(state, (x * (LuaFix16::from_fix16(TWO_PI))).cos());
 	return 1;
 }
 
+int y8_atan2(lua_State *state) {
+	const auto x = lua_tonumber(state, 1);
+	const auto y = lua_tonumber(state, 2);
+	if (x == 0 && y == 0) {
+		lua_pushnumber(state, LuaFix16(0.25));
+	} else {
+		lua_pushnumber(state,
+		               (y.atan2(x) / -LuaFix16::from_fix16(TWO_PI) + 1) % 1);
+	}
+	return 1;
+}
+
 int y8_sqrt(lua_State *state) {
-	const auto x = luaL_checknumber(state, 1);
+	const auto x = lua_tonumber(state, 1);
 	lua_pushnumber(state, x.sqrt());
 	return 1;
 }
