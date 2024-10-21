@@ -58,6 +58,13 @@ local all = function(t)
 	end
 end
 
+local inext = function(t, idx)
+	if (idx == nil) idx = 1 else idx += 1
+	local x = t[idx]
+	if (x == nil) return nil
+	return idx, x
+end
+
 local count = function(t, v)
 	local n = 0
 	if v == nil then
