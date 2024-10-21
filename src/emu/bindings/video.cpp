@@ -865,6 +865,11 @@ int y8_map(lua_State *state) {
 
 			const auto tile = map.tile(tile_x, tile_y);
 
+			// is it the transparency tile?
+			if (tile == 0) {
+				continue;
+			}
+
 			// is it the layer we want to render?
 			if ((sprite_flags.flags_for(tile) & layer_mask) != layer_mask) {
 				continue;
