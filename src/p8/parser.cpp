@@ -1,15 +1,16 @@
 #include "parser.hpp"
 #include "coredefs.hpp"
 #include "hal/hal.hpp"
+#include "llex.h"
 #include "p8/lookahead.hpp"
-
-#include <array>
-
 #include <devices/image.hpp>
 #include <devices/map.hpp>
 #include <devices/spriteflags.hpp>
 #include <emu/bufferio.hpp>
 #include <emu/emulator.hpp>
+
+#include "lstate.h"
+#include <array>
 
 namespace p8::detail {
 
@@ -69,11 +70,11 @@ static constexpr std::array<std::pair<std::string_view, ParserState>, 7>
 		{"\n__music__", ParserState::PARSING_MUSIC},
 	}};
 
-Parser::Parser(ParserMapConfig map_config)
+Parser::Parser(ParserMapConfig map_config, global_State *lua_global_state)
 	: _map_config(map_config), _current_state(ParserState::EXPECT_HEADER),
 	  _current_gfx_nibble(0),
 	  _current_tile_nibble(2 * 128 * 32), // we start on the bottom 32 rows
-	  _current_gff_nibble(0) {}
+	  _current_gff_nibble(0), _lua_global_state(lua_global_state) {}
 
 #define PARSER_CHECK(cond, err_code)                                           \
 	if (!(cond)) {                                                             \
@@ -148,7 +149,7 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		}
 
 		case ParserState::PARSING_LUA: {
-			LuaBlockReaderState lua_block_state{r};
+			LuaBlockReaderState lua_block_state{r, _lua_global_state};
 			emu::emulator.load_and_inject_header(lua_block_state.get_reader());
 			_current_state = ParserState::EXPECT_BLOCK;
 			break;
@@ -215,6 +216,10 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 	LuaBlockReaderState &state = *static_cast<LuaBlockReaderState *>(ud);
 	LookaheadReader &r = *state._reader;
 
+	release_assert(state._lua_global_state != nullptr);
+
+	LexState *lex_state = state._lua_global_state->y8_active_lexer;
+
 	// Are we parsing an include?
 	if (state._is_including) {
 		// Try to continue reading from it
@@ -227,9 +232,16 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 			hal::fs_destroy_open_context(state._include_reader);
 			state._is_including = false;
 			*size = 0;
+
+			// Restore old source name (+ linenumber just after)
+			lex_state->source = state._main_file_name;
+
 			// Fallthrough to the usual handling
 		}
 	}
+
+	lex_state->linenumber = state._main_line_number;
+	state._main_file_name = lex_state->source;
 
 	// Last buffer read stopped at a newline?
 	if (r.peek_char() == '\n') {
@@ -248,6 +260,8 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 		// Can we match a `#include` block?
 		if (r.peek_matches("\n#include")) {
 			r.consume_matches("\n#include");
+
+			++state._main_line_number;
 
 			// Consume spaces
 			while (r.consume_if([](char c) { return c == ' ' || c == '\t'; }))
@@ -269,6 +283,10 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 				;
 
 			printf("Including file \"%.*s\"\n", int(out.size()), out.data());
+
+			lex_state->source =
+				luaX_newstring(lex_state, out.data(), out.size());
+			lex_state->linenumber = 0; // +1 from the newline after
 
 			if (hal::fs_create_open_context(out, state._include_reader) ==
 			    hal::FileOpenStatus::SUCCESS) {
@@ -292,6 +310,7 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 
 	// Read this line for Lua
 	int chars_read = 0;
+	++state._main_line_number;
 	const char *buf = r.consume_rest_of_current_buffer_while(
 		[&chars_read](char c) {
 			// don't return if the first char is '\n'

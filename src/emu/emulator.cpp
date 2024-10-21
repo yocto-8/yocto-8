@@ -290,7 +290,7 @@ bool Emulator::load_from_path(std::string_view cart_path) {
 		return false;
 	}
 
-	p8::parse(hal::fs_read_buffer, &reader);
+	p8::parse(hal::fs_read_buffer, &reader, {}, _lua->l_G);
 
 	hal::fs_destroy_open_context(reader);
 
@@ -305,7 +305,7 @@ void Emulator::load_and_inject_header(Reader reader) {
 		[]([[maybe_unused]] lua_State *state, void *ud, size_t *sz) {
 			return CartImporterReader::reader_callback(ud, sz);
 		},
-		&state, "m", "t");
+		&state, "/bios/header.lua", "t");
 
 	if (load_status != 0) {
 		printf("Script load failed: %s\n", lua_tostring(_lua, -1));

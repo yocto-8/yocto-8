@@ -6,6 +6,9 @@
 #include <hal/hal.hpp>
 #include <p8/lookahead.hpp>
 
+struct global_State; // lua global state forward declaration
+union TString;
+
 // The entirety of the parsing and buffered reading logic here is an incredible
 // pile of depressing hacks.
 //
@@ -66,7 +69,8 @@ namespace detail {
 
 class Parser {
 	public:
-	Parser(ParserMapConfig map_config = {});
+	Parser(ParserMapConfig map_config = {},
+	       global_State *lua_global_state = nullptr);
 
 	ParserStatus consume(hal::ReaderCallback &fs_reader, void *fs_ud);
 	ParserState get_current_state() const { return _current_state; }
@@ -79,12 +83,16 @@ class Parser {
 	ParserState _current_state;
 
 	std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble;
+
+	global_State *_lua_global_state;
 };
 
 class LuaBlockReaderState {
 	public:
-	LuaBlockReaderState(LookaheadReader &reader)
-		: _reader(&reader), _is_main_eof(false), _is_including(false) {}
+	LuaBlockReaderState(LookaheadReader &reader, global_State *lua_global_state)
+		: _reader(&reader), _is_main_eof(false), _main_line_number(1),
+		  _main_file_name(nullptr), _is_including(false),
+		  _lua_global_state(lua_global_state) {}
 
 	static const char *reader_callback(void *ud, std::size_t *size);
 	emu::Reader get_reader() { return {reader_callback, this}; }
@@ -93,15 +101,23 @@ class LuaBlockReaderState {
 	LookaheadReader *_reader;
 	bool _is_main_eof;
 
+	/// Current line number in the main file (not inside of includes)
+	int _main_line_number;
+	/// Current main file name
+	TString *_main_file_name;
+
 	hal::FileReaderContext _include_reader;
 	bool _is_including;
+
+	global_State *_lua_global_state;
 };
 
 } // namespace detail
 
 inline ParserStatus parse(hal::ReaderCallback &reader, void *ud,
-                          ParserMapConfig map_config = {}) {
-	return detail::Parser{map_config}.consume(reader, ud);
+                          ParserMapConfig map_config = {},
+                          global_State *lua_global_state = nullptr) {
+	return detail::Parser{map_config, lua_global_state}.consume(reader, ud);
 }
 
 } // namespace p8
