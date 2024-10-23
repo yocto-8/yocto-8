@@ -288,7 +288,7 @@ elseif(Y8_ARCH STREQUAL "pico")
             ${PLATFORM_ROOT}/asupico.cpp
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp
-            ${ARCH_ROOT}/video/ssd1351.cpp # FIXME: proper compile-time API for driver selection
+            ${ARCH_ROOT}/video/dwoqspi.cpp # FIXME: proper compile-time API for driver selection
             ${CORE_ROOT}/emu/tinyalloc.cpp # TODO: cleaner way to include this
         )
 

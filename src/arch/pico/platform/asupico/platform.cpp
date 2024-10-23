@@ -1,3 +1,5 @@
+#include "devices/screenpalette.hpp"
+#include "emu/emulator.hpp"
 #include "fs/types.hpp"
 #include <arch/pico/fs/hwinit.hpp>
 #include <arch/pico/usb/hwinit.hpp>
@@ -41,7 +43,8 @@ void init_hardware() {
 	printf("Configuring GPIO\n");
 	init_basic_gpio();
 	printf("Configuring video\n");
-	init_video_ssd1351();
+	// init_video_ssd1351();
+	init_video_dwo();
 	printf("Booting command thread\n");
 	init_cmd_thread(); // should be done after most hw init
 	printf("Configuring FatFS (flash)\n");
@@ -55,20 +58,27 @@ void init_hardware() {
 }
 
 void present_frame(FrameCopiedCallback *callback) {
-	asupico::hw.ssd1351.copy_framebuffer(emu::device<devices::Framebuffer>,
-	                                     emu::device<devices::ScreenPalette>);
+	// asupico::hw.ssd1351.copy_framebuffer(emu::device<devices::Framebuffer>,
+	//                                      emu::device<devices::ScreenPalette>);
+
+	asupico::hw.dwo.copy_framebuffer(emu::device<devices::Framebuffer>,
+	                                 emu::device<devices::ScreenPalette>);
 
 	if (callback != nullptr) {
 		callback();
 	}
 
-	asupico::hw.ssd1351.start_scanout();
+	// asupico::hw.ssd1351.start_scanout();
+	asupico::hw.dwo.start_scanout();
 }
 
-void local_core_init() { asupico::hw.ssd1351.init_dma_on_this_core(); }
+void local_core_init() {
+	// asupico::hw.ssd1351.init_dma_on_this_core();
+	asupico::hw.dwo.init_dma_on_this_core();
+}
 
 std::span<const std::uint32_t, 32> get_default_palette() {
-	return ::video::ssd1351_precal_palette_rgb8;
+	return ::video::pico8_palette_rgb8;
 }
 
 } // namespace arch::pico::platform

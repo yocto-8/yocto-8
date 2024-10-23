@@ -287,23 +287,25 @@ void init_emulator(std::size_t psram_size) {
 		std::span(reinterpret_cast<std::byte *>(Y8_EXTMEM_START), psram_size));
 }
 
-void init_video_ssd1351() {
-	spi_inst_t *video_spi = spi0;
-	// The datasheet mentions a rise/fall time of 15ns, i.e. 30ns per cycle,
-	// hence we try to target 33.333333MHz. What exactly will be achieved does
-	// depend on the PERI clock.
-	// spi_init(video_spi, 33'333'333);
+// void init_video_ssd1351() {
+// 	spi_inst_t *video_spi = spi0;
+// 	// The datasheet mentions a rise/fall time of 15ns, i.e. 30ns per cycle,
+// 	// hence we try to target 33.333333MHz. What exactly will be achieved does
+// 	// depend on the PERI clock.
+// 	// spi_init(video_spi, 33'333'333);
 
-	// NEVERMIND: There is some coruption that could be attributed to too high
-	// SPI freq. Even if specific to the dupont cable mess setup, it's better
-	// to just be safe here.
-	spi_init(video_spi, 25'000'000);
+// 	// NEVERMIND: There is some coruption that could be attributed to too high
+// 	// SPI freq. Even if specific to the dupont cable mess setup, it's better
+// 	// to just be safe here.
+// 	spi_init(video_spi, 25'000'000);
 
-	printf("SSD1351 baudrate: %d\n", spi_get_baudrate(video_spi));
+// 	printf("SSD1351 baudrate: %d\n", spi_get_baudrate(video_spi));
 
-	asupico::hw.ssd1351.init(
-		{.spi = video_spi,
-	     .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6}});
-}
+// 	asupico::hw.ssd1351.init(
+// 		{.spi = video_spi,
+// 	     .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6}});
+// }
+
+void init_video_dwo() { printf("TODO TODO TODO DWO init\n"); }
 
 } // namespace arch::pico::platform::asupico

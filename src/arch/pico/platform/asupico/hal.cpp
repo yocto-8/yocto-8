@@ -1,3 +1,4 @@
+#include "video/palette.hpp"
 #include <hal/hal.hpp>
 
 #include <cmdthread.hpp>
@@ -20,11 +21,12 @@ std::uint16_t update_button_state() {
 }
 
 void load_rgb_palette(std::span<std::uint32_t, 32> new_palette) {
-	asupico::hw.ssd1351.load_rgb_palette(new_palette);
+	printf("TODO STUB: DWO load_rgb_palette\n");
+	// asupico::hw.ssd1351.load_rgb_palette(new_palette);
 }
 
 std::span<const std::uint32_t, 32> get_default_palette() {
-	return video::ssd1351_precal_palette_rgb8;
+	return video::pico8_palette_rgb8;
 }
 
 } // namespace hal
