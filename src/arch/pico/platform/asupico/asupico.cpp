@@ -306,6 +306,23 @@ void init_emulator(std::size_t psram_size) {
 // 	     .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6}});
 // }
 
-void init_video_dwo() { printf("TODO TODO TODO DWO init\n"); }
+void init_video_dwo() {
+	spi_inst_t *video_spi = spi0;
+	spi_init(video_spi, 1'000'000);
+
+	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(video_spi));
+
+	asupico::hw.dwo.init({.spi = video_spi,
+	                      .pinout = {
+							  .sclk = 2,
+							  .cs = 5,
+							  .sio0 = 3,
+							  .qsi1 = 255,
+							  .qsi2 = 255,
+							  .qsi3 = 255,
+							  .rst = 14,
+							  .pwr_en = 15,
+						  }});
+}
 
 } // namespace arch::pico::platform::asupico

@@ -8,6 +8,15 @@ namespace arch::pico::video {
 
 [[gnu::section(Y8_SRAM_SECTION), gnu::flatten, gnu::noinline]] void
 dwo_global_dma_handler() {
+	// DWO::active_instance->write(
+	// 	DWO::Command::SET_COLUMN,
+	// 	DWO::DataBuffer<4>{DWO::x_start >> 8, DWO::x_start & 0xFF,
+	//                        DWO::x_end >> 8, DWO::x_end & 0xFF});
+	// DWO::active_instance->write(
+	// 	DWO::Command::SET_ROW,
+	// 	DWO::DataBuffer<4>{DWO::y_start >> 8, DWO::y_start & 0xFF,
+	//                        DWO::y_end >> 8, DWO::y_end & 0xFF});
+	// DWO::active_instance->write(DWO::Command::RAM_WRITE);
 	DWO::active_instance->scanline_dma_update();
 }
 
@@ -26,6 +35,10 @@ dwo_global_dma_handler() {
 	gpio_init(_pinout.cs);
 	gpio_set_dir(_pinout.cs, GPIO_OUT);
 	gpio_put(_pinout.cs, 1);
+
+	gpio_init(_pinout.pwr_en);
+	gpio_set_dir(_pinout.pwr_en, GPIO_OUT);
+	gpio_put(_pinout.pwr_en, 0);
 
 	// gpio_init(_pinout.dc);
 	// gpio_set_dir(_pinout.dc, GPIO_OUT);
@@ -50,7 +63,7 @@ dwo_global_dma_handler() {
 	channel_config_set_write_increment(&dma_cfg, false);
 
 	dma_channel_configure(_dma_channel, &dma_cfg, &spi_get_hw(_spi)->dr,
-	                      nullptr, _scanline_r8g8b8.size() * 2, false);
+	                      nullptr, _scanline_r8g8b8.size(), false);
 
 	// configure DMA IRQ and configure it to trigger when DMA scanned out a line
 	dma_channel_set_irq0_enabled(_dma_channel, true);
@@ -63,18 +76,31 @@ dwo_global_dma_handler() {
 	// defaults/unselected, etc.
 }
 
+[[gnu::cold]] void DWO::reset_blocking() {
+	gpio_put(_pinout.pwr_en, 0);
+	gpio_put(_pinout.rst, 0);
+	sleep_ms(20);
+	gpio_put(_pinout.rst, 1);
+	sleep_ms(1);
+	gpio_put(_pinout.rst, 0);
+	sleep_ms(20);
+	gpio_put(_pinout.rst, 1);
+	sleep_ms(50);
+	gpio_put(_pinout.pwr_en, 1);
+}
+
 [[gnu::cold]] void DWO::_submit_init_sequence() {
 	write(Command::UNLOCK_CMD2, DataBuffer<1>{0x00});
 	// TODO: document magic value
-	write(Command::SET_INTERFACE_MODE, DataBuffer<1>{0x80});
+	write(Command::ENABLE_SPI_RAM_WRITE, DataBuffer<1>{0x80});
 	write(Command::SET_PIXEL_FORMAT, DataBuffer<1>{0x77}); // 24bpp
 	// TE{0x00} would be here
 	write(Command::ENABLE_BRIGHTNESS_CTRL_BLOCK, DataBuffer<1>{0x20});
 	set_brightness(0x00);
 	write(Command::SET_HBM_BRIGHTNESS_FACTORY, DataBuffer<1>{0xFF});
-	// write(Command::UNKNOWN_INIT_2A, DataBuffer<4>{0x00, 0x16, 0x01, 0xAF});
-	// write(Command::UNKNOWN_INIT_2B, DataBuffer<4>{0x00, 0x00, 0x01, 0xF5});
-	write(Command::SLEEP);
+	write(Command::SET_COLUMN, DataBuffer<4>{0x00, 0x16, 0x01, 0xAF});
+	write(Command::SET_ROW, DataBuffer<4>{0x00, 0x00, 0x01, 0xF5});
+	write(Command::DISABLE_SLEEP);
 	sleep_ms(120);
 	write(Command::DISPLAY_ON);
 	set_brightness(0xFF);
@@ -100,13 +126,15 @@ void DWO::scanline_dma_update() {
 
 	// FIXME: FIX!!!!!
 
-	for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
+	_scanline_r8g8b8.fill(0xAA);
+
+	/*for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
 	     fb_idx < current_fb_scanline_end; ++fb_idx, scanline_idx += 2) {
-		_scanline_r8g8b8[scanline_idx + 0] =
-			palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
-		_scanline_r8g8b8[scanline_idx + 1] =
-			palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
-	}
+	    _scanline_r8g8b8[scanline_idx + 0] =
+	        palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
+	    _scanline_r8g8b8[scanline_idx + 1] =
+	        palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
+	}*/
 
 	_current_dma_fb_offset = current_fb_scanline_end;
 
