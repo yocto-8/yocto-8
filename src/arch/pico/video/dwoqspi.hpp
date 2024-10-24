@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <hardware/dma.h>
 #include <hardware/gpio.h>
+#include <hardware/pio.h>
 #include <hardware/spi.h>
 #include <pico/time.h>
 #include <span>
@@ -27,7 +28,7 @@ class DWO {
 		ENABLE_SPI_RAM_WRITE = 0xC4, // TODO: what are the values, is QSPI
 		                             // setting working for 3-wire SPI
 		SET_PIXEL_FORMAT = 0x3A,
-		// SET_TE_MODE = 0x35,
+		SET_TE_MODE = 0x35,
 		ENABLE_BRIGHTNESS_CTRL_BLOCK = 0x53,
 		SET_BRIGHTNESS = 0x51,
 		/// Possibly the factory configuration for brightness?
@@ -54,16 +55,18 @@ class DWO {
 		// Using """QSPI""", but only sio0 is driven
 
 		std::uint32_t sclk, cs;
-		// QSPI pins; sio0 is also the regular SPI I/O pin
-		std::uint32_t sio0, qsi1, qsi2, qsi3;
 		/// Tearing Enable (input, basically vsync, optional, float if unused)
-		// std::uint32_t te;
-		///
+		std::uint32_t te;
+		// QSPI pins; sio0 is also the regular SPI I/O pin
+		// must be consecutive for PIO to work
+		std::uint32_t sio0, qsi1, qsi2, qsi3;
 		std::uint32_t rst, pwr_en;
 	};
 
 	struct Config {
 		spi_inst_t *spi;
+		PIO pio;
+		unsigned pio_sm;
 		Pinout pinout;
 	};
 
@@ -131,6 +134,9 @@ class DWO {
 	void scanline_dma_update();
 
 	private:
+	void _switch_hardware_spi();
+	void _switch_pio();
+
 	void _submit_init_sequence();
 
 	std::array<std::uint8_t, 128 * 3 * 3> _scanline_r8g8b8;
@@ -142,6 +148,9 @@ class DWO {
 	devices::ScreenPalette::ClonedArray _cloned_screen_palette;
 
 	spi_inst_t *_spi;
+	PIO _pio;
+	unsigned _pio_sm;
+	unsigned _pio_offset;
 	Pinout _pinout;
 };
 

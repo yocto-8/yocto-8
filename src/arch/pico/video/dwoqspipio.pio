@@ -1,0 +1,85 @@
+.pio_version 0
+
+.program co5300_oled
+
+; Copyright (c) 2024 yocto-8
+;
+; SPDX-License-Identifier: MIT
+
+; DESCRIPTION
+;
+; This PIO program uploads a 384x384 r8g8b8 framebuffer to a CO5300 OLED display
+; configured in QSPI mode.
+; This does not handle command sending; which is achieved by hot-swapping
+; between hardware SPI and this PIO program for buffer uploads.
+
+; PREREQUISITES
+;
+; /CS is expected to be brought low.
+; Any RAM write initiation command required is expected to have been written.
+; DMA is used to keep the queue fed.
+;
+; Preferably you would avoid uploading this during the refresh period of the
+; display. This can be achieved by enabling and synchronizing against the TE
+; pin. This avoids tearing and some flickering.
+
+; PHYSICAL QSPI INTERFACE
+;
+; Assuming the 24bpp color format (`_` is LOW and `H` is HIGH), where
+; R/G/B correspond to Red/Green/Blue 8-bit channels, and where e.g. R7 is the
+; most significant bit of the red channel:
+;
+;    SCLK | _H _H _H _H _H _H
+;      CS | _  _  _  _  _  _
+; 
+;    SIO0 | R4 R0 G4 G0 B4 B0
+;    SIO1 | R5 R1 G5 G1 B5 B1
+;    SIO2 | R6 R2 G6 G2 B6 B2
+;    SIO3 | R7 R3 G7 G3 B7 B3
+;
+; The values over SIOx are made available during the low part of the clock.
+; The same process occurs for the next pixel, and so on.
+
+; CLOCK TIMINGS
+;
+; CO5300 datasheet lists a minimum clock cycle of 20ns i.e. 50MHz
+; Except we want 24bpp / 4 * 384 * 384 * 60Hz ~= 53MHz baudrate
+;
+; We use a 351 MHz system clock, which is the same clock that drives PIO
+; With a divisor of 6, we can achieve a rate of 58.5MHz, leaving some headroom.
+; This turns out to be too much of an overclock and results in partial update
+; failure (unless this just worsened a different issue).
+;
+; An uneven clkdiv is ok. Let's target 53MHz with a clkdiv of 3.31.
+
+; PIO PIN ASSIGNMENTS
+;
+; Pin 0..3:   SIO0, SIO1, SIO2, SIO3
+; Side-set 0: SCLK
+
+.side_set 1
+
+.wrap_target
+    out pins, 4   side 0 ; stall here if no data (clock low)
+    nop           side 1
+.wrap
+
+% c-sdk {
+static inline void co5300_oled_program_init(PIO pio, uint sm, uint offset, uint sio0_pin, uint clk_pin, float clk_div) {
+    pio_gpio_init(pio, sio0_pin);
+    pio_gpio_init(pio, sio0_pin + 1);
+    pio_gpio_init(pio, sio0_pin + 2);
+    pio_gpio_init(pio, sio0_pin + 3);
+    pio_gpio_init(pio, clk_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, sio0_pin, 4, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true);
+    pio_sm_config c = co5300_oled_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&c, clk_pin);
+    sm_config_set_out_pins(&c, sio0_pin, 4);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_clkdiv(&c, clk_div);
+    sm_config_set_out_shift(&c, false, true, 32);
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}

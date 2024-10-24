@@ -308,18 +308,22 @@ void init_emulator(std::size_t psram_size) {
 
 void init_video_dwo() {
 	spi_inst_t *video_spi = spi0;
-	spi_init(video_spi, 50'000'000);
+	// 60MHz is a slight OC over the 50MHz recommended per the datasheet
+	// but it aligns better with our target frequency
+	spi_init(video_spi, 60'000'000);
 
 	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(video_spi));
 
 	asupico::hw.dwo.init({.spi = video_spi,
+	                      .pio = pio0,
 	                      .pinout = {
 							  .sclk = 2,
 							  .cs = 5,
-							  .sio0 = 3,
-							  .qsi1 = 255,
-							  .qsi2 = 255,
-							  .qsi3 = 255,
+							  .te = 11,
+							  .sio0 = 7,
+							  .qsi1 = 8,
+							  .qsi2 = 9,
+							  .qsi3 = 10,
 							  .rst = 14,
 							  .pwr_en = 15,
 						  }});
