@@ -201,6 +201,8 @@ void DWO::_switch_pio() {
 	write(Command::DISPLAY_ON);
 	set_brightness(0x90);
 
+	// Clear whole buffer in SPI to black (just over SIO0)
+
 #define COL 410
 #define ROW 502
 
@@ -232,25 +234,6 @@ void DWO::_switch_pio() {
 			Write_Disp_Data(0x000000);
 		}
 	SPI_CS_H;
-
-	write(Command::SET_COLUMN, DataBuffer<4>{x_start >> 8, x_start & 0xFF,
-	                                         x_end >> 8, x_end & 0xFF});
-	write(Command::SET_ROW, DataBuffer<4>{y_start >> 8, y_start & 0xFF,
-	                                      y_end >> 8, y_end & 0xFF});
-	// TODO: partial display
-	// write(Command{0x12});
-
-	unsigned color = 0xFF0000;
-
-	// SPI_4W_DATA_1W_ADDR_START();
-	write(Command::RAM_WRITE, {}, false);
-
-	for (int i = x_start; i <= x_end; i++)
-		for (int j = y_start; j <= y_end; j++) {
-			Write_Disp_Data(color);
-		}
-	SPI_CS_H;
-	// SPI_4W_DATA_1W_ADDR_END();
 } // namespace arch::pico::video
 
 void DWO::scanline_dma_update() {
