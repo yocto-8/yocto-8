@@ -9,15 +9,6 @@ namespace arch::pico::video {
 
 [[gnu::section(Y8_SRAM_SECTION), gnu::flatten, gnu::noinline]] void
 dwo_global_dma_handler() {
-	DWO::active_instance->write(
-		DWO::Command::SET_COLUMN,
-		DWO::DataBuffer<4>{DWO::x_start >> 8, DWO::x_start & 0xFF,
-	                       DWO::x_end >> 8, DWO::x_end & 0xFF});
-	DWO::active_instance->write(
-		DWO::Command::SET_ROW,
-		DWO::DataBuffer<4>{DWO::y_start >> 8, DWO::y_start & 0xFF,
-	                       DWO::y_end >> 8, DWO::y_end & 0xFF});
-	DWO::active_instance->write(DWO::Command::RAM_WRITE);
 	DWO::active_instance->scanline_dma_update();
 }
 
@@ -25,6 +16,7 @@ dwo_global_dma_handler() {
 	_spi = config.spi;
 	_pinout = config.pinout;
 	_current_dma_fb_offset = 0;
+	_current_line_repeat = 0;
 
 	gpio_set_function(_pinout.sclk, GPIO_FUNC_SPI);
 	gpio_set_function(_pinout.sio0, GPIO_FUNC_SPI);
@@ -142,16 +134,11 @@ dwo_global_dma_handler() {
 		SPI_4wire_data_1wire_Addr(0x32, 0x00);                                 \
 		SPI_CS_H;                                                              \
 	}
-#define QSPI_WriteData(x)                                                      \
-	{                                                                          \
-		SPI_WriteData((rand() % 2) ? 0xFF : 0x00);                             \
-		SPI_WriteData(0x00);                                                   \
-		SPI_WriteData(0x00);                                                   \
-	}
 #define Write_Disp_Data(val)                                                   \
 	{                                                                          \
-		QSPI_WriteData(val >> 8);                                              \
-		QSPI_WriteData(val);                                                   \
+		SPI_WriteData((val >> 16) & 0xFF);                                     \
+		SPI_WriteData((val >> 8) & 0xFF);                                      \
+		SPI_WriteData(val & 0xFF);                                             \
 	}
 
 	gpio_put(_pinout.pwr_en, 0);
@@ -175,7 +162,7 @@ dwo_global_dma_handler() {
 	write(Command::DISABLE_SLEEP);
 	sleep_ms(80);
 	write(Command::DISPLAY_ON);
-	set_brightness(0xFF);
+	set_brightness(0xC0);
 
 #define COL 410
 #define ROW 502
@@ -202,17 +189,27 @@ dwo_global_dma_handler() {
 	SPI_CS_H;
 
 	SPI_CS_L;
-	SPI_WriteComm(0x2c); // Memory Write
+	SPI_4wire_data_1wire_Addr(0x02, 0x2C);
+	for (int i = 0; i < ROW; ++i)
+		for (int j = 0; j < COL; ++j) {
+			Write_Disp_Data(0x000000);
+		}
 	SPI_CS_H;
 
-	unsigned color = 0xF800;
+	write(Command::SET_COLUMN, DataBuffer<4>{x_start >> 8, x_start & 0xFF,
+	                                         x_end >> 8, x_end & 0xFF});
+	write(Command::SET_ROW, DataBuffer<4>{y_start >> 8, y_start & 0xFF,
+	                                      y_end >> 8, y_end & 0xFF});
+	// TODO: partial display
+	// write(Command{0x12});
+
+	unsigned color = 0xFF0000;
 
 	// SPI_4W_DATA_1W_ADDR_START();
-	SPI_CS_L;
-	SPI_4wire_data_1wire_Addr(0x02, 0x2C);
+	write(Command::RAM_WRITE, {}, false);
 
-	for (int i = 0; i < ROW; i++)
-		for (int j = 0; j < COL; j++) {
+	for (int i = x_start; i <= x_end; i++)
+		for (int j = y_start; j <= y_end; j++) {
 			Write_Disp_Data(color);
 		}
 	SPI_CS_H;
@@ -231,58 +228,83 @@ void DWO::scanline_dma_update() {
 		return;
 	}
 
-	unsigned current_fb_scanline_end =
-		_current_dma_fb_offset + _scanline_r8g8b8.size() / 2;
+	unsigned current_fb_scanline_end = _current_dma_fb_offset + 128 / 2;
 
 	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
 	const devices::Framebuffer fb{_cloned_fb};
 
-	// FIXME: FIX!!!!!
+	if (_current_line_repeat > 0) {
 
-	_scanline_r8g8b8.fill(0xAA);
+		for (std::size_t fb_idx = _current_dma_fb_offset, scan_idx = 0;
+		     fb_idx < current_fb_scanline_end;
+		     ++fb_idx, scan_idx += 3 * 3 * 2) {
+			// bump scan_idx by:
+			// repeated_pixels (3) * bytes per pixel (3) * pixels per fb byte
+			// (2)
 
-	/*for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
-	     fb_idx < current_fb_scanline_end; ++fb_idx, scanline_idx += 2) {
-	    _scanline_r8g8b8[scanline_idx + 0] =
-	        palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
-	    _scanline_r8g8b8[scanline_idx + 1] =
-	        palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
-	}*/
+			const auto px1_rgb =
+				palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
+			const auto px2_rgb =
+				palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
 
-	_current_dma_fb_offset = current_fb_scanline_end;
+			for (std::size_t hor_repeat = 0; hor_repeat < 3; ++hor_repeat) {
+				// px1.r, g, b
+				_scanline_r8g8b8[scan_idx + hor_repeat * 3 + 0] = px1_rgb >> 16;
+				_scanline_r8g8b8[scan_idx + hor_repeat * 3 + 1] = px1_rgb >> 8;
+				_scanline_r8g8b8[scan_idx + hor_repeat * 3 + 2] = px1_rgb >> 0;
 
-	// trigger new scanline transfer; we will get IRQ'd again when scaned out
+				// px2.r, g, b
+				_scanline_r8g8b8[scan_idx + 9 + hor_repeat * 3 + 0] =
+					px2_rgb >> 16;
+				_scanline_r8g8b8[scan_idx + 9 + hor_repeat * 3 + 1] =
+					px2_rgb >> 8;
+				_scanline_r8g8b8[scan_idx + 9 + hor_repeat * 3 + 2] =
+					px2_rgb >> 0;
+			}
+		}
+	}
+
+	++_current_line_repeat;
+
+	if (_current_line_repeat == 3) {
+		_current_line_repeat = 0;
+		// bump fb scanline
+		_current_dma_fb_offset = current_fb_scanline_end;
+	}
+
+	// trigger new scanline transfer; we will get IRQ'd again when scaned
+	// out
 	dma_channel_set_read_addr(_dma_channel, _scanline_r8g8b8.data(), true);
 }
 
 void DWO::start_scanout() {
-	/*active_instance = this;
+	active_instance = this;
 
-	if (_current_dma_fb_offset != 0) {
-	    // Scanout was still going on when we flipped, which will result in
-	    // tearing.
-	    // This is not really supposed to happen, but it isn't catastrophic.
-	    // Return from this; let it finish the frame.
-	    return;
+	if (_current_dma_fb_offset != 0 || _current_line_repeat != 0) {
+		// Scanout was still going on when we flipped, which will result in
+		// tearing.
+		// This is not really supposed to happen, but it isn't catastrophic.
+		// Return from this; let it finish the frame.
+		return;
 	}
+
+	// write(Command::SET_COLUMN, DataBuffer<4>{x_start >> 8, x_start &
+	// 0xFF,
+	//                                          x_end >> 8, x_end & 0xFF});
+	// write(Command::SET_ROW, DataBuffer<4>{y_start >> 8, y_start & 0xFF,
+	//                                       y_end >> 8, y_end & 0xFF});
+
+	// Start write
+	// write(Command::RAM_WRITE);
 
 	write(Command::SET_COLUMN, DataBuffer<4>{x_start >> 8, x_start & 0xFF,
 	                                         x_end >> 8, x_end & 0xFF});
 	write(Command::SET_ROW, DataBuffer<4>{y_start >> 8, y_start & 0xFF,
 	                                      y_end >> 8, y_end & 0xFF});
-
-	// Start write
-	// write(Command::RAM_WRITE);
-
-	gpio_put(_pinout.cs, 0);
-
-	std::array<std::uint8_t, 4> qspi_cmd_buf = {
-	    0x02, 0x00, std::uint8_t(Command::RAM_WRITE), 0x00};
-
-	spi_write_blocking(_spi, qspi_cmd_buf.data(), qspi_cmd_buf.size());
+	write(Command::RAM_WRITE, {}, false);
 
 	// trigger the first scanline write manually. IRQs will trigger the rest
-	dwo_global_dma_handler()*/
+	dwo_global_dma_handler();
 }
 
 DWO *DWO::active_instance;

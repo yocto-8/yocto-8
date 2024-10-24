@@ -37,6 +37,7 @@ class DWO {
 		SET_COLUMN = 0x2A,
 		SET_ROW = 0x2B,
 		RAM_WRITE = 0x2C,
+		RAM_WRITE_CONTINUOUS = 0x3C,
 	};
 
 	static constexpr std::size_t real_columns = 410, real_rows = 502;
@@ -76,7 +77,8 @@ class DWO {
 	void shutdown();
 
 	void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette) {
-		palette = util::make_r5g6b5_palette(new_rgb_palette, true);
+		std::memcpy(palette.data(), new_rgb_palette.data(),
+		            new_rgb_palette.size_bytes());
 	}
 
 	void reset_blocking();
@@ -88,8 +90,8 @@ class DWO {
 		write(Command::SET_BRIGHTNESS, DataBuffer<1>{scale});
 	}
 
-	inline void write(Command command,
-	                  std::span<const std::uint8_t> data = {}) {
+	inline void write(Command command, std::span<const std::uint8_t> data = {},
+	                  bool release_cs = true) {
 		// gpio_put(_pinout.dc, 0);
 		gpio_put(_pinout.cs, 0);
 
@@ -102,12 +104,15 @@ class DWO {
 			// gpio_put(_pinout.dc, 1);
 			spi_write_blocking(_spi, data.data(), data.size());
 		}
-		gpio_put(_pinout.cs, 1);
 
-		printf("write( %02X args ", int(command));
-		for (auto c : data)
-			printf("%02X ", c);
-		printf(")\n");
+		if (release_cs) {
+			gpio_put(_pinout.cs, 1);
+		}
+
+		// printf("write( %02X args ", int(command));
+		// for (auto c : data)
+		// 	printf("%02X ", c);
+		// printf(")\n");
 	}
 
 	void copy_framebuffer(devices::Framebuffer view,
@@ -118,7 +123,7 @@ class DWO {
 
 	void start_scanout();
 
-	std::array<std::uint16_t, 32> palette;
+	std::array<std::uint32_t, 32> palette;
 
 	// HACK: we can't exactly have user data for the IRQ, but to be realistic,
 	// with this DMA logic we long ago gave up on multi-device support
@@ -128,9 +133,10 @@ class DWO {
 	private:
 	void _submit_init_sequence();
 
-	std::array<std::uint8_t, columns * 3> _scanline_r8g8b8;
+	std::array<std::uint8_t, 128 * 3 * 3> _scanline_r8g8b8;
 	unsigned _dma_channel;
 	unsigned _current_dma_fb_offset;
+	unsigned _current_line_repeat;
 
 	devices::Framebuffer::ClonedArray _cloned_fb;
 	devices::ScreenPalette::ClonedArray _cloned_screen_palette;
