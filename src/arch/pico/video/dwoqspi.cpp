@@ -87,7 +87,7 @@ dwo_global_dma_handler() {
 }
 
 [[gnu::cold]] void DWO::_submit_init_sequence() {
-	/*write(Command::UNLOCK_CMD2, DataBuffer<1>{0x00});
+	/*
 	// TODO: document magic value
 	write(Command::ENABLE_SPI_RAM_WRITE, DataBuffer<1>{0x80});
 	write(Command::SET_PIXEL_FORMAT, DataBuffer<1>{0x77}); // 24bpp
@@ -166,71 +166,16 @@ dwo_global_dma_handler() {
 	gpio_put(_pinout.pwr_en, 1);
 	HAL_Delay(50);
 
-	SPI_CS_L;
-	SPI_WriteComm(0xFE);
-	SPI_WriteData(0x00);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0xC4); // QSPI setting, MIPI remove
-	SPI_WriteData(0x80);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x3A);
-	SPI_WriteData(0x77); // Interface Pixel Format	24bit/pixel
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x35); // TE ON
-	SPI_WriteData(0x00);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x53);
-	SPI_WriteData(0x20);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x51); // Write Display Brightness	MAX_VAL=0XFF
-	SPI_WriteData(0x00);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x63);
-	SPI_WriteData(0xFF);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x2A);
-	SPI_WriteData(0x00);
-	SPI_WriteData(0x16);
-	SPI_WriteData(0x01);
-	SPI_WriteData(0xAF);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x2B);
-	SPI_WriteData(0x00);
-	SPI_WriteData(0x00);
-	SPI_WriteData(0x01);
-	SPI_WriteData(0xF5);
-	SPI_CS_H;
-
-	SPI_CS_L;
-	SPI_WriteComm(0x11); // Sleep out
-	SPI_CS_H;
-	HAL_Delay(80);
-
-	SPI_CS_L;
-	SPI_WriteComm(0x29); // Display on
-	SPI_CS_H;
-	HAL_Delay(20);
-
-	SPI_CS_L;
-	SPI_WriteComm(0x51); // Write Display Brightness	MAX_VAL=0XFF
-	SPI_WriteData(0xFF);
-	SPI_CS_H;
+	write(Command::UNLOCK_CMD2, DataBuffer<1>{0x00});
+	write(Command::ENABLE_SPI_RAM_WRITE, DataBuffer<1>{0x80});
+	write(Command::SET_PIXEL_FORMAT, DataBuffer<1>{0x77}); // 24bpp
+	write(Command::ENABLE_BRIGHTNESS_CTRL_BLOCK, DataBuffer<1>{0x20});
+	set_brightness(0x00);
+	write(Command::SET_HBM_BRIGHTNESS_FACTORY, DataBuffer<1>{0xFF});
+	write(Command::DISABLE_SLEEP);
+	sleep_ms(80);
+	write(Command::DISPLAY_ON);
+	set_brightness(0xFF);
 
 #define COL 410
 #define ROW 502
