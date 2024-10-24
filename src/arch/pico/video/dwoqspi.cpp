@@ -3,16 +3,30 @@
 #include "devices/screenpalette.hpp"
 #include <cstdio>
 #include <hardware/dma.h>
+#include <hardware/gpio.h>
 #include <hardware/pio.h>
 #include <hardware/spi.h>
+#include <hardware/timer.h>
 
 #include "dwoqspipio.pio.h"
 
 namespace arch::pico::video {
 
-[[gnu::section(Y8_SRAM_SECTION), gnu::flatten, gnu::noinline]] void
-dwo_global_dma_handler() {
+uint32_t frame_start, vsync_last;
+
+[[gnu::section(Y8_SRAM_SECTION), gnu::noinline]] void dwo_global_dma_handler() {
 	DWO::active_instance->scanline_dma_update();
+}
+
+[[gnu::section(Y8_SRAM_SECTION), gnu::noinline]] void
+dwo_vsync_signal_irq_handler(uint gpio, uint32_t events) {
+	if (gpio == DWO::active_instance->_pinout.te) {
+		const auto cur_time = time_us_64();
+
+		// printf("%fms\n", (cur_time - vsync_last) / 1000.0f);
+		vsync_last = cur_time;
+		DWO::active_instance->start_scanout();
+	}
 }
 
 void DWO::_switch_hardware_spi() {
@@ -35,7 +49,7 @@ void DWO::_switch_pio() {
 	gpio_set_function(_pinout.sio0, GPIO_FUNC_NULL);
 
 	co5300_oled_program_init(_pio, _pio_sm, _pio_offset, _pinout.sio0,
-	                         _pinout.sclk, 3.5);
+	                         _pinout.sclk, clk_div);
 
 	pio_sm_set_enabled(_pio, _pio_sm, true);
 }
@@ -45,13 +59,13 @@ void DWO::_switch_pio() {
 	_pio = config.pio;
 	_pio_sm = config.pio_sm;
 	_pinout = config.pinout;
-	_current_dma_fb_offset = 0;
-	_current_line_repeat = 0;
+
+	active_instance = this;
 
 	_pio_offset = pio_add_program(_pio, &co5300_oled_program);
 	release_assert(_pio_offset >= 0); // check no error
 	co5300_oled_program_init(_pio, _pio_sm, _pio_offset, _pinout.sio0,
-	                         _pinout.sclk, 3.31);
+	                         _pinout.sclk, clk_div);
 
 	gpio_init(_pinout.te);
 	gpio_set_dir(_pinout.te, GPIO_IN);
@@ -75,6 +89,9 @@ void DWO::_switch_pio() {
 	_submit_init_sequence();
 
 	_dma_channel = dma_claim_unused_channel(true);
+
+	gpio_set_irq_enabled_with_callback(_pinout.te, GPIO_IRQ_EDGE_RISE, true,
+	                                   dwo_vsync_signal_irq_handler);
 }
 
 [[gnu::cold]] void DWO::init_dma_on_this_core() {
@@ -82,13 +99,14 @@ void DWO::_switch_pio() {
 
 	channel_config_set_transfer_data_size(&dma_cfg, DMA_SIZE_32);
 	channel_config_set_dreq(&dma_cfg, pio_get_dreq(_pio, _pio_sm, true));
+	channel_config_set_bswap(&dma_cfg, true);
 
 	// read increment + no write increment is the default
 	channel_config_set_read_increment(&dma_cfg, true);
 	channel_config_set_write_increment(&dma_cfg, false);
 
 	dma_channel_configure(_dma_channel, &dma_cfg, &_pio->txf[_pio_sm], nullptr,
-	                      _scanline_r8g8b8.size() / 4, false);
+	                      _ping_pong[0].size() / 4, false);
 
 	// configure DMA IRQ and configure it to trigger when DMA scanned out a line
 	dma_channel_set_irq0_enabled(_dma_channel, true);
@@ -115,22 +133,6 @@ void DWO::_switch_pio() {
 }
 
 [[gnu::cold]] void DWO::_submit_init_sequence() {
-	/*
-	// TODO: document magic value
-	write(Command::ENABLE_SPI_RAM_WRITE, DataBuffer<1>{0x80});
-	write(Command::SET_PIXEL_FORMAT, DataBuffer<1>{0x77}); // 24bpp
-	// TE{0x00} would be here
-	write(Command::ENABLE_BRIGHTNESS_CTRL_BLOCK, DataBuffer<1>{0x20});
-	set_brightness(0x00);
-	write(Command::SET_HBM_BRIGHTNESS_FACTORY, DataBuffer<1>{0xFF});
-	write(Command::SET_COLUMN, DataBuffer<4>{0x00, 0x16, 0x01, 0xAF});
-	write(Command::SET_ROW, DataBuffer<4>{0x00, 0x00, 0x01, 0xF5});
-	write(Command::DISABLE_SLEEP);
-	write(Command(0x21));
-	sleep_ms(120);
-	write(Command::DISPLAY_ON);
-	set_brightness(0xFF);*/
-
 #define CLOCK_TIME 1 // us
 #define RESET_H gpio_put(_pinout.rst, 1);
 #define RESET_L gpio_put(_pinout.rst, 0);
@@ -172,9 +174,8 @@ void DWO::_switch_pio() {
 	}
 #define Write_Disp_Data(val)                                                   \
 	{                                                                          \
-		SPI_WriteData((val >> 16) & 0xFF);                                     \
 		SPI_WriteData((val >> 8) & 0xFF);                                      \
-		SPI_WriteData(val & 0xFF);                                             \
+		SPI_WriteData((val >> 0) & 0xFF);                                      \
 	}
 
 	gpio_put(_pinout.pwr_en, 0);
@@ -191,7 +192,7 @@ void DWO::_switch_pio() {
 
 	write(Command::UNLOCK_CMD2, DataBuffer<1>{0x00});
 	write(Command::ENABLE_SPI_RAM_WRITE, DataBuffer<1>{0x80});
-	write(Command::SET_PIXEL_FORMAT, DataBuffer<1>{0x77}); // 24bpp
+	write(Command::SET_PIXEL_FORMAT, DataBuffer<1>{0x55}); // 16bpp
 	write(Command::SET_TE_MODE, DataBuffer<1>{0x00});
 	write(Command::ENABLE_BRIGHTNESS_CTRL_BLOCK, DataBuffer<1>{0x20});
 	set_brightness(0x00);
@@ -234,81 +235,79 @@ void DWO::_switch_pio() {
 			Write_Disp_Data(0x000000);
 		}
 	SPI_CS_H;
+
+	write(Command(0x31), DataBuffer<4>{x_start >> 8, x_start & 0xFF, x_end >> 8,
+	                                   x_end & 0xFF});
+	write(Command(0x30), DataBuffer<4>{y_start >> 8, y_start & 0xFF, y_end >> 8,
+	                                   y_end & 0xFF});
+	write(Command(0x12));
 } // namespace arch::pico::video
 
+void DWO::compute_scanline(std::span<std::uint8_t, 128 * 3 * 2> buffer,
+                           std::size_t start_addr, std::size_t end_addr) {
+	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
+	const devices::Framebuffer fb{_cloned_fb};
+
+	for (std::size_t fb_idx = start_addr, scan_idx = 0; fb_idx < end_addr;
+	     ++fb_idx, scan_idx += 3 * 2 * 2) {
+		// bump scan_idx by:
+		// repeated_pixels (3) * bytes per pixel (2) * pixels per fb byte
+		// (2)
+
+		const auto px1 =
+			palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
+		const auto px2 =
+			palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
+
+		// endianness is reversed -- why is that?
+
+		for (std::size_t hor_repeat = 0; hor_repeat < 3; ++hor_repeat) {
+			// px1.r, g, b
+			buffer[scan_idx + hor_repeat * 2 + 0] = px1;
+			buffer[scan_idx + hor_repeat * 2 + 1] = px1 >> 8;
+
+			// px2.r, g, b
+			buffer[scan_idx + 6 + hor_repeat * 2 + 0] = px2;
+			buffer[scan_idx + 6 + hor_repeat * 2 + 1] = px2 >> 8;
+		}
+	}
+}
+
+[[gnu::section(Y8_SRAM_SECTION), gnu::hot]]
 void DWO::scanline_dma_update() {
 	// OK to call even if the function wasn't triggered by IRQ (i.e. on first
 	// run)
 	dma_channel_acknowledge_irq0(_dma_channel);
 
-	if (_current_dma_fb_offset == devices::Framebuffer::frame_bytes) {
-		// final DMA scanline transfered, deselect chip and return
-		_current_dma_fb_offset = 0;
+	if (_scanned_out_lines == rows) {
+		// deselect chip and return
+		_front_dma_fb_offset = 0;
+		// printf("== %fms\n", (time_us_64() - frame_start) / 1000.0f);
 		gpio_put(_pinout.cs, 1);
 		return;
 	}
 
-	unsigned current_fb_scanline_end = _current_dma_fb_offset + 128 / 2;
+	++_scanned_out_lines;
 
-	const devices::ScreenPalette screen_palette{_cloned_screen_palette};
-	const devices::Framebuffer fb{_cloned_fb};
+	// trigger line emit (there will be 3 of those)
+	dma_channel_set_read_addr(_dma_channel, _back, true);
 
-	if (_current_line_repeat > 0) {
+	if (_scanned_out_lines % 3 == 2) {
+		// prepare buffer for next DREQ IRQ
 
-		for (std::size_t fb_idx = _current_dma_fb_offset, scan_idx = 0;
-		     fb_idx < current_fb_scanline_end;
-		     ++fb_idx, scan_idx += 3 * 3 * 2) {
-			// bump scan_idx by:
-			// repeated_pixels (3) * bytes per pixel (3) * pixels per fb byte
-			// (2)
+		// write to front buffer
+		unsigned front_dma_scanline_end = _front_dma_fb_offset + 128 / 2;
+		compute_scanline(*_front, _front_dma_fb_offset, front_dma_scanline_end);
+		_front_dma_fb_offset = front_dma_scanline_end;
 
-			const auto px1_rgb =
-				palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
-			const auto px2_rgb =
-				palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
-
-			// endianness is reversed -- why is that?
-
-			for (std::size_t hor_repeat = 0; hor_repeat < 3; ++hor_repeat) {
-				// px1.r, g, b
-				_scanline_r8g8b8[scan_idx + hor_repeat * 3 + 0] = px1_rgb >> 16;
-				_scanline_r8g8b8[scan_idx + hor_repeat * 3 + 1] = px1_rgb >> 8;
-				_scanline_r8g8b8[scan_idx + hor_repeat * 3 + 2] = px1_rgb >> 0;
-
-				// px2.r, g, b
-				_scanline_r8g8b8[scan_idx + 9 + hor_repeat * 3 + 0] =
-					px2_rgb >> 16;
-				_scanline_r8g8b8[scan_idx + 9 + hor_repeat * 3 + 1] =
-					px2_rgb >> 8;
-				_scanline_r8g8b8[scan_idx + 9 + hor_repeat * 3 + 2] =
-					px2_rgb >> 0;
-			}
-		}
-
-		// swap endianness hack
-		for (int i = 0; i < _scanline_r8g8b8.size(); i += 4) {
-			std::swap(_scanline_r8g8b8[i], _scanline_r8g8b8[i + 3]);
-			std::swap(_scanline_r8g8b8[i + 1], _scanline_r8g8b8[i + 2]);
-		}
+		// swap front to back
+		std::swap(_front, _back);
 	}
-
-	++_current_line_repeat;
-
-	if (_current_line_repeat == 3) {
-		_current_line_repeat = 0;
-		// bump fb scanline
-		_current_dma_fb_offset = current_fb_scanline_end;
-	}
-
-	// trigger new scanline transfer; we will get IRQ'd again when scaned
-	// out
-	dma_channel_set_read_addr(_dma_channel, _scanline_r8g8b8.data(), true);
 }
 
+[[gnu::section(Y8_SRAM_SECTION), gnu::hot]]
 void DWO::start_scanout() {
-	active_instance = this;
-
-	if (_current_dma_fb_offset != 0 || _current_line_repeat != 0 ||
+	if ((_scanned_out_lines != 0 && _scanned_out_lines < rows) ||
 	    !pio_sm_is_tx_fifo_empty(_pio, _pio_sm)) {
 		// Scanout was still going on when we flipped, which will result in
 		// tearing.
@@ -316,6 +315,8 @@ void DWO::start_scanout() {
 		// Return from this; let it finish the frame.
 		return;
 	}
+
+	frame_start = time_us_64();
 
 	// TODO: continuous write
 	_switch_hardware_spi();
@@ -334,6 +335,15 @@ void DWO::start_scanout() {
 	spi_write_blocking(_spi, qspi_cmd_buf.data(), qspi_cmd_buf.size());
 
 	_switch_pio();
+
+	_front_dma_fb_offset = 0;
+	_scanned_out_lines = 0;
+
+	_front = &_ping_pong[0];
+	_back = &_ping_pong[1];
+
+	// prepare first back scanline for first DMA write
+	compute_scanline(*_back, 0, 64);
 
 	// trigger the first scanline write manually. IRQs will trigger the rest
 	dwo_global_dma_handler();

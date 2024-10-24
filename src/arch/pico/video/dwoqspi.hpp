@@ -23,6 +23,8 @@ namespace arch::pico::video {
 
 class DWO {
 	public:
+	friend void dwo_vsync_signal_irq_handler(uint gpio, uint32_t events);
+
 	enum class Command : std::uint8_t {
 		UNLOCK_CMD2 = 0xFE,
 		ENABLE_SPI_RAM_WRITE = 0xC4, // TODO: what are the values, is QSPI
@@ -50,6 +52,8 @@ class DWO {
 	// inclusive
 	static constexpr std::size_t x_end = x_start + columns - 1,
 								 y_end = y_start + rows - 1;
+
+	static constexpr float clk_div = 3.5;
 
 	struct Pinout {
 		// Using """QSPI""", but only sio0 is driven
@@ -80,8 +84,7 @@ class DWO {
 	void shutdown();
 
 	void load_rgb_palette(std::span<const std::uint32_t, 32> new_rgb_palette) {
-		std::memcpy(palette.data(), new_rgb_palette.data(),
-		            new_rgb_palette.size_bytes());
+		palette = util::make_r5g6b5_palette(new_rgb_palette, true);
 	}
 
 	void reset_blocking();
@@ -126,7 +129,7 @@ class DWO {
 
 	void start_scanout();
 
-	std::array<std::uint32_t, 32> palette;
+	std::array<std::uint16_t, 32> palette;
 
 	// HACK: we can't exactly have user data for the IRQ, but to be realistic,
 	// with this DMA logic we long ago gave up on multi-device support
@@ -139,10 +142,16 @@ class DWO {
 
 	void _submit_init_sequence();
 
-	std::array<std::uint8_t, 128 * 3 * 3> _scanline_r8g8b8;
+	using ScanlineBuffer = std::array<std::uint8_t, 128 * 3 * 2>;
+
+	void compute_scanline(std::span<std::uint8_t, 128 * 3 * 2> buffer,
+	                      std::size_t start_addr, std::size_t end_addr);
+
+	std::array<ScanlineBuffer, 2> _ping_pong;
+	ScanlineBuffer *_front, *_back;
 	unsigned _dma_channel;
-	unsigned _current_dma_fb_offset;
-	unsigned _current_line_repeat;
+	unsigned _front_dma_fb_offset;
+	unsigned _scanned_out_lines;
 
 	devices::Framebuffer::ClonedArray _cloned_fb;
 	devices::ScreenPalette::ClonedArray _cloned_screen_palette;
@@ -150,7 +159,7 @@ class DWO {
 	spi_inst_t *_spi;
 	PIO _pio;
 	unsigned _pio_sm;
-	unsigned _pio_offset;
+	int _pio_offset;
 	Pinout _pinout;
 };
 

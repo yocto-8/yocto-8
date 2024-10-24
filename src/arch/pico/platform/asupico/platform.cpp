@@ -69,7 +69,7 @@ void present_frame(FrameCopiedCallback *callback) {
 	}
 
 	// asupico::hw.ssd1351.start_scanout();
-	asupico::hw.dwo.start_scanout();
+	// asupico::hw.dwo.start_scanout();
 }
 
 void local_core_init() {

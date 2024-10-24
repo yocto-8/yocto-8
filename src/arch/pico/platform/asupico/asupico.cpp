@@ -77,8 +77,8 @@ void init_default_frequency() {
 	vreg_set_voltage(VREG_VOLTAGE_1_25);
 	set_sys_clock_khz(351000, true);
 
-	clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-	                351 * MHZ, 351 * MHZ);
+	// clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+	// 351 * MHZ, 351 * MHZ);
 
 	init_stdio();
 }
@@ -310,7 +310,7 @@ void init_video_dwo() {
 	spi_inst_t *video_spi = spi0;
 	// 60MHz is a slight OC over the 50MHz recommended per the datasheet
 	// but it aligns better with our target frequency
-	spi_init(video_spi, 60'000'000);
+	spi_init(video_spi, 50'000'000);
 
 	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(video_spi));
 
