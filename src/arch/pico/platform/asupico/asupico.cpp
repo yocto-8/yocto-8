@@ -308,7 +308,7 @@ void init_emulator(std::size_t psram_size) {
 
 void init_video_dwo() {
 	spi_inst_t *video_spi = spi0;
-	spi_init(video_spi, 1'000'000);
+	spi_init(video_spi, 20'000'000);
 
 	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(video_spi));
 

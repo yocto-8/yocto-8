@@ -47,8 +47,7 @@ class DWO {
 								 y_end = y_start + rows - 1;
 
 	struct Pinout {
-		// NOTE: THIS IS CURRENTLY USING 3-WIRE SPI
-		// QSPI will require PIO, and IM1 should be brought to IOVCC
+		// Using """QSPI""", but only sio0 is driven
 
 		std::uint32_t sclk, cs;
 		// QSPI pins; sio0 is also the regular SPI I/O pin
@@ -90,9 +89,11 @@ class DWO {
 	                  std::span<const std::uint8_t> data = {}) {
 		// gpio_put(_pinout.dc, 0);
 		gpio_put(_pinout.cs, 0);
-		std::array<std::uint8_t, 4> cmd_buffer = {0x02, 0x00,
-		                                          std::uint8_t(command), 0x00};
-		spi_write_blocking(_spi, &command, 1);
+
+		std::array<std::uint8_t, 4> qspi_cmd_buf = {
+			0x02, 0x00, std::uint8_t(command), 0x00};
+
+		spi_write_blocking(_spi, qspi_cmd_buf.data(), qspi_cmd_buf.size());
 
 		if (!data.empty()) {
 			// gpio_put(_pinout.dc, 1);
@@ -100,13 +101,10 @@ class DWO {
 		}
 		gpio_put(_pinout.cs, 1);
 
-		printf("write %02x: ", int(command));
-		for (auto c : cmd_buffer)
-			printf("%02x ", c);
-		printf("  ");
+		printf("write( %02X args ", int(command));
 		for (auto c : data)
-			printf("%02x ", c);
-		printf("\n");
+			printf("%02X ", c);
+		printf(")\n");
 	}
 
 	void copy_framebuffer(devices::Framebuffer view,
