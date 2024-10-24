@@ -41,7 +41,10 @@ class DWO {
 
 	static constexpr std::size_t real_columns = 410, real_rows = 502;
 	static constexpr std::size_t columns = 128 * 3, rows = 128 * 3;
-	static constexpr std::size_t x_start = 59, y_start = 13;
+
+	// TODO: document why is the 0x16 offset required?
+	static constexpr std::size_t x_start = (real_columns - columns) / 2 + 0x16,
+								 y_start = (real_rows - rows) / 2;
 	// inclusive
 	static constexpr std::size_t x_end = x_start + columns - 1,
 								 y_end = y_start + rows - 1;
