@@ -343,6 +343,11 @@ elseif(Y8_ARCH STREQUAL "pico")
     # on the second core.
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_MALLOC_MUTEX=0)
 
+    # Let the pico-sdk configure the MPU to protect the end of the stack, to
+    # detect certain kinds of stack overflows (presumably not all if large
+    # buffers aren't entirely written to, etc.)
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_STACK_GUARDS=1)
+
     # NOTE: as of 2.0.0, the pico-sdk is not including XIP setup code for the
     # flash, resulting in suboptimal timing for the stock flash
     # https://github.com/raspberrypi/pico-sdk/issues/1903
