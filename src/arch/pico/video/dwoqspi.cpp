@@ -14,11 +14,12 @@ namespace arch::pico::video {
 
 uint32_t frame_start, vsync_last;
 
-[[gnu::section(Y8_SRAM_SECTION), gnu::noinline]] void dwo_global_dma_handler() {
+[[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::noinline]] void
+dwo_global_dma_handler() {
 	DWO::active_instance->scanline_dma_update();
 }
 
-[[gnu::section(Y8_SRAM_SECTION), gnu::noinline]] void
+[[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::noinline]] void
 dwo_vsync_signal_irq_handler(uint gpio, uint32_t events) {
 	if (gpio == DWO::active_instance->_pinout.te) {
 		const auto cur_time = time_us_64();
@@ -273,7 +274,7 @@ void DWO::compute_scanline(std::span<std::uint8_t, 128 * 3 * 2> buffer,
 	}
 }
 
-[[gnu::section(Y8_SRAM_SECTION), gnu::hot]]
+[[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::hot]]
 void DWO::scanline_dma_update() {
 	// OK to call even if the function wasn't triggered by IRQ (i.e. on first
 	// run)
@@ -305,7 +306,7 @@ void DWO::scanline_dma_update() {
 	}
 }
 
-[[gnu::section(Y8_SRAM_SECTION), gnu::hot]]
+[[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::hot]]
 void DWO::start_scanout() {
 	if ((_scanned_out_lines != 0 && _scanned_out_lines < rows) ||
 	    !pio_sm_is_tx_fifo_empty(_pio, _pio_sm)) {

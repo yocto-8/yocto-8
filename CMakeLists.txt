@@ -387,6 +387,7 @@ elseif(Y8_ARCH STREQUAL "pico")
     set(SDK_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pico-sdk/")
 
     add_compile_definitions(Y8_SRAM_SECTION=".time_critical.y8")
+    add_compile_definitions(Y8_CORE1_SRAM_SECTION="${Y8_SRAM_SECTION}")
 
     pico_add_extra_outputs(${CORE_LIBRARY_TARGET})
 endif()
