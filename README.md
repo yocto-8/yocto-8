@@ -71,7 +71,7 @@ yocto-8 running [Celeste Classic](https://mattmakesgames.itch.io/celesteclassic)
 
 - `Y8_ARCH=desktop`: Desktop (`y8` SFML frontend, `y8-headless` no graphics), primarily for testing
 - `Y8_ARCH=pico`: Raspberry Pi Pico based platforms
-    - `Y8_PLATFORM=asupico`: RP2350 M33, my setup ([Pimoroni Pico Plus 2](https://shop.pimoroni.com/products/pimoroni-pico-plus-2?variant=42092668289107) with onboard PSRAM+SSD1351 display+push buttons although not yet)
+    - `Y8_PLATFORM=asupico`: RP2350 M33, my setup ([Pimoroni Pico Plus 2](https://shop.pimoroni.com/products/pimoroni-pico-plus-2?variant=42092668289107) with onboard PSRAM+CO5300-based OLED display+push buttons although not yet). Note that documentation around this is not up to date, including pinouts!
     - `Y8_PLATFORM=picosystem`: [Pimoroni PicoSystem](https://shop.pimoroni.com/products/picosystem)
 
 > [!IMPORTANT]
