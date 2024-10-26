@@ -288,7 +288,7 @@ class LookaheadReader {
 	std::size_t _fs_buffer_offset;
 	std::size_t _fs_buffer_size;
 
-	std::array<char, 256> _backtrack_buffer;
+	std::array<char, 64> _backtrack_buffer;
 	std::size_t _backtrack_offset;
 };
 
