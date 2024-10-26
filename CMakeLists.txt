@@ -76,7 +76,8 @@ if(Y8_ARCH STREQUAL "pico")
         ${PERF_FLAGS}
         "-fno-threadsafe-statics"
 
-        "-Wstack-usage=1024"
+        "-Wstack-usage=256"
+        "-fstack-usage"
 
         # this could save >10KiB of flash space from pointless exception handling
         # stuff. however, it also switches out the libc/newlib which swaps it out to
