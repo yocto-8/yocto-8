@@ -349,6 +349,19 @@ elseif(Y8_ARCH STREQUAL "pico")
     # buffers aren't entirely written to, etc.)
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_STACK_GUARDS=1)
 
+    # 12KiB core0 stack because Lua stacks can get pretty deep
+    # This requires the linker script to swap out SCRATCH_X and SCRATCH_Y:
+    # The ARM stack grows downwards, so we let it overflow into main RAM (but we
+    # restrict the heap not to ever overflow there).
+    #
+    # See memmap_asupico.ld for proper implementation
+    # FIXME: memmap_picosystem.ld does not have this implemented
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STACK_SIZE=0x3000)
+
+    # 0.25KiB core1 worker stack because it never recurses much
+    # Leaves plenty of space for stuff there.
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_CORE1_STACK_SIZE=0x200)
+
     # NOTE: as of 2.0.0, the pico-sdk is not including XIP setup code for the
     # flash, resulting in suboptimal timing for the stock flash
     # https://github.com/raspberrypi/pico-sdk/issues/1903
@@ -360,6 +373,8 @@ elseif(Y8_ARCH STREQUAL "pico")
     if(Y8_PLATFORM STREQUAL "asupico")
         target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma hardware_pio)
         pico_generate_pio_header(${CORE_LIBRARY_TARGET} ${ARCH_ROOT}/video/dwoqspipio.pio)
+
+        pico_set_linker_script(${CORE_LIBRARY_TARGET} "${PLATFORM_ROOT}/memmap_asupico.ld")
     elseif(Y8_PLATFORM STREQUAL "picosystem")
         # target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_pio hardware_dma)
         target_link_libraries(${CORE_LIBRARY_TARGET} PUBLIC hardware_spi hardware_dma)

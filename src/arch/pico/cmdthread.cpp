@@ -20,7 +20,7 @@ inline void multicore_fifo_write_assume_nonfull(std::uint32_t value) {
 	__sev(); // fire event
 }
 
-void __scratch_x("core1_irq") core1_sio_irq() {
+void __not_in_flash_func(core1_sio_irq)() {
 	// eat all the FIFO requests we can then clear IRQ (and return to sleep)
 	while ((sio_hw->fifo_st & SIO_FIFO_ST_VLD_BITS) != 0) {
 		const auto command = IoThreadCommand(sio_hw->fifo_rd);
