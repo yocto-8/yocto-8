@@ -36,6 +36,7 @@ message("Following definitions set: [${Y8_DEFINITIONS}]")
 if(Y8_ARCH STREQUAL "desktop")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=mold")
 elseif(Y8_ARCH STREQUAL "pico")
+    set(SKIP_PICO_MALLOC 1)
     set(PICO_CXX_ENABLE_EXCEPTIONS 1)
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
     set(LTO_FLAGS "-flto=auto")
@@ -338,6 +339,8 @@ elseif(Y8_ARCH STREQUAL "pico")
     # 2. dynamic allocation in non-desktop platforms is forbidden, so we can check
     # malloc return values in the only place it can be used: the lua allocator.
     # 3. we rely on the lua emergency GC, which can save us in this usecase.
+
+    # NOTE: since we currently skip PICO_MALLOC above, this solves that
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_MALLOC_PANIC=0)
 
     # NOTE: we forbid malloc outsides of lua malloc; and that excludes any work
