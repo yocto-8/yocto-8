@@ -10,7 +10,7 @@ struct SpriteFlags : emu::MMIODevice<16> {
 	static constexpr std::uint16_t default_map_address = 0x3000;
 
 	[[nodiscard]] std::uint8_t &flags_for(std::uint8_t sprite_id) const {
-		return data[sprite_id];
+		return get_byte(sprite_id);
 	}
 
 	[[nodiscard]] bool get_flag(std::uint8_t sprite_id,

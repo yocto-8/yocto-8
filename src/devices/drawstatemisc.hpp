@@ -16,7 +16,7 @@ struct DrawStateMisc : emu::MMIODevice<64> {
 		raw_pen_color() = 6; // light gray
 	}
 
-	std::uint8_t &raw_pen_color() const { return data[0x25]; }
+	std::uint8_t &raw_pen_color() const { return get_byte(0x25); }
 
 	auto fill_pattern() const { return get<std::uint16_t>(0x31); }
 
@@ -25,7 +25,9 @@ struct DrawStateMisc : emu::MMIODevice<64> {
 		return (fill_pattern() >> bit_index) & 0b1;
 	}
 
-	bool fill_zero_is_transparent() const { return (data[0x33] & 0b1) != 0; }
+	bool fill_zero_is_transparent() const {
+		return (get_byte(0x33) & 0b1) != 0;
+	}
 
 	auto camera_x() const { return get<std::int16_t>(0x28); }
 
@@ -36,9 +38,9 @@ struct DrawStateMisc : emu::MMIODevice<64> {
 		camera_y() = p.y;
 	}
 
-	bool is_line_endpoint_valid() const { return data[0x35] == 0; }
+	bool is_line_endpoint_valid() const { return get_byte(0x35) == 0; }
 
-	void set_line_endpoint_valid(bool valid) const { data[0x35] = !valid; }
+	void set_line_endpoint_valid(bool valid) const { get_byte(0x35) = !valid; }
 
 	auto line_endpoint_x() const { return get<std::int16_t>(0x3C); }
 
@@ -51,11 +53,11 @@ struct DrawStateMisc : emu::MMIODevice<64> {
 	}
 
 	std::int8_t &text_x() const {
-		return reinterpret_cast<std::int8_t &>(data[0x26]);
+		return reinterpret_cast<std::int8_t &>(get_byte(0x26));
 	}
 
 	std::int8_t &text_y() const {
-		return reinterpret_cast<std::int8_t &>(data[0x27]);
+		return reinterpret_cast<std::int8_t &>(get_byte(0x27));
 	}
 
 	util::Point get_text_point() const { return {text_x(), text_y()}; }

@@ -18,15 +18,15 @@ struct ClippingRectangle : emu::MMIODevice<4> {
 		y_end() = 128;
 	}
 
-	std::uint8_t &x_begin() const { return data[0]; }
+	std::uint8_t &x_begin() const { return get_byte(0); }
 
-	std::uint8_t &y_begin() const { return data[1]; }
+	std::uint8_t &y_begin() const { return get_byte(1); }
 
 	util::Point top_left() const { return {int(x_begin()), int(y_begin())}; }
 
-	std::uint8_t &x_end() const { return data[2]; }
+	std::uint8_t &x_end() const { return get_byte(2); }
 
-	std::uint8_t &y_end() const { return data[3]; }
+	std::uint8_t &y_end() const { return get_byte(3); }
 
 	util::Point bottom_right() const { return {int(x_end()), int(y_end())}; }
 

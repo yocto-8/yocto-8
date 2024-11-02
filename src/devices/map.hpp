@@ -22,7 +22,7 @@ struct Map : emu::MMIODevice<8192> {
 		// done with a XOR
 		std::uint8_t correct_y = (y >= 32) ? (y - 32) : (y + 32);
 
-		return data[std::uintptr_t(x) + (std::uintptr_t(correct_y) * width)];
+		return get_byte(y8::u32(x) + (y8::u32(correct_y) * width));
 	}
 };
 

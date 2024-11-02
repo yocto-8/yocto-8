@@ -16,7 +16,7 @@ namespace {
 
 /// \brief Accesses the memory byte at the provided address, wrapping around to
 /// `0x0000` (as the parameter is u16).
-u8 &byte_at(PicoAddr addr) { return emu::emulator.memory().data[addr]; }
+u8 &byte_at(PicoAddr addr) { return emu::emulator.memory().get_byte(addr); }
 
 } // namespace
 
@@ -137,7 +137,7 @@ int y8_memset(lua_State *state) {
 	const std::uint8_t val = luaL_checkunsigned(state, 2);
 	const auto len = luaL_checkunsigned(state, 3);
 
-	emulator.memory().memset(dst, val, len);
+	emulator.memory().fill(val, dst, len);
 
 	return 0;
 }
@@ -170,12 +170,6 @@ int y8_reload(lua_State *state) {
 	}
 
 	// __cart_name still on the stack; doesn't matter, will get cleared
-
-	if (config.source_region_start != 0x0000 ||
-	    config.target_region_start != 0x0000 || config.region_size < 0x4300) {
-		printf("STUB reload(): Currently not supporting non-default memory "
-		       "region; this might cause corruption!\n");
-	}
 
 	hal::FileReaderContext reader;
 

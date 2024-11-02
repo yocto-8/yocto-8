@@ -11,7 +11,7 @@ struct DrawPalette : emu::MMIODevice<16> {
 	static constexpr std::uint16_t default_map_address = 0x5F00;
 
 	void reset() const {
-		for (std::size_t i = 0; i < data.size(); ++i) {
+		for (std::size_t i = 0; i < map_length; ++i) {
 			set_color(i, i);
 		}
 
@@ -20,21 +20,21 @@ struct DrawPalette : emu::MMIODevice<16> {
 
 	void set_color(std::uint8_t palette_index,
 	               std::uint8_t resolved_index) const {
-		data[palette_index] = resolved_index;
+		get_byte(palette_index) = resolved_index;
 	}
 
 	std::uint8_t get_color(std::uint8_t palette_index) const {
-		return data[palette_index];
+		return get_byte(palette_index);
 	}
 
 	void set_transparent(std::uint8_t palette_index,
 	                     bool transparent = true) const {
-		data[palette_index] &= 0x0F;
-		data[palette_index] |= int(transparent) << 4;
+		get_byte(palette_index) &= 0x0F;
+		get_byte(palette_index) |= int(transparent) << 4;
 	}
 
 	bool is_transparent(std::uint8_t palette_index) const {
-		return (data[palette_index] >> 4) != 0;
+		return (get_byte(palette_index) >> 4) != 0;
 	}
 };
 

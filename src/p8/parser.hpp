@@ -1,7 +1,13 @@
 #pragma once
 
 #include "coredefs.hpp"
+#include "devices/image.hpp"
+#include "emu/mmio.hpp"
 #include "hal/types.hpp"
+#include <devices/image.hpp>
+#include <devices/map.hpp>
+#include <devices/music.hpp>
+#include <devices/spriteflags.hpp>
 #include <emu/bufferio.hpp>
 #include <hal/hal.hpp>
 #include <p8/lookahead.hpp>
@@ -69,9 +75,50 @@ struct ParserMapConfig {
 		state_mask &= ~y8::u32(to_disable);
 		return *this;
 	}
+
+	template <class Device> y8::PicoAddr device_address() {
+		return remap(Device::default_map_address);
+	}
+
+	template <class Device> Device remap_device(emu::Memory memory) {
+		return memory.device<Device>(device_address<Device>());
+	}
+
+	y8::PicoAddr remap(y8::PicoAddr addr) {
+		// not asserting for validity of addr, because remaps can underflow into
+		// the address space
+
+		addr -= source_region_start;
+		addr += target_region_start;
+
+		return addr;
+	}
+
+	bool is_source_mapped(y8::PicoAddr source_addr) {
+		return source_addr >= source_region_start &&
+		       source_addr < source_region_start + region_size;
+	}
+
+	bool is_target_mapped(y8::PicoAddr target_addr) {
+		return target_addr >= target_region_start &&
+		       target_addr < target_region_start + region_size;
+	}
 };
 
 namespace detail {
+
+struct RemappedDevices {
+	devices::Spritesheet gfx;
+	y8::PicoAddr gfx_addr;
+	devices::Map map;
+	y8::PicoAddr map_addr;
+	devices::SpriteFlags gff;
+	y8::PicoAddr gff_addr;
+	devices::Music music;
+	y8::PicoAddr music_addr;
+
+	static RemappedDevices from_config(ParserMapConfig config);
+};
 
 class Parser {
 	public:
@@ -84,12 +131,12 @@ class Parser {
 	private:
 	void optimize_map_config();
 
-	ParserMapConfig _map_config;
+	ParserMapConfig _mapping;
+	RemappedDevices _dev;
 
 	ParserState _current_state;
 
-	std::size_t _current_gfx_nibble, _current_tile_nibble, _current_gff_nibble,
-		_current_music_pattern;
+	std::size_t _off_gfx, _off_map, _off_gff, _off_music;
 
 	global_State *_lua_global_state;
 };

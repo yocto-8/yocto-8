@@ -75,8 +75,7 @@ class Emulator {
 extern Emulator emulator;
 
 template <class Device, std::uint16_t map_address = Device::default_map_address>
-inline constexpr auto device =
-	Device(emulator.memory().data.subspan<map_address, Device::map_length>());
+inline constexpr auto device = emulator.memory().device<Device>(map_address);
 
 } // namespace emu
 

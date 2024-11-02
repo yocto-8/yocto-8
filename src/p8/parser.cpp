@@ -1,14 +1,12 @@
 #include "parser.hpp"
 #include "coredefs.hpp"
+#include "devices/image.hpp"
 #include "hal/hal.hpp"
 #include "llex.h"
 #include "p8/lookahead.hpp"
-#include <devices/image.hpp>
-#include <devices/map.hpp>
-#include <devices/music.hpp>
-#include <devices/spriteflags.hpp>
 #include <emu/bufferio.hpp>
 #include <emu/emulator.hpp>
+#include <emu/mmio.hpp>
 
 #include "lstate.h"
 #include <array>
@@ -71,12 +69,23 @@ static constexpr std::array<std::pair<std::string_view, ParserState>, 7>
 		{"\n__music__", ParserState::PARSING_MUSIC},
 	}};
 
+RemappedDevices RemappedDevices::from_config(ParserMapConfig config) {
+	auto memory = emu::emulator.memory();
+	return {.gfx = config.remap_device<devices::Spritesheet>(memory),
+	        .gfx_addr = config.remap(devices::Spritesheet::default_map_address),
+	        .map = config.remap_device<devices::Map>(memory),
+	        .map_addr = config.remap(devices::Map::default_map_address),
+	        .gff = config.remap_device<devices::SpriteFlags>(memory),
+	        .gff_addr = config.remap(devices::SpriteFlags::default_map_address),
+	        .music = config.remap_device<devices::Music>(memory),
+	        .music_addr = config.remap(devices::Music::default_map_address)};
+}
+
 Parser::Parser(ParserMapConfig map_config, global_State *lua_global_state)
-	: _map_config(map_config), _current_state(ParserState::EXPECT_HEADER),
-	  _current_gfx_nibble(0),
-	  _current_tile_nibble(2 * 128 * 32), // we start on the bottom 32 rows
-	  _current_gff_nibble(0), _current_music_pattern(0),
-	  _lua_global_state(lua_global_state) {}
+	: _mapping(map_config), _dev{RemappedDevices::from_config(map_config)},
+	  _current_state(ParserState::EXPECT_HEADER), _off_gfx(0),
+	  _off_map(128 * 32), // we start on the bottom 32 rows
+	  _off_gff(0), _off_music(0), _lua_global_state(lua_global_state) {}
 
 #define PARSER_CHECK(cond, err_code)                                           \
 	if (!(cond)) {                                                             \
@@ -87,9 +96,9 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 	using namespace y8;
 
 	// Clear the target memory region
-	if (_map_config.clear_memory) {
-		emu::emulator.memory().memset(_map_config.target_region_start, 0,
-		                              _map_config.region_size);
+	if (_mapping.clear_memory) {
+		emu::emulator.memory().fill(0, _mapping.target_region_start,
+		                            _mapping.region_size);
 	}
 
 	LookaheadReader r(fs_reader, fs_ud);
@@ -112,6 +121,25 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		return false;
 	};
 
+	/// Simple line parser for GFX/MAP/GFF blocks with identical nibble logic
+	const auto parse_nibble_line =
+		[&r, this](auto &device, PicoAddr device_addr, std::size_t &offset,
+	               emu::NibbleOrder order) {
+			while (hex_digit(r.peek_char()) != -1) {
+				int nibble1 = hex_digit(r.consume_char());
+				int nibble2 = hex_digit(r.consume_char());
+
+				if (_mapping.is_target_mapped(device_addr + offset)) {
+					device.set_nibble(offset * 2, nibble1, order);
+					device.set_nibble(offset * 2 + 1, nibble2, order);
+				}
+
+				++offset;
+			}
+			// allow garbage/spaces after non-hex
+			r.consume_until_next_line();
+		};
+
 	// Parsing loop, per-line.
 	while (!r.is_eof()) {
 		if (try_read_block_header()) {
@@ -120,7 +148,7 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 
 		// Caller doesn't want to parse this section?
 		// Skip to the next line (faster than handling it later).
-		if ((_map_config.state_mask & u32(_current_state)) == 0) {
+		if ((_mapping.state_mask & u32(_current_state)) == 0) {
 			r.consume_until_next_line();
 			continue;
 		}
@@ -158,65 +186,30 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		}
 
 		case ParserState::PARSING_GFX: {
-			auto sprite_sheet = emu::device<devices::Spritesheet>;
-			char c;
-			while (
-				r.consume_if([](char c) { return hex_digit(c) != -1; }, &c)) {
-				sprite_sheet.set_nibble(_current_gfx_nibble, hex_digit(c));
-				++_current_gfx_nibble;
-			}
-			// allow garbage/spaces after non-hex
-			r.consume_until_next_line();
+			parse_nibble_line(_dev.gfx, _dev.gfx_addr, _off_gfx,
+			                  emu::NibbleOrder::LSB_FIRST);
 			break;
 		}
 
 		case ParserState::PARSING_MAP: {
-			// TODO: deduplicate a bunch of this by reading pairs of nibbles
-			// instead, add some abstraction for it that can read malformed
-			// files
-			// should apply to the gfx, map, gff, sfx, music blocks
-			auto map = emu::device<devices::Map>;
-			char c;
-			while (
-				r.consume_if([](char c) { return hex_digit(c) != -1; }, &c)) {
-				if (_current_tile_nibble % 2 == 0) {
-					map.data[_current_tile_nibble / 2] |= hex_digit(c) << 4;
-				} else {
-					map.data[_current_tile_nibble / 2] |= hex_digit(c);
-				}
-				++_current_tile_nibble;
-			}
-			// allow garbage/spaces after non-hex
-			r.consume_until_next_line();
+			parse_nibble_line(_dev.map, _dev.map_addr, _off_map,
+			                  emu::NibbleOrder::MSB_FIRST);
 			break;
 		}
 
 		case ParserState::PARSING_GFF: {
-			auto sprite_flags = emu::device<devices::SpriteFlags>;
-			char c;
-			while (
-				r.consume_if([](char c) { return hex_digit(c) != -1; }, &c)) {
-				if (_current_gff_nibble % 2 == 0) {
-					sprite_flags.flags_for(_current_gff_nibble / 2) |=
-						hex_digit(c) << 4;
-				} else {
-					sprite_flags.flags_for(_current_gff_nibble / 2) |=
-						hex_digit(c);
-				}
-				++_current_gff_nibble;
-			}
-			r.consume_until_next_line();
+			parse_nibble_line(_dev.gff, _dev.gff_addr, _off_gff,
+			                  emu::NibbleOrder::MSB_FIRST);
 			break;
 		}
 
 		case ParserState::PARSING_SFX: {
+			// FIXME: implement SFX block parsing
 			r.consume_until_next_line();
 			break;
 		}
 
 		case ParserState::PARSING_MUSIC: {
-			auto music = emu::device<devices::Music>;
-
 			if (r.consume_empty_line()) {
 				break;
 			}
@@ -225,24 +218,22 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 
 			// in the example, parse `0c` into `flag`
 			int flag_high = hex_digit(r.consume_char());
+			PARSER_CHECK(flag_high != -1, ParserStatus::BAD_MUSIC_FLAG);
 			int flag_low = hex_digit(r.consume_char());
-			if (flag_low == -1 || flag_high == -1) {
-				return ParserStatus::BAD_MUSIC_FLAG;
-			}
+			PARSER_CHECK(flag_low != -1, ParserStatus::BAD_MUSIC_FLAG);
 			u8 flag = (flag_high << 4) | flag_low;
 
 			// in the example, consume the space
-			if (r.consume_char() != ' ') {
-				return ParserStatus::BAD_MUSIC_FLAG;
-			}
+			PARSER_CHECK(r.consume_char() == ' ', ParserStatus::BAD_MUSIC_FLAG);
 
 			// in the example, consume all four bytes as a pattern description
 			for (int i = 0; i < 4; ++i) {
 				int pattern_high = hex_digit(r.consume_char());
+				PARSER_CHECK(pattern_high != -1,
+				             ParserStatus::BAD_MUSIC_PATTERN);
 				int pattern_low = hex_digit(r.consume_char());
-				if (pattern_low == -1 || pattern_high == -1) {
-					return ParserStatus::BAD_MUSIC_PATTERN;
-				}
+				PARSER_CHECK(pattern_low != -1,
+				             ParserStatus::BAD_MUSIC_PATTERN);
 
 				u8 pattern = (pattern_high << 4) | pattern_low;
 
@@ -251,8 +242,10 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 				// i.e. flag 0 goes to patterns[0], etc.
 				pattern |= ((flag >> i) & 0b1) << 7;
 
-				// store in memory, with the proper memory format
-				music.get(_current_music_pattern * 4 + i) = pattern;
+				if (_mapping.is_target_mapped(_dev.music_addr + _off_music * 4 +
+				                              i)) {
+					_dev.music.get_byte(_off_music * 4 + i) = pattern;
+				}
 			}
 
 			r.consume_until_next_line();

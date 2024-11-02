@@ -51,7 +51,8 @@ void Window::present_frame(devices::Framebuffer fb,
 	std::array<std::uint8_t, fb.frame_width * fb.frame_height * 4> converted_fb;
 
 	for (std::size_t i = 0; i < fb.frame_bytes * 2; ++i) {
-		const auto palette_entry = fb.get_nibble(i);
+		const auto palette_entry =
+			fb.get_nibble(i, emu::NibbleOrder::LSB_FIRST);
 		const auto color_rgb8 =
 			video::pico8_palette_rgb8[pal.get_color(palette_entry)];
 		converted_fb[i * 4 + 0] = (color_rgb8 >> 16) & 0xFF;
