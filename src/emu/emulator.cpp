@@ -13,194 +13,16 @@
 #include <lua.h>
 #include <lualib.h>
 
+#include "y8header.hpp"
+#include "y8std.hpp"
 #include <devices/buttonstate.hpp>
 #include <devices/clippingrectangle.hpp>
 #include <devices/drawpalette.hpp>
 #include <devices/screenpalette.hpp>
-#include <emu/bindings/input.hpp>
-#include <emu/bindings/math.hpp>
-#include <emu/bindings/misc.hpp>
-#include <emu/bindings/mmio.hpp>
-#include <emu/bindings/rng.hpp>
-#include <emu/bindings/table.hpp>
-#include <emu/bindings/time.hpp>
-#include <emu/bindings/video.hpp>
 #include <hal/hal.hpp>
 #include <p8/parser.hpp>
 
 namespace emu {
-
-// TODO: minify lua header
-/// @brief This header is injected at the start of every cart.
-/// Whatever symbols it brings to the `local` scope will be visible to the cart.
-static constexpr std::string_view app_header =
-	R"(
-local all = function(t)
-	if t == nil or #t == 0 then
-		return function() end
-	end
-
-	local i = 1
-	local prev = nil
-
-	return function()
-		if t[i] == prev then
-			i += 1
-		end
-
-		while t[i] == nil and i <= #t do
-			i += 1
-		end
-
-		prev = t[i]
-
-		return prev
-	end
-end
-
-local inext = function(t, idx)
-	if (idx == nil) idx = 1 else idx += 1
-	local x = t[idx]
-	if (x == nil) return nil
-	return idx, x
-end
-
-local count = function(t, v)
-	local n = 0
-	if v == nil then
-		for i = 1,#t do
-			if t[i] ~= nil then
-				n += 1
-			end
-		end
-	else
-		for i = 1,#t do
-			if t[i] == v then
-				n += 1
-			end
-		end
-	end
-	return n
-end
-
-function __panic(msg)
-	printh("PANIC: " .. msg)
-	print(":(", 0, 0, 7)
-	print(msg)
-end
-)"
-
-	/// This re-exports certain globals into the `local` scope of the cart.
-    /// Calling these is faster, but there is a 200 limit on locals (including
-    /// the cart's own), so it shouldn't be used a ton. That limit only affects
-    /// the number of locals that are used, AFAICT.
-    ///
-    /// This should preferably only re-export standard functions that are used
-    /// in hot loops.
-    ///
-    /// When re-exported in the `local` scope, any use gets added to the upvalue
-    /// table of a function. Usually, this is a net performance benefit, because
-    /// upvalue accesses can be done directly rather than through an environment
-    /// lookup by string key (even if this usecase was optimized for in y8).
-    ///
-    /// However, it also results in longer upvalue construction time
-    /// per-function... For how carts normally behave, this is probably fine.
-
-	R"(local color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split, unpack, ord =
-color, pset, pget, sset, sget, fget, line, circfill, rectfill, spr, sspr, pal, palt, fillp, clip, mset, mget, map, peek, peek2, peek4, poke, poke2, poke4, memcpy, memset, abs, flr, mid, min, max, sin, cos, sqrt, shl, shr, band, bor, rnd, t, time, add, foreach, split, unpack, ord
-)"
-
-	R"(_gc(); printh(stat(0) .. "KB at boot"))";
-
-using BindingCallback = int(lua_State *);
-
-struct Binding {
-	/// @brief Name to export the binding under.
-	const char *name;
-
-	/// @brief Reference to the callback. Always of this fixed signature.
-	BindingCallback &callback;
-};
-
-static constexpr std::array<Binding, 69> y8_std{{
-	{"camera", bindings::y8_camera},
-	{"color", bindings::y8_color},
-	{"pset", bindings::y8_pset},
-	{"pget", bindings::y8_pget},
-	{"sset", bindings::y8_sset},
-	{"sget", bindings::y8_sget},
-	{"fget", bindings::y8_fget},
-	{"cls", bindings::y8_cls},
-	{"line", bindings::y8_line},
-	{"circfill", bindings::y8_circfill},
-	{"rectfill", bindings::y8_rectfill},
-	{"spr", bindings::y8_spr},
-	{"sspr", bindings::y8_sspr},
-	{"pal", bindings::y8_pal},
-	{"palt", bindings::y8_palt},
-	{"fillp", bindings::y8_fillp},
-	{"clip", bindings::y8_clip},
-	{"mset", bindings::y8_mset},
-	{"mget", bindings::y8_mget},
-	{"map", bindings::y8_map},
-	{"flip", bindings::y8_flip},
-	{"print", bindings::y8_print},
-	{"_rgbpal", bindings::y8_rgbpal},
-
-	{"btn", bindings::y8_btn},
-
-	{"peek", bindings::y8_peek},
-	{"peek2", bindings::y8_peek2},
-	{"peek4", bindings::y8_peek4},
-	{"poke", bindings::y8_poke},
-	{"poke2", bindings::y8_poke2},
-	{"poke4", bindings::y8_poke4},
-	{"memcpy", bindings::y8_memcpy},
-	{"memset", bindings::y8_memset},
-	{"reload", bindings::y8_reload},
-	{"load", bindings::y8_load},
-
-	{"abs", bindings::y8_abs},
-	{"flr", bindings::y8_flr},
-	{"mid", bindings::y8_mid},
-	{"min", bindings::y8_min},
-	{"max", bindings::y8_max},
-	{"sin", bindings::y8_sin},
-	{"cos", bindings::y8_cos},
-	{"atan2", bindings::y8_atan2},
-	{"sqrt", bindings::y8_sqrt},
-
-	{"shl", bindings::y8_shl},
-	{"shr", bindings::y8_shr},
-	{"lshr", bindings::y8_lshr},
-	{"rotl", bindings::y8_rotl},
-	{"rotr", bindings::y8_rotr},
-	{"band", bindings::y8_band},
-	{"bor", bindings::y8_bor},
-	{"sgn", bindings::y8_sgn},
-
-	{"cursor", bindings::y8_cursor},
-	{"printh", bindings::y8_printh},
-	{"tostr", bindings::y8_tostr},
-	{"tonum", bindings::y8_tonum},
-	{"stat", bindings::y8_stat},
-	{"sub", bindings::y8_sub},
-	{"ord", bindings::y8_ord},
-	{"_exit", bindings::y8_exit},
-	{"_gc", bindings::y8_gc},
-
-	{"rnd", bindings::y8_rnd},
-	{"srand", bindings::y8_srand},
-
-	{"t", bindings::y8_time},
-	{"time", bindings::y8_time},
-
-	{"add", bindings::y8_add},
-	{"del", bindings::y8_del},
-	{"foreach", bindings::y8_foreach},
-	{"split", bindings::y8_split},
-	{"unpack", bindings::y8_unpack},
-}};
 
 Emulator::~Emulator() {
 	if (_lua != nullptr) {
@@ -248,6 +70,11 @@ void Emulator::bind_globals() {
 
 	for (const auto &binding : y8_std) {
 		lua_register(_lua, binding.name, binding.callback);
+	}
+
+	for (const auto &binding : y8_numeric_globals) {
+		lua_pushnumber(_lua, binding.value);
+		lua_setglobal(_lua, reinterpret_cast<const char *>(binding.name));
 	}
 
 	stub("music");
