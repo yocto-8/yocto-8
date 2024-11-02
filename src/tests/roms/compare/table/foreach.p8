@@ -27,5 +27,6 @@ foreach(foo, evil_evil_evil)
 
 printh("syntax edge cases")
 printh(foreach())
+printh(foreach(nil))
 
 printh("====DONE====")
