@@ -21,11 +21,15 @@ int y8_add(lua_State *state) {
 		return 0;
 	}
 
+	if (lua_isnil(state, 1)) {
+		return 0;
+	}
+
 	const int table_size = int(lua_rawlen(state, 1) + 1);
 	int insert_pos = table_size;
 
 	if (arg_count >= 3) {
-		insert_pos = luaL_checkinteger(state, 3);
+		insert_pos = lua_tounsigned(state, 3);
 
 		// pos must be in [1, e]
 		luaL_argcheck(state,
@@ -63,6 +67,10 @@ int y8_del(lua_State *state) {
 
 	if (arg_count < 2) {
 		// PICO-8 returns no value in that case
+		return 0;
+	}
+
+	if (lua_isnil(state, 1)) {
 		return 0;
 	}
 
