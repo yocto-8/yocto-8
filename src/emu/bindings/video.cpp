@@ -46,14 +46,6 @@ inline void set_pixel_with_pattern(Point p, std::uint8_t raw_color) {
 	}
 }
 
-inline void set_pixel_with_alpha(Point p, std::uint8_t pen_color) {
-	const bool transparent = (pen_color >> 4) != 0;
-
-	if (!transparent) {
-		set_pixel(p, pen_color);
-	}
-}
-
 inline void draw_line(Point a, Point b, std::uint8_t raw_color) {
 	const auto clip = device<devices::ClippingRectangle>;
 
@@ -120,6 +112,7 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 	auto sprite = device<devices::Spritesheet>;
 	auto palette = device<devices::DrawPalette>;
 	auto clip = device<devices::ClippingRectangle>;
+	auto fb = device<devices::Framebuffer>;
 
 	// convert from negative target size to positive target size, but with
 	// flipped sprite coords
@@ -187,10 +180,14 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 	for (int y = clipped_tl.y; y < clipped_br.y; ++y) {
 		auto sprite_x = x_spr_start;
 		for (int x = clipped_tl.x; x < clipped_br.x; ++x) {
-			const std::uint8_t palette_entry = palette.get_color(
-				sprite.get_pixel(int(sprite_x), int(sprite_y)));
+			const u8 sprite_color =
+				sprite.get_pixel(int(sprite_x), int(sprite_y));
+			const std::uint8_t resolved_color =
+				palette.get_color(sprite_color & 0x0F);
 
-			detail::set_pixel_with_alpha(Point(x, y), palette_entry);
+			if (!palette.is_transparent(sprite_color)) {
+				fb.set_pixel(x, y, resolved_color);
+			}
 
 			sprite_x += x_spr_step;
 		}
