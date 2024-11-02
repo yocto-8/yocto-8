@@ -122,9 +122,9 @@ int y8_poke4(lua_State *state) {
 }
 
 int y8_memcpy(lua_State *state) {
-	const auto dst = luaL_checkunsigned(state, 1);
-	const auto src = luaL_checkunsigned(state, 2);
-	const auto len = luaL_checkunsigned(state, 3);
+	const PicoAddr dst = lua_tounsigned(state, 1);
+	const PicoAddr src = lua_tounsigned(state, 2);
+	const u16 len = lua_tounsigned(state, 3);
 
 	// FIXME: this should properly fix src/dst/len values
 	emulator.memory().memcpy(dst, src, len);
@@ -133,9 +133,9 @@ int y8_memcpy(lua_State *state) {
 }
 
 int y8_memset(lua_State *state) {
-	const auto dst = luaL_checkunsigned(state, 1);
-	const std::uint8_t val = luaL_checkunsigned(state, 2);
-	const auto len = luaL_checkunsigned(state, 3);
+	const PicoAddr dst = lua_tounsigned(state, 1);
+	const u8 val = lua_tounsigned(state, 2);
+	const u16 len = lua_tounsigned(state, 3);
 
 	emulator.memory().fill(val, dst, len);
 
