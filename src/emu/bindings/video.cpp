@@ -848,8 +848,8 @@ int y8_map(lua_State *state) {
 
 	const auto tile_x_origin = std::max(tile_x_raw_origin, 0);
 	const auto tile_y_origin = std::max(tile_y_raw_origin, 0);
-	const auto tile_x_end = std::min(tile_x_raw_origin + tile_width, 127);
-	const auto tile_y_end = std::min(tile_y_raw_origin + tile_height, 127);
+	const auto tile_x_end = std::min(tile_x_raw_origin + tile_width, 128);
+	const auto tile_y_end = std::min(tile_y_raw_origin + tile_height, 128);
 
 	const auto map = device<devices::Map>;
 
