@@ -256,9 +256,9 @@ void DWO::compute_scanline(std::span<std::uint8_t, 128 * 3 * 2> buffer,
 		// (2)
 
 		const auto px1 =
-			palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
+			palette[screen_palette.get_color(fb.raw_view[fb_idx] & 0x0F)];
 		const auto px2 =
-			palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
+			palette[screen_palette.get_color(fb.raw_view[fb_idx] >> 4)];
 
 		// endianness is reversed -- why is that?
 

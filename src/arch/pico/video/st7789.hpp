@@ -181,7 +181,7 @@ class ST7789 {
 
 		for (std::size_t fb_x = 0; fb_x < 8; fb_x += 2) {
 			const auto pixel_pair =
-				view.data[fb_x / 2 + scanline_fb_byte_offset];
+				view.raw_view[fb_x / 2 + scanline_fb_byte_offset];
 			scanline[fb_x] =
 				palette[screen_palette.get_color(pixel_pair & 0x0F)];
 			scanline[fb_x + 1] =
@@ -190,7 +190,7 @@ class ST7789 {
 
 		for (std::size_t fb_x = 8; fb_x < 120; fb_x += 2) {
 			const auto pixel_pair =
-				view.data[fb_x / 2 + scanline_fb_byte_offset];
+				view.raw_view[fb_x / 2 + scanline_fb_byte_offset];
 			const auto x_off = fb_x - 4;
 
 			scanline[x_off * 2] = scanline[x_off * 2 + 1] =
@@ -203,7 +203,7 @@ class ST7789 {
 		for (std::size_t fb_x = 120; fb_x < 128; fb_x += 2) {
 			const auto x_off = fb_x - 120;
 			const auto pixel_pair =
-				view.data[fb_x / 2 + scanline_fb_byte_offset];
+				view.raw_view[fb_x / 2 + scanline_fb_byte_offset];
 			scanline[232 + x_off] =
 				palette[screen_palette.get_color(pixel_pair & 0x0F)];
 			scanline[232 + x_off + 1] =

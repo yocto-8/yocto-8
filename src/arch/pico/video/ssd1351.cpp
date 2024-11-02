@@ -142,9 +142,9 @@ void SSD1351::scanline_dma_update() {
 	for (std::size_t fb_idx = _current_dma_fb_offset, scanline_idx = 0;
 	     fb_idx < current_fb_scanline_end; ++fb_idx, scanline_idx += 2) {
 		_scanline_buffer[scanline_idx + 0] =
-			palette[screen_palette.get_color(fb.data[fb_idx] & 0x0F)];
+			palette[screen_palette.get_color(fb.raw_view[fb_idx] & 0x0F)];
 		_scanline_buffer[scanline_idx + 1] =
-			palette[screen_palette.get_color(fb.data[fb_idx] >> 4)];
+			palette[screen_palette.get_color(fb.raw_view[fb_idx] >> 4)];
 	}
 
 	_current_dma_fb_offset = current_fb_scanline_end;
