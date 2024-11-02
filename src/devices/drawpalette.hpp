@@ -20,7 +20,8 @@ struct DrawPalette : emu::MMIODevice<16> {
 
 	void set_color(std::uint8_t palette_index,
 	               std::uint8_t resolved_index) const {
-		get_byte(palette_index) = resolved_index;
+		get_byte(palette_index) &= 0xF0;
+		get_byte(palette_index) |= resolved_index & 0x0F;
 	}
 
 	std::uint8_t get_color(std::uint8_t palette_index) const {
