@@ -12,11 +12,13 @@
 
 namespace hal {
 
-std::uint16_t update_button_state() {
+ButtonState update_button_state() {
 #ifndef Y8_DESKTOP_HEADLESS
-	return arch::desktop::yolo_window.button_state;
+	arch::desktop::yolo_window.dispatch_tick_events();
+	return {.held_key_mask = arch::desktop::yolo_window.held_key_mask,
+	        .pressed_key_mask = arch::desktop::yolo_window.pressed_key_mask};
 #else
-	return 0;
+	return {0, 0};
 #endif
 }
 

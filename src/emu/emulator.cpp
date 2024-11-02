@@ -56,6 +56,7 @@ void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 	device<devices::ScreenPalette>.reset();
 	device<devices::ClippingRectangle>.reset();
 	device<devices::Random>.set_seed(hal::get_unique_seed());
+	_button_state = {};
 }
 
 void Emulator::bind_globals() {
@@ -230,6 +231,10 @@ void Emulator::run_once() {
 
 		_update_start_time = hal::measure_time_us();
 
+		_button_state = hal::update_button_state();
+		device<devices::ButtonState>.for_player(0) =
+			_button_state.held_key_mask;
+
 		if (run_loop_hook("_update60") == HookResult::UNDEFINED) {
 			run_loop_hook("_update");
 		}
@@ -260,8 +265,6 @@ void Emulator::flip() {
 	}
 
 	_frame_start_time = hal::measure_time_us();
-
-	device<devices::ButtonState>.for_player(0) = hal::update_button_state();
 }
 
 int Emulator::get_fps_target() const {

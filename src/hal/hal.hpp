@@ -9,10 +9,15 @@
 
 namespace hal {
 
+struct ButtonState {
+	std::uint8_t held_key_mask;
+	std::uint8_t pressed_key_mask;
+};
+
 /// @brief Reads the button state as a bitfield in the form of a bitfield.
 /// @returns In the returned bitfield, the Nth bit matches the button in the
 /// io::Button namespace. Other bits should be assumed to be reserved.
-[[nodiscard]] std::uint16_t update_button_state();
+[[nodiscard]] ButtonState update_button_state();
 
 /// @brief Presents a new frame. May or may not perform double-buffering
 /// internally.

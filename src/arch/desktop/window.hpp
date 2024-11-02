@@ -14,10 +14,12 @@ class Window {
 	Window();
 
 	void present_frame(devices::Framebuffer fb, devices::ScreenPalette pal);
+	void dispatch_tick_events();
 
 	sf::RenderWindow window;
 	sf::Texture fb_texture;
-	std::uint8_t button_state;
+	std::uint8_t held_key_mask;
+	std::uint8_t pressed_key_mask;
 
 	sf::Shader filter_shader;
 	sf::Texture pixel_grid_texture;

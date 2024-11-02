@@ -55,6 +55,10 @@ class Emulator {
 	std::uint64_t get_frame_start_time() { return _frame_start_time; }
 	std::uint64_t get_frame_target_time() { return _frame_target_time; }
 
+	// TODO: implement repetition logic
+	// TODO: probably shouldn't use hal:: structs here
+	hal::ButtonState get_button_state() { return _button_state; }
+
 	Emulator(const Emulator &) = delete;
 	Emulator &operator=(const Emulator &) = delete;
 
@@ -64,6 +68,8 @@ class Emulator {
 	std::array<std::uint8_t, 65536> _memory;
 	std::array<std::uint32_t, 32> _palette;
 	lua_State *_lua = nullptr;
+
+	hal::ButtonState _button_state;
 
 	std::uint64_t _update_start_time = 0;
 	std::uint64_t _frame_start_time = 0;

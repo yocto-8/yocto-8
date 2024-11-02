@@ -1,11 +1,12 @@
 #include "window.hpp"
 #include "devices/screenpalette.hpp"
+#include "video/palette.hpp"
 
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Window/Event.hpp>
-
 #include <SFML/Window/Keyboard.hpp>
-#include <video/palette.hpp>
+
+#include <array>
 
 namespace arch::desktop {
 
@@ -24,10 +25,29 @@ void main()
 }
 )";
 
+static const std::array<std::pair<sf::Keyboard::Scancode, int>, 6>
+	scancode_to_p8{{{sf::Keyboard::Scan::Left, 0},
+                    {sf::Keyboard::Scan::Right, 1},
+                    {sf::Keyboard::Scan::Up, 2},
+                    {sf::Keyboard::Scan::Down, 3},
+                    {sf::Keyboard::Scan::C, 4},
+                    {sf::Keyboard::Scan::X, 5}}};
+
+static int get_p8_key(sf::Keyboard::Scancode code) {
+	for (const auto [match, i] : scancode_to_p8) {
+		if (code == match) {
+			return i;
+		}
+	}
+
+	return -1;
+}
+
 Window::Window()
 	: window(sf::VideoMode(128, 128), "yocto-8", sf::Style::Titlebar) {
 	window.setSize(sf::Vector2u(128 * 4, 128 * 4));
 	window.setFramerateLimit(60);
+	window.setKeyRepeatEnabled(false);
 	fb_texture.create(128, 128);
 
 	filter_shader.loadFromMemory(vertex_shader, sf::Shader::Vertex);
@@ -36,18 +56,38 @@ Window::Window()
 	filter_shader.setUniform("pixelGridFilter", pixel_grid_texture);
 }
 
-void Window::present_frame(devices::Framebuffer fb,
-                           devices::ScreenPalette pal) {
-	button_state = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) << 0 |
-	               sf::Keyboard::isKeyPressed(sf::Keyboard::Right) << 1 |
-	               sf::Keyboard::isKeyPressed(sf::Keyboard::Up) << 2 |
-	               sf::Keyboard::isKeyPressed(sf::Keyboard::Down) << 3 |
-	               sf::Keyboard::isKeyPressed(sf::Keyboard::C) << 4 |
-	               sf::Keyboard::isKeyPressed(sf::Keyboard::X) << 5;
+void Window::dispatch_tick_events() {
+	pressed_key_mask = 0;
 
 	for (sf::Event ev; window.pollEvent(ev);) {
+		switch (ev.type) {
+		case sf::Event::EventType::KeyPressed: {
+			if (const auto i = get_p8_key(ev.key.scancode); i >= 0) {
+				held_key_mask |= 1 << i;
+				pressed_key_mask |= 1 << i;
+			}
+			break;
+		}
+
+		case sf::Event::EventType::KeyReleased: {
+			if (const auto i = get_p8_key(ev.key.scancode); i >= 0) {
+				held_key_mask &= ~(1 << i);
+			}
+			break;
+		}
+
+		default:
+			break;
+		}
 	}
 
+	// For keys that were very shortly pressed; still register them for btn for
+	// one tick
+	held_key_mask |= pressed_key_mask;
+}
+
+void Window::present_frame(devices::Framebuffer fb,
+                           devices::ScreenPalette pal) {
 	std::array<std::uint8_t, fb.frame_width * fb.frame_height * 4> converted_fb;
 
 	for (std::size_t i = 0; i < fb.frame_bytes * 2; ++i) {
