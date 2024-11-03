@@ -58,8 +58,8 @@ int hex_digit(char c) {
 	return -1;
 }
 
-static constexpr std::array<std::pair<std::string_view, ParserState>, 7>
-	state_matchers_leading_newline{{
+static constexpr auto state_matchers_leading_newline =
+	std::to_array<std::pair<std::string_view, ParserState>>({
 		{"\n__lua__", ParserState::PARSING_LUA},
 		{"\n__gfx__", ParserState::PARSING_GFX},
 		{"\n__label__", ParserState::PARSING_LABEL},
@@ -67,7 +67,7 @@ static constexpr std::array<std::pair<std::string_view, ParserState>, 7>
 		{"\n__map__", ParserState::PARSING_MAP},
 		{"\n__sfx__", ParserState::PARSING_SFX},
 		{"\n__music__", ParserState::PARSING_MUSIC},
-	}};
+	});
 
 RemappedDevices RemappedDevices::from_config(ParserMapConfig config) {
 	auto memory = emu::emulator.memory();

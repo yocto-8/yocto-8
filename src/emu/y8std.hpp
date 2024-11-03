@@ -19,10 +19,10 @@ struct Binding {
 	const char *name;
 
 	/// @brief Reference to the callback. Always of this fixed signature.
-	BindingCallback &callback;
+	BindingCallback *callback;
 };
 
-static constexpr std::array<Binding, 70> y8_std{{
+static constexpr auto y8_std = std::to_array<Binding>({
 	{"camera", bindings::y8_camera},
 	{"color", bindings::y8_color},
 	{"pset", bindings::y8_pset},
@@ -101,7 +101,7 @@ static constexpr std::array<Binding, 70> y8_std{{
 	{"foreach", bindings::y8_foreach},
 	{"split", bindings::y8_split},
 	{"unpack", bindings::y8_unpack},
-}};
+});
 
 struct NumericGlobal {
 	const char8_t *name;
@@ -111,7 +111,7 @@ struct NumericGlobal {
 // Populated manually from the list of identifiers listed on the pico-8 wiki for
 // the header page
 // TODO: check if still accurate
-static constexpr std::array<NumericGlobal, 26> y8_numeric_globals{{
+static constexpr auto y8_numeric_globals = std::to_array<NumericGlobal>({
 	// joystick
 	{u8"⬅️", 0},
 	{u8"➡️", 1},
@@ -141,6 +141,6 @@ static constexpr std::array<NumericGlobal, 26> y8_numeric_globals{{
 	{u8"⧗", 0x1B1F'8000_raw_fix16},
 	{u8"ˇ", 0xF5BF'8000_raw_fix16},
 	{u8"∧", 0x7ADF'8000_raw_fix16},
-}};
+});
 
 } // namespace emu
