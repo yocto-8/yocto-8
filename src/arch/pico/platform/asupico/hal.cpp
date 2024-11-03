@@ -10,14 +10,16 @@ namespace hal {
 namespace pico = arch::pico;
 namespace asupico = arch::pico::platform::asupico;
 
-std::uint16_t update_button_state() {
-	std::uint16_t ret = 0;
+hal::ButtonState update_button_state() {
+	std::uint8_t held_key_mask = 0;
+
+	// FIXME: btnp implementation wrong and equivalent to btn
 
 	for (std::size_t i = 0; i < asupico::hw.buttons.size(); ++i) {
-		ret |= asupico::hw.buttons[i] << i;
+		held_key_mask |= asupico::hw.buttons[i] << i;
 	}
 
-	return ret;
+	return {.held_key_mask = held_key_mask, .pressed_key_mask = held_key_mask};
 }
 
 void load_rgb_palette(std::span<std::uint32_t, 32> new_palette) {
