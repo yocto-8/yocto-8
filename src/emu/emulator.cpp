@@ -310,6 +310,11 @@ void Emulator::panic(const char *message) {
 
 #ifdef Y8_INFINITE_LOOP_EXIT
 	for (;;) {
+		// FIXME: this can result in way too deep recursion
+		// (panic->handle_repl->exec)
+		// This should be partly mitigated by not calling panic() for
+		// handle_repl, and this includes changing the configured Lua error
+		// handler
 		handle_repl();
 		flip();
 	}
