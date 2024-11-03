@@ -186,7 +186,7 @@ set_property(
 )
 
 set_property(
-    SOURCE ${LUA_ROOT}/lvm.c
+    SOURCE ${LUA_ROOT}/lvm.cpp
     APPEND PROPERTY COMPILE_OPTIONS
 
     # increasing the inlining threshold and using -O3 adds a few KiB of code
