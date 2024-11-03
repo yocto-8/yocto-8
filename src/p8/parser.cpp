@@ -313,7 +313,7 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 
 			++state._main_line_number;
 
-			// Consume spaces
+			// Consume spaces after #include
 			while (r.consume_if([](char c) { return c == ' ' || c == '\t'; }))
 				;
 

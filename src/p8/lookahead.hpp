@@ -2,6 +2,8 @@
 
 #include "coredefs.hpp"
 #include <array>
+#include <functional>
+#include <stdexcept>
 #include <string_view>
 
 #include <hal/hal.hpp>
@@ -11,28 +13,17 @@ namespace p8 {
 class LookaheadReader {
 	public:
 	LookaheadReader(hal::ReaderCallback &reader, void *ud)
-		: _fs_reader(reader), _fs_ud(ud), _fs_buffer(nullptr),
-		  _fs_buffer_offset(0), _fs_buffer_size(0),
-		  _backtrack_offset(_backtrack_buffer.size()) {}
+		: _fs_reader(reader), _fs_ud(ud), _file_buffer{},
+		  _file_buffer_offset(0), _backtrack_offset(_backtrack_buffer.size()) {}
 
 	/// Consumes and returns the next character in the stream. '\0' signals EOF.
 	char consume_char() {
-		// Do we have stuff to read from the backtrack buffer?
-		if (_backtrack_offset < _backtrack_buffer.size()) {
+		if (!_remaining_backtrack().empty()) {
 			return _backtrack_buffer[_backtrack_offset++];
 		}
 
-		// Anything left to read from the fs buffer?
-		if (_fs_buffer_offset < _fs_buffer_size) {
-			return _fs_buffer[_fs_buffer_offset++];
-		}
-
-		// If we can't, trigger a read, and retry after
-		_read_next_fs_buffer();
-
-		// Anything left to read from the fs buffer?
-		if (_fs_buffer_offset < _fs_buffer_size) {
-			return _fs_buffer[_fs_buffer_offset++];
+		if (_try_ensure_file_buffer()) {
+			return _file_buffer[_file_buffer_offset++];
 		}
 
 		return '\0';
@@ -41,22 +32,12 @@ class LookaheadReader {
 	/// Does NOT consume input. Looks ahead for one character and returns it.
 	/// '\0' signals EOF.
 	char peek_char() {
-		// Do we have stuff to read from the backtrack buffer?
-		if (_backtrack_offset < _backtrack_buffer.size()) {
+		if (!_remaining_backtrack().empty()) {
 			return _backtrack_buffer[_backtrack_offset];
 		}
 
-		// Anything left to read from the fs buffer?
-		if (_fs_buffer_offset < _fs_buffer_size) {
-			return _fs_buffer[_fs_buffer_offset];
-		}
-
-		// If we can't, trigger a read, and retry after
-		_read_next_fs_buffer();
-
-		// Anything left to read from the fs buffer?
-		if (_fs_buffer_offset < _fs_buffer_size) {
-			return _fs_buffer[_fs_buffer_offset];
+		if (_try_ensure_file_buffer()) {
+			return _file_buffer[_file_buffer_offset];
 		}
 
 		return '\0';
@@ -65,28 +46,33 @@ class LookaheadReader {
 	/// Consumes characters as long as `predicate(c)` is true.
 	/// Character is written to `*output_char` even if `predicate` fails.
 	/// The character that fails the `predicate` is NOT consumed.
-	template <class Func>
-	bool consume_if(Func &&predicate, char *output_char = nullptr) {
+	bool consume_if(std::invocable<char> auto &&consumer,
+	                char *output_char = nullptr) {
 		char c = peek_char();
 		if (output_char != nullptr) {
 			*output_char = c;
 		}
-		if (predicate(c)) {
+		if (consumer(c)) {
 			consume_char();
 			return true;
 		}
 		return false;
 	}
 
-	template <class Func>
-	std::span<char> consume_into(Func &&predicate,
+	/// Consumes characters into the destination span as long as `predicate(c)`
+	/// is true. The returned span is the subspan of actually read data.
+	std::span<char> consume_into(std::invocable<char> auto &&predicate,
 	                             std::span<char> output_buffer) {
-		// FIXME: proper error handling when exceeding buffer size
 		std::size_t i;
 		for (i = 0; i < output_buffer.size(); ++i) {
 			if (!consume_if(predicate, &output_buffer[i])) {
 				break;
 			}
+		}
+
+		if (i == output_buffer.size() - 1 && predicate(peek_char())) {
+			throw std::out_of_range(
+				"Undersized output buffer; input too long?");
 		}
 
 		return output_buffer.subspan(0, i);
@@ -98,67 +84,75 @@ class LookaheadReader {
 	// Consumes input expecting the string to be matched. Returns `true` only on
 	// success. On failure, the first failing character will be consumed.
 	bool consume_matches(std::string_view to_match) {
-		while (!to_match.empty()) {
-			if (consume_char() != to_match.front()) {
+		for (std::size_t i = 0; i < to_match.size(); ++i) {
+			if (consume_char() != to_match[i]) {
 				return false;
 			}
-			to_match = to_match.substr(1);
 		}
 		return true;
 	}
 
-	template <class Func> void peek_foreach_while(Func &&callback) {
-		// Iterate over what can be from the current backtrack buffer
-		for (std::size_t i = _backtrack_offset; i < _backtrack_buffer.size();
-		     ++i) {
-			if (!callback(_backtrack_buffer[i])) {
+	void peek_foreach_while(std::invocable<char> auto &&consumer) {
+		for (char c : _remaining_backtrack()) {
+			if (!consumer(c)) {
 				return;
 			}
 		}
 
-		if (_fs_buffer_offset == _fs_buffer_size) {
-			// Filesystem buffer is exhausted? We can read it in any case.
-			_read_next_fs_buffer();
-
-			if (_remaining_fs_buffer_size() == 0) { // eof?
-				return;
-			}
+		if (!_try_ensure_file_buffer()) {
+			// No data left to read from fs
+			return;
 		}
 
-		// Iterate over what can be from the fs buffer
-		for (std::size_t i = _fs_buffer_offset; i < _fs_buffer_size; ++i) {
-			if (!callback(_fs_buffer[i])) {
+		for (char c : _remaining_file_buffer()) {
+			if (!consumer(c)) {
 				return;
 			}
 		}
 
 		// Filesystem buffer exhausted.
 		// Migrate to the backtrack buffer if possible
-		while (_remaining_fs_buffer_size() < _remaining_backtrack_size()) {
-			// Move backward the current backtrack buffer
+		while (_remaining_file_buffer().size() < free_backtrack_space()) {
+			// Considering an input like 'abcdefghi'
+			// Our backtrack buffer looks like:
+			// --------abc
+			//         ^ _backtrack_offset
+			// If our fs buffer contains 'def'
+			// We want to update the backtrack buffer to:
+			// -----abcdef
+			//         ^ size - _remaining_fs_size
+			//      ^ new _backtrack_offset
+			// So first move current contents back by the remaining fs buffer
+			// size.
+			// Then the next fs buffer read would contain 'ghi'
+			// We now want to start iterating on the fs buffer.
+
+			const auto to_copy = _remaining_file_buffer();
+
+			// Move backward the current backtrack buffer, i.e. turn it into
+			// -----abcabc
+			// and shift the backtrack offset backwards
 			std::memmove(_backtrack_buffer.data() + _backtrack_offset -
-			                 _remaining_fs_buffer_size(),
+			                 to_copy.size(),
 			             _backtrack_buffer.data() + _backtrack_offset,
-			             _remaining_fs_buffer_size());
-			_backtrack_offset -= _remaining_fs_buffer_size();
+			             _remaining_backtrack().size());
+			_backtrack_offset -= to_copy.size();
 
-			// Copy the existing fs buffer into the end of the backtrack buffer
+			// Copy the existing fs buffer into the end of the backtrack
+			// buffer
 			std::memcpy(_backtrack_buffer.data() + _backtrack_buffer.size() -
-			                _remaining_fs_buffer_size(),
-			            _fs_buffer + _fs_buffer_offset,
-			            _remaining_fs_buffer_size());
+			                to_copy.size(),
+			            to_copy.data(), to_copy.size());
 
-			// Now that the fs buffer is backed up, override it with a new chunk
-			// (of an unknown, potentially different size, still)
-			_read_next_fs_buffer();
-
-			if (_remaining_fs_buffer_size() == 0) { // eof?
+			// Now that we backed up the current fs buffer for backtracking,
+			// read a new one
+			_file_buffer = {};
+			if (!_read_next_fs_buffer()) { // eof?
 				return;
 			}
 
-			// Iterate over what can be from the fs buffer
-			for (std::size_t i = _fs_buffer_offset; i < _fs_buffer_size; ++i) {
-				if (!callback(_fs_buffer[i])) {
+			for (char c : _remaining_file_buffer()) {
+				if (!consumer(c)) {
 					return;
 				}
 			}
@@ -224,44 +218,17 @@ class LookaheadReader {
 	///
 	/// When EOF has been reached and there is no data left to return, this
 	/// function will return `nullptr` and write `0` to `*size`.
-	template <class Func>
-	const char *consume_rest_of_current_buffer_while(Func &&predicate,
-	                                                 std::size_t *size) {
-		if (_backtrack_offset < _backtrack_buffer.size()) {
-			// Consume from the backtrack buffer
-			std::size_t i;
-			for (i = _backtrack_offset; i < _backtrack_buffer.size(); ++i) {
-				if (!predicate(_backtrack_buffer[i])) {
-					break;
-				}
-			}
-
-			const char *ret = _backtrack_buffer.data() + _backtrack_offset;
-			*size = i - _backtrack_offset;
-			_backtrack_offset = i; // consume these
-
-			return ret;
+	const char *
+	consume_rest_of_current_buffer_while(std::invocable<char> auto &&predicate,
+	                                     std::size_t *size) {
+		if (_remaining_backtrack().size() != 0) {
+			return _consume_from_buffer(predicate, _backtrack_buffer,
+			                            _backtrack_offset, size);
 		}
 
-		if (_fs_buffer_offset == _fs_buffer_size) {
-			// Empty filesystem buffer? Try reading a new buffer.
-			_read_next_fs_buffer();
-		}
-
-		if (_fs_buffer_offset < _fs_buffer_size) {
-			// Consume from fs buffer
-			std::size_t i;
-			for (i = _fs_buffer_offset; i < _fs_buffer_size; ++i) {
-				if (!predicate(_fs_buffer[i])) {
-					break;
-				}
-			}
-
-			const char *ret = _fs_buffer + _fs_buffer_offset;
-			*size = i - _fs_buffer_offset;
-			_fs_buffer_offset = i; // consume these
-
-			return ret;
+		if (_try_ensure_file_buffer()) {
+			return _consume_from_buffer(predicate, _file_buffer,
+			                            _file_buffer_offset, size);
 		}
 
 		*size = 0;
@@ -269,24 +236,62 @@ class LookaheadReader {
 	}
 
 	private:
-	void _read_next_fs_buffer() {
-		debug_assert(_fs_buffer_offset == fs_read_buffer);
-		_fs_buffer = _fs_reader(_fs_ud, &_fs_buffer_size);
-		_fs_buffer_offset = 0;
+	bool _read_next_fs_buffer() {
+		debug_assert(_remaining_fs_buffer_size() == 0);
+
+		std::size_t fs_buffer_size = 0;
+		const char *fs_buffer_start = _fs_reader(_fs_ud, &fs_buffer_size);
+
+		_file_buffer = {fs_buffer_start, fs_buffer_size};
+		_file_buffer_offset = 0;
+
+		return !_file_buffer.empty();
 	}
 
-	std::size_t _remaining_backtrack_size() { return _backtrack_offset; }
+	/// If the fs buffer has any data, return true.
+	/// Otherwise, try reading the next fs buffer, then returns true if anything
+	/// was read.
+	bool _try_ensure_file_buffer() {
+		if (_remaining_file_buffer().size() != 0) {
+			return true;
+		}
+		return _read_next_fs_buffer();
+	}
 
-	std::size_t _remaining_fs_buffer_size() {
-		return _fs_buffer_size - _fs_buffer_offset;
+	const char *_consume_from_buffer(std::invocable<char> auto &&predicate,
+	                                 std::span<const char> buf,
+	                                 std::size_t &current_offset,
+	                                 std::size_t *size) {
+		std::size_t consumed = 0;
+		for (char c : buf.subspan(current_offset)) {
+			if (!predicate(c)) {
+				break;
+			}
+			++consumed;
+		}
+
+		const char *ret = buf.data() + current_offset;
+		*size = consumed;
+		current_offset += consumed;
+
+		return ret;
+	}
+
+	std::size_t free_backtrack_space() const { return _backtrack_offset; }
+
+	std::span<const char> _remaining_backtrack() const {
+		return std::span{_backtrack_buffer}.subspan(_backtrack_offset);
+	}
+
+	std::span<const char> _remaining_file_buffer() const {
+		return _file_buffer.subspan(_file_buffer_offset);
 	}
 
 	hal::ReaderCallback *_fs_reader;
 	void *_fs_ud;
 
-	const char *_fs_buffer;
-	std::size_t _fs_buffer_offset;
-	std::size_t _fs_buffer_size;
+	std::span<const char> _file_buffer;
+	std::size_t _file_buffer_offset;
 
 	std::array<char, 64> _backtrack_buffer;
 	std::size_t _backtrack_offset;
