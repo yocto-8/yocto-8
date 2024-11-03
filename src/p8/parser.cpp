@@ -2,13 +2,13 @@
 #include "coredefs.hpp"
 #include "devices/image.hpp"
 #include "hal/hal.hpp"
-#include "llex.h"
+#include "llex.hpp"
 #include "p8/lookahead.hpp"
 #include <emu/bufferio.hpp>
 #include <emu/emulator.hpp>
 #include <emu/mmio.hpp>
 
-#include "lstate.h"
+#include "lstate.hpp"
 #include <array>
 
 namespace p8::detail {

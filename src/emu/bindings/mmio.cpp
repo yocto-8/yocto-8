@@ -5,8 +5,8 @@
 
 #include <coredefs.hpp>
 #include <emu/emulator.hpp>
-#include <lauxlib.h>
-#include <lua.h>
+#include <lauxlib.hpp>
+#include <lua.hpp>
 
 using namespace y8;
 

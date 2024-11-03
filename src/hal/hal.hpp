@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <lua.h>
+#include <lua.hpp>
 #include <string_view>
 
 #include <devices/image.hpp>

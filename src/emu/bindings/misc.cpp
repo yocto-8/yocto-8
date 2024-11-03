@@ -1,14 +1,14 @@
 #include "fix16.hpp"
 #include "hal/hal.hpp"
-#include "lobject.h"
+#include "lobject.hpp"
 
 #include <cassert>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <emu/emulator.hpp>
-#include <lauxlib.h>
-#include <lua.h>
+#include <lauxlib.hpp>
+#include <lua.hpp>
 
 namespace emu::bindings {
 

@@ -3,8 +3,8 @@
 
 #include <cassert>
 #include <concepts>
-#include <lauxlib.h>
-#include <lua.h>
+#include <lauxlib.hpp>
+#include <lua.hpp>
 
 #include <devices/clippingrectangle.hpp>
 #include <devices/drawpalette.hpp>

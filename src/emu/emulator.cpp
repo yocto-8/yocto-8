@@ -3,15 +3,15 @@
 #include "devices/image.hpp"
 #include "devices/random.hpp"
 #include "emu/bufferio.hpp"
-#include "lgc.h"
+#include "lgc.hpp"
 
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
-#include <lauxlib.h>
-#include <ldo.h>
-#include <lua.h>
-#include <lualib.h>
+#include <lauxlib.hpp>
+#include <ldo.hpp>
+#include <lua.hpp>
+#include <lualib.hpp>
 
 #include "y8header.hpp"
 #include "y8std.hpp"

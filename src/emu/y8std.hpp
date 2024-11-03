@@ -1,4 +1,4 @@
-#include "lua.h"
+#include "lua.hpp"
 #include <array>
 
 #include <emu/bindings/input.hpp>

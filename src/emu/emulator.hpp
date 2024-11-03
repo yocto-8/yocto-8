@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <lua.h>
+#include <lua.hpp>
 #include <span>
 #include <string_view>
 

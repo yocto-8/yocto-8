@@ -2,8 +2,8 @@
 
 #include <devices/buttonstate.hpp>
 #include <emu/emulator.hpp>
-#include <lauxlib.h>
-#include <lua.h>
+#include <lauxlib.hpp>
+#include <lua.hpp>
 
 namespace emu::bindings {
 

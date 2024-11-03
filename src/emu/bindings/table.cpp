@@ -1,11 +1,11 @@
 #include "table.hpp"
 
-#include "lapi.h"
-#include "lauxlib.h"
-#include "lobject.h"
-#include "ltable.h"
-#include "lua.h"
-#include "lvm.h"
+#include "lapi.hpp"
+#include "lauxlib.hpp"
+#include "lobject.hpp"
+#include "ltable.hpp"
+#include "lua.hpp"
+#include "lvm.hpp"
 #include <string_view>
 
 namespace emu::bindings {

@@ -1,8 +1,8 @@
 #include "time.hpp"
 
 #include <emu/emulator.hpp>
-#include <lauxlib.h>
-#include <lua.h>
+#include <lauxlib.hpp>
+#include <lua.hpp>
 
 #include <hal/hal.hpp>
 

@@ -133,53 +133,52 @@ set(CORE_SOURCES
 
 set(LUA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/")
 set(LUA_SOURCES
-    ${LUA_ROOT}/lapi.c
-    ${LUA_ROOT}/lauxlib.c
-    ${LUA_ROOT}/lbaselib.c
+    ${LUA_ROOT}/lapi.cpp
+    ${LUA_ROOT}/lauxlib.cpp
+    ${LUA_ROOT}/lbaselib.cpp
 
-    # ${LUA_ROOT}/lbitlib.c
-    ${LUA_ROOT}/lcode.c
-    ${LUA_ROOT}/lcorolib.c
-    ${LUA_ROOT}/lctype.c
+    # ${LUA_ROOT}/lbitlib.cpp
+    ${LUA_ROOT}/lcode.cpp
+    ${LUA_ROOT}/lcorolib.cpp
+    ${LUA_ROOT}/lctype.cpp
 
-    # ${LUA_ROOT}/ldblib.c
-    ${LUA_ROOT}/ldebug.c
-    ${LUA_ROOT}/ldo.c
+    # ${LUA_ROOT}/ldblib.cpp
+    ${LUA_ROOT}/ldebug.cpp
+    ${LUA_ROOT}/ldo.cpp
 
-    # ${LUA_ROOT}/ldump.c
-    ${LUA_ROOT}/lfunc.c
-    ${LUA_ROOT}/lgc.c
-    ${LUA_ROOT}/linit.c
+    # ${LUA_ROOT}/ldump.cpp
+    ${LUA_ROOT}/lfunc.cpp
+    ${LUA_ROOT}/lgc.cpp
+    ${LUA_ROOT}/linit.cpp
 
-    # ${LUA_ROOT}/liolib.c
-    ${LUA_ROOT}/llex.c
+    # ${LUA_ROOT}/liolib.cpp
+    ${LUA_ROOT}/llex.cpp
 
-    # ${LUA_ROOT}/lmathlib.c
-    ${LUA_ROOT}/lmem.c
+    # ${LUA_ROOT}/lmathlib.cpp
+    ${LUA_ROOT}/lmem.cpp
 
-    # ${LUA_ROOT}/loadlib.c
-    ${LUA_ROOT}/lobject.c
-    ${LUA_ROOT}/lopcodes.c
+    # ${LUA_ROOT}/loadlib.cpp
+    ${LUA_ROOT}/lobject.cpp
+    ${LUA_ROOT}/lopcodes.cpp
 
-    # ${LUA_ROOT}/loslib.c
-    ${LUA_ROOT}/lparser.c
-    ${LUA_ROOT}/lstate.c
-    ${LUA_ROOT}/lstring.c
+    # ${LUA_ROOT}/loslib.cpp
+    ${LUA_ROOT}/lparser.cpp
+    ${LUA_ROOT}/lstate.cpp
+    ${LUA_ROOT}/lstring.cpp
 
-    # ${LUA_ROOT}/lstrlib.c
-    # ${LUA_ROOT}/ltable.c
+    # ${LUA_ROOT}/lstrlib.cpp
+    # ${LUA_ROOT}/ltable.cpp
 
-    # ${LUA_ROOT}/ltablib.c
-    # ${LUA_ROOT}/ltests.c
-    ${LUA_ROOT}/ltm.c
+    # ${LUA_ROOT}/ltablib.cpp
+    # ${LUA_ROOT}/ltests.cpp
+    ${LUA_ROOT}/ltm.cpp
 
-    # ${LUA_ROOT}/lundump.c
-    ${LUA_ROOT}/lvm.c
-    ${LUA_ROOT}/lzio.c
+    # ${LUA_ROOT}/lundump.cpp
+    ${LUA_ROOT}/lvm.cpp
+    ${LUA_ROOT}/lzio.cpp
 )
 
 # compile Lua as C++ - we need this for the fixmath black magic
-set_source_files_properties(${LUA_SOURCES} PROPERTIES LANGUAGE CXX)
 set_property(
     SOURCE ${LUA_SOURCES}
     APPEND PROPERTY COMPILE_OPTIONS
@@ -219,10 +218,10 @@ set(FATFS_SOURCES
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
 set(SIZE_SENSITIVE_SOURCES
-    ${LUA_ROOT}/llex.c
-    ${LUA_ROOT}/lparser.c
-    ${LUA_ROOT}/lcode.c
-    ${LUA_ROOT}/ldebug.c
+    ${LUA_ROOT}/llex.cpp
+    ${LUA_ROOT}/lparser.cpp
+    ${LUA_ROOT}/lcode.cpp
+    ${LUA_ROOT}/ldebug.cpp
 
     ${CORE_ROOT}/p8/parser.cpp
 

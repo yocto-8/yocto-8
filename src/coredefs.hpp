@@ -1,6 +1,6 @@
 #pragma once
 
-#include "luaconf.h"
+#include "luaconf.hpp"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
