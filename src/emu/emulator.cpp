@@ -310,7 +310,7 @@ void Emulator::panic(const char *message) {
 #ifdef Y8_INFINITE_LOOP_EXIT
 	for (;;) {
 		handle_repl();
-		hal::present_frame();
+		flip();
 	}
 #else
 	exit(1);
