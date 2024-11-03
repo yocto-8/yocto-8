@@ -3,7 +3,7 @@
 #include <bit>
 #include <cstdint>
 #include <emu/mmio.hpp>
-#include <fix16.h>
+#include <fix16.hpp>
 
 // PRNG logic adapted from https://www.lexaloffle.com/bbs/?tid=51113
 

@@ -204,12 +204,11 @@ set_property(
 # add_compile_definitions(LUA_USE_LONGJMP)
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
 set(FIXMATH_SOURCES
-    ${FIXMATH_ROOT}/fix16_exp.c
-    ${FIXMATH_ROOT}/fix16_sqrt.c
-    ${FIXMATH_ROOT}/fix16_str.c
-    ${FIXMATH_ROOT}/fix16_trig.c
+    ${FIXMATH_ROOT}/fix16_exp.cpp
+    ${FIXMATH_ROOT}/fix16_sqrt.cpp
+    ${FIXMATH_ROOT}/fix16_str.cpp
+    ${FIXMATH_ROOT}/fix16_trig.cpp
 )
-set_source_files_properties(${FIXMATH_SOURCES} PROPERTIES LANGUAGE CXX)
 
 set(FATFS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/fatfs/")
 set(FATFS_SOURCES
