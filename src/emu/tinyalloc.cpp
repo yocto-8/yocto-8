@@ -1,3 +1,3 @@
 #include "tinyalloc.hpp"
 
-void *heap_limit;
+void *heap_limit; // NOLINT

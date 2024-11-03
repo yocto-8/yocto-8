@@ -20,6 +20,10 @@ class Emulator {
 	public:
 	constexpr Emulator() = default;
 	~Emulator();
+	Emulator(const Emulator &) = delete;
+	Emulator &operator=(const Emulator &) = delete;
+	Emulator(Emulator &&) = delete;
+	Emulator &operator=(Emulator &&) = delete;
 
 	void init(std::span<std::byte> backup_heap_buffer);
 	void bind_globals();
@@ -59,9 +63,6 @@ class Emulator {
 	// TODO: probably shouldn't use hal:: structs here
 	hal::ButtonState get_button_state() { return _button_state; }
 
-	Emulator(const Emulator &) = delete;
-	Emulator &operator=(const Emulator &) = delete;
-
 	private:
 	EmulatorPersistentState _persistent_state;
 	std::span<std::byte> _backup_heap;
@@ -78,10 +79,12 @@ class Emulator {
 
 // void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize);
 
+// NOLINTBEGIN
 extern Emulator emulator;
 
 template <class Device, std::uint16_t map_address = Device::default_map_address>
 inline constexpr auto device = emulator.memory().device<Device>(map_address);
+// NOLINTEND
 
 } // namespace emu
 

@@ -168,6 +168,7 @@ void Emulator::exec(std::string_view buf) {
 
 void Emulator::handle_repl() {
 #ifdef Y8_LUA_REPL
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 	std::array<char, 512> repl_buffer;
 	const auto repl_input = hal::read_repl(repl_buffer);
 
@@ -317,6 +318,6 @@ void Emulator::panic(const char *message) {
 #endif
 }
 
-Emulator emulator;
+Emulator emulator; // NOLINT
 
 } // namespace emu

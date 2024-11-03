@@ -87,6 +87,7 @@ Parser::Parser(ParserMapConfig map_config, global_State *lua_global_state)
 	  _off_map(128 * 32), // we start on the bottom 32 rows
 	  _off_gff(0), _off_music(0), _lua_global_state(lua_global_state) {}
 
+// NOLINTNEXTLINE
 #define PARSER_CHECK(cond, err_code)                                           \
 	if (!(cond)) {                                                             \
 		return (err_code);                                                     \
@@ -317,7 +318,7 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 				;
 
 			// Parse filename into a buffer
-			std::array<char, 128> include_fname;
+			std::array<char, 128> include_fname; // NOLINT
 			const auto out_buf = r.consume_into(
 				[](char c) { return c != ' ' && c != '\n' && c != '\r'; },
 				include_fname);
