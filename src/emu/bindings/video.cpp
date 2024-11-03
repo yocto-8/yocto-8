@@ -153,7 +153,7 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 
 	// x/y_spr_start aren't sprite_origin, because we need to precalculate by
 	// how many sprite pixels the clipping would have shifted
-	LuaFix16 x_spr_start, y_spr_start;
+	LuaFix16 x_spr_start, y_spr_start; // NOLINT: initialized in all branches
 
 	if (!x_flip) {
 		x_spr_start = LuaFix16(sprite_origin.x) +

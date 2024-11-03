@@ -167,7 +167,7 @@ int tostr_handle_optional_address_mode(lua_State *state,
 	}
 
 	// address format
-	std::array<char, 32> char_buffer;
+	std::array<char, 32> char_buffer; // NOLINT
 	format_address(char_buffer, on_address_str, lua_topointer(state, 1));
 	lua_pushstring(state, char_buffer.data());
 	return 1;
@@ -281,7 +281,7 @@ int y8_tostr(lua_State *state) {
 	}
 
 	if (lua_isnumber(state, 1)) {
-		std::array<char, 32> number_buffer;
+		std::array<char, 32> number_buffer; // NOLINT
 		format_number(number_buffer, lua_tonumber(state, 1), hex_or_id_mode,
 		              as_plain_integer_mode);
 		lua_pushstring(state, number_buffer.data());
