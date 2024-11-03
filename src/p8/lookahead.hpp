@@ -65,7 +65,7 @@ class LookaheadReader {
 	                             std::span<char> output_buffer) {
 		std::size_t i;
 		for (i = 0; i < output_buffer.size(); ++i) {
-			if (!consume_if(predicate, &output_buffer[i])) {
+			if (!consume_if(predicate, output_buffer.data() + i)) {
 				break;
 			}
 		}
@@ -81,17 +81,22 @@ class LookaheadReader {
 	/// Returns whether the next char will be an EOF without consuming it.
 	bool is_eof() { return peek_char() == '\0'; }
 
-	// Consumes input expecting the string to be matched. Returns `true` only on
-	// success. On failure, the first failing character will be consumed.
+	/// Consumes input expecting the string to be matched. Returns `true` only
+	/// on success. On failure, the first failing character will not be
+	/// consumed.
 	bool consume_matches(std::string_view to_match) {
 		for (std::size_t i = 0; i < to_match.size(); ++i) {
-			if (consume_char() != to_match[i]) {
+			if (peek_char() != to_match[i]) {
 				return false;
 			}
+			consume_char();
 		}
 		return true;
 	}
 
+	/// Callbacks `consumer(c)` repeatedly with the input sequence, without
+	/// consuming it. The amount of consumed bytes should not be larger than the
+	/// backtrack buffer.
 	void peek_foreach_while(std::invocable<char> auto &&consumer) {
 		for (char c : _remaining_backtrack()) {
 			if (!consumer(c)) {
@@ -99,8 +104,7 @@ class LookaheadReader {
 			}
 		}
 
-		if (!_try_ensure_file_buffer()) {
-			// No data left to read from fs
+		if (!_try_ensure_file_buffer()) { // eof?
 			return;
 		}
 
@@ -113,40 +117,8 @@ class LookaheadReader {
 		// Filesystem buffer exhausted.
 		// Migrate to the backtrack buffer if possible
 		while (_remaining_file_buffer().size() < free_backtrack_space()) {
-			// Considering an input like 'abcdefghi'
-			// Our backtrack buffer looks like:
-			// --------abc
-			//         ^ _backtrack_offset
-			// If our fs buffer contains 'def'
-			// We want to update the backtrack buffer to:
-			// -----abcdef
-			//         ^ size - _remaining_fs_size
-			//      ^ new _backtrack_offset
-			// So first move current contents back by the remaining fs buffer
-			// size.
-			// Then the next fs buffer read would contain 'ghi'
-			// We now want to start iterating on the fs buffer.
+			_migrate_file_buffer_to_backtrack();
 
-			const auto to_copy = _remaining_file_buffer();
-
-			// Move backward the current backtrack buffer, i.e. turn it into
-			// -----abcabc
-			// and shift the backtrack offset backwards
-			std::memmove(_backtrack_buffer.data() + _backtrack_offset -
-			                 to_copy.size(),
-			             _backtrack_buffer.data() + _backtrack_offset,
-			             _remaining_backtrack().size());
-			_backtrack_offset -= to_copy.size();
-
-			// Copy the existing fs buffer into the end of the backtrack
-			// buffer
-			std::memcpy(_backtrack_buffer.data() + _backtrack_buffer.size() -
-			                to_copy.size(),
-			            to_copy.data(), to_copy.size());
-
-			// Now that we backed up the current fs buffer for backtracking,
-			// read a new one
-			_file_buffer = {};
 			if (!_read_next_fs_buffer()) { // eof?
 				return;
 			}
@@ -173,11 +145,11 @@ class LookaheadReader {
 		peek_foreach_while([&](char c) {
 			if (c != to_match[i]) {
 				mismatched = true;
-				return false;
+				return false; // stop iteration
 			}
 
 			++i;
-			return i < to_match.size(); // iteration condition
+			return i < to_match.size(); // stop iteration when all chars checked
 		});
 
 		return !mismatched;
@@ -221,7 +193,7 @@ class LookaheadReader {
 	const char *
 	consume_rest_of_current_buffer_while(std::invocable<char> auto &&predicate,
 	                                     std::size_t *size) {
-		if (_remaining_backtrack().size() != 0) {
+		if (!_remaining_backtrack().empty()) {
 			return _consume_from_buffer(predicate, _backtrack_buffer,
 			                            _backtrack_offset, size);
 		}
@@ -252,10 +224,45 @@ class LookaheadReader {
 	/// Otherwise, try reading the next fs buffer, then returns true if anything
 	/// was read.
 	bool _try_ensure_file_buffer() {
-		if (_remaining_file_buffer().size() != 0) {
+		if (!_remaining_file_buffer().empty()) {
 			return true;
 		}
 		return _read_next_fs_buffer();
+	}
+
+	void _migrate_file_buffer_to_backtrack() {
+		// Considering an input like 'abcdefghi'
+		// Our backtrack buffer looks like:
+		// --------abc
+		//         ^ _backtrack_offset
+		// If our fs buffer contains 'def'
+		// We want to update the backtrack buffer to:
+		// -----abcdef
+		//         ^ size - _remaining_fs_size
+		//      ^ new _backtrack_offset
+		// So first move current contents back by the remaining fs buffer
+		// size.
+		// Then the next fs buffer read would contain 'ghi'
+		// We now want to start iterating on the fs buffer.
+
+		const auto to_copy = _remaining_file_buffer();
+
+		// Move backward the current backtrack buffer, i.e. turn it into
+		// -----abcabc
+		// and shift the backtrack offset backwards
+		std::memmove(_backtrack_buffer.data() + _backtrack_offset -
+		                 to_copy.size(),
+		             _backtrack_buffer.data() + _backtrack_offset,
+		             _remaining_backtrack().size());
+		_backtrack_offset -= to_copy.size();
+
+		// Copy the existing fs buffer into the end of the backtrack
+		// buffer
+		std::memcpy(_backtrack_buffer.data() + _backtrack_buffer.size() -
+		                to_copy.size(),
+		            to_copy.data(), to_copy.size());
+
+		_file_buffer = {};
 	}
 
 	const char *_consume_from_buffer(std::invocable<char> auto &&predicate,
