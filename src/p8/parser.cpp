@@ -284,13 +284,13 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 			*size = 0;
 
 			// Restore old source name (+ linenumber just after)
-			lex_state->source = state._main_file_name;
+			// lex_state->source = state._main_file_name;
 
 			// Fallthrough to the usual handling
 		}
 	}
 
-	lex_state->linenumber = state._main_line_number;
+	// lex_state->linenumber = state._main_line_number;
 	state._main_file_name = lex_state->source;
 
 	// Last buffer read stopped at a newline?
@@ -334,9 +334,9 @@ const char *LuaBlockReaderState::reader_callback(void *ud, std::size_t *size) {
 
 			printf("Including file \"%.*s\"\n", int(out.size()), out.data());
 
-			lex_state->source =
-				luaX_newstring(lex_state, out.data(), out.size());
-			lex_state->linenumber = 0; // +1 from the newline after
+			// lex_state->source =
+			// 	luaX_newstring(lex_state, out.data(), out.size());
+			// lex_state->linenumber = 0; // +1 from the newline after
 
 			if (hal::fs_create_open_context(out, state._include_reader) ==
 			    hal::FileOpenStatus::SUCCESS) {
