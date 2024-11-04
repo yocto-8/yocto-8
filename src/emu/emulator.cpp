@@ -24,11 +24,7 @@
 
 namespace emu {
 
-Emulator::~Emulator() {
-	if (_lua != nullptr) {
-		lua_close(_lua);
-	}
-}
+Emulator::~Emulator() { lua_close(lua()); }
 
 void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 	_backup_heap = backup_heap_buffer;
@@ -36,17 +32,18 @@ void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 	const auto default_palette = hal::get_default_palette();
 	std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
 
-	_lua = lua_newstate(y8_lua_realloc, &_backup_heap, _memory.data());
+	lua_newstate(y8_lua_realloc, &_backup_heap, &_lua_preallocated_state,
+	             _memory.data());
 
 #ifdef Y8_EXPERIMENTAL_GENGC
 	// printf("Buggy Lua 5.2 Generational GC enabled\n");
-	luaC_changemode(_lua, KGC_GEN);
+	luaC_changemode(lua(), KGC_GEN);
 #endif
 	hal::load_rgb_palette(_palette);
 
 	// Recreate global table with 128 preallocated hashmap records
-	lua_createtable(_lua, 0, 128);
-	lua_rawseti(_lua, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+	lua_createtable(lua(), 0, 128);
+	lua_rawseti(lua(), LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
 
 	bind_globals();
 
@@ -60,22 +57,22 @@ void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 }
 
 void Emulator::bind_globals() {
-	luaL_openlibs(_lua);
+	luaL_openlibs(lua());
 
 	const auto stub = [&](const char *name) {
-		lua_register(_lua, name, [](lua_State *) {
+		lua_register(lua(), name, [](lua_State *) {
 			// printf("unimplemented blahblah\n");
 			return 0;
 		});
 	};
 
 	for (const auto &binding : y8_std) {
-		lua_register(_lua, binding.name, binding.callback);
+		lua_register(lua(), binding.name, binding.callback);
 	}
 
 	for (const auto &binding : y8_numeric_globals) {
-		lua_pushnumber(_lua, binding.value);
-		lua_setglobal(_lua, reinterpret_cast<const char *>(binding.name));
+		lua_pushnumber(lua(), binding.value);
+		lua_setglobal(lua(), reinterpret_cast<const char *>(binding.name));
 	}
 
 	stub("music");
@@ -83,8 +80,8 @@ void Emulator::bind_globals() {
 }
 
 void Emulator::set_active_cart_path(std::string_view cart_path) {
-	lua_pushlstring(_lua, cart_path.data(), cart_path.size());
-	lua_setglobal(_lua, "__cart_name");
+	lua_pushlstring(lua(), cart_path.data(), cart_path.size());
+	lua_setglobal(lua(), "__cart_name");
 }
 
 void Emulator::trigger_load_from_vm(std::string_view cart_path) {
@@ -119,8 +116,8 @@ bool Emulator::load_from_path(std::string_view cart_path) {
 		return false;
 	}
 
-	if (const auto parse_status =
-	        p8::parse(hal::fs_read_buffer, &reader, {}, _lua->l_G);
+	if (const auto parse_status = p8::parse(hal::fs_read_buffer, &reader, {},
+	                                        &_lua_preallocated_state.g);
 	    parse_status != p8::ParserStatus::OK) {
 		printf("Load from '%.*s' failed with error code %d!\n",
 		       int(cart_path.size()), cart_path.data(), int(parse_status));
@@ -136,33 +133,33 @@ void Emulator::load_and_inject_header(Reader reader) {
 	CartImporterReader state{.header_reader{app_header}, .cart_reader = reader};
 
 	const int load_status = lua_load(
-		_lua,
+		lua(),
 		[]([[maybe_unused]] lua_State *state, void *ud, size_t *sz) {
 			return CartImporterReader::reader_callback(ud, sz);
 		},
 		&state, "/bios/header.lua", "t");
 
 	if (load_status != 0) {
-		printf("Script load failed: %s\n", lua_tostring(_lua, -1));
-		panic(lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
+		printf("Script load failed: %s\n", lua_tostring(lua(), -1));
+		panic(lua_tostring(lua(), -1));
+		lua_pop(lua(), 1);
 	}
 }
 
 void Emulator::exec(std::string_view buf) {
 	const int load_status =
-		luaL_loadbuffer(_lua, buf.data(), buf.size(), "repl");
+		luaL_loadbuffer(lua(), buf.data(), buf.size(), "repl");
 
 	if (load_status != 0) {
-		printf("Exec compilation failed: %s\n", lua_tostring(_lua, -1));
-		panic(lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
+		printf("Exec compilation failed: %s\n", lua_tostring(lua(), -1));
+		panic(lua_tostring(lua(), -1));
+		lua_pop(lua(), 1);
 	}
 
-	if (lua_pcall(_lua, 0, 0, 0) != 0) {
-		printf("Exec failed: %s\n", lua_tostring(_lua, -1));
-		panic(lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
+	if (lua_pcall(lua(), 0, 0, 0) != 0) {
+		printf("Exec failed: %s\n", lua_tostring(lua(), -1));
+		panic(lua_tostring(lua(), -1));
+		lua_pop(lua(), 1);
 	}
 }
 
@@ -184,7 +181,7 @@ void Emulator::run_until_shutdown() {
 			run_once();
 			break;
 		} catch (const EmulatorResetRequest &e) {
-			lua_close(_lua);
+			lua_close(lua());
 			init(_backup_heap);
 			load_from_path(_persistent_state.load_path_cstr.data());
 		}
@@ -194,10 +191,11 @@ void Emulator::run_until_shutdown() {
 void Emulator::run_once() {
 	hal::reset_timer();
 
-	if (lua_pcall(_lua, 0, 0, 0) != 0) {
-		printf("Script exec at load time failed: %s\n", lua_tostring(_lua, -1));
-		panic(lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
+	if (lua_pcall(lua(), 0, 0, 0) != 0) {
+		printf("Script exec at load time failed: %s\n",
+		       lua_tostring(lua(), -1));
+		panic(lua_tostring(lua(), -1));
+		lua_pop(lua(), 1);
 	}
 
 	_frame_target_time = 1'000'000u / get_fps_target();
@@ -252,9 +250,9 @@ void Emulator::flip() {
 	// printf("%f\n", double(taken_time) / 1000.0);
 
 #ifdef Y8_EXPERIMENTAL_GENGC
-	lua_gc(_lua, LUA_GCSTEP, 0);
+	lua_gc(lua(), LUA_GCSTEP, 0);
 #else
-	lua_gc(_lua, LUA_GCSTEP, 100);
+	lua_gc(lua(), LUA_GCSTEP, 100);
 #endif
 
 	hal::post_frame_hooks();
@@ -269,26 +267,29 @@ void Emulator::flip() {
 }
 
 int Emulator::get_fps_target() const {
-	lua_getglobal(_lua, "_update60");
-	const bool is60 = lua_isfunction(_lua, -1);
-	lua_pop(_lua, 1);
+	// this function is const wrt the resulting state of the emulator
+	auto *lua_state = const_cast<Emulator *>(this)->lua(); // NOLINT
+
+	lua_getglobal(lua_state, "_update60");
+	const bool is60 = lua_isfunction(lua_state, -1);
+	lua_pop(lua_state, 1);
 
 	return is60 ? 60 : 30;
 }
 
 Emulator::HookResult Emulator::run_hook(const char *name) {
-	lua_getglobal(_lua, name);
+	lua_getglobal(lua(), name);
 
-	if (!lua_isfunction(_lua, -1)) {
-		lua_pop(_lua, 1);
+	if (!lua_isfunction(lua(), -1)) {
+		lua_pop(lua(), 1);
 		return HookResult::UNDEFINED;
 	}
 
-	if (lua_pcall(_lua, 0, 0, 0) != 0) {
+	if (lua_pcall(lua(), 0, 0, 0) != 0) {
 		printf("hook '%s' execution failed: %s\n", name,
-		       lua_tostring(_lua, -1));
-		panic(lua_tostring(_lua, -1));
-		lua_pop(_lua, 1);
+		       lua_tostring(lua(), -1));
+		panic(lua_tostring(lua(), -1));
+		lua_pop(lua(), 1);
 		// return HookResult::LUA_ERROR;
 	}
 
@@ -301,10 +302,10 @@ void Emulator::panic(const char *message) {
 	// device<devices::DrawStateMisc>.reset();
 	device<devices::Framebuffer>.clear(0);
 
-	lua_getglobal(_lua, "__panic");
-	lua_pushstring(_lua, message);
+	lua_getglobal(lua(), "__panic");
+	lua_pushstring(lua(), message);
 
-	lua_pcall(_lua, 1, 0, 0);
+	lua_pcall(lua(), 1, 0, 0);
 
 	hal::present_frame();
 

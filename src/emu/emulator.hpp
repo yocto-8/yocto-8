@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lstate.hpp"
 #include <array>
 #include <lua.hpp>
 #include <span>
@@ -63,12 +64,14 @@ class Emulator {
 	// TODO: probably shouldn't use hal:: structs here
 	hal::ButtonState get_button_state() { return _button_state; }
 
+	lua_State *lua() { return &_lua_preallocated_state.l.l; }
+
 	private:
 	EmulatorPersistentState _persistent_state;
 	std::span<std::byte> _backup_heap;
 	std::array<std::uint8_t, 65536> _memory;
 	std::array<std::uint32_t, 32> _palette;
-	lua_State *_lua = nullptr;
+	LG _lua_preallocated_state;
 
 	hal::ButtonState _button_state;
 
