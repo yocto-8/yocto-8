@@ -167,7 +167,6 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lstring.cpp
 
     # ${LUA_ROOT}/lstrlib.cpp
-    # ${LUA_ROOT}/ltable.cpp
 
     # ${LUA_ROOT}/ltablib.cpp
     # ${LUA_ROOT}/ltests.cpp
@@ -175,6 +174,7 @@ set(LUA_SOURCES
 
     # ${LUA_ROOT}/lundump.cpp
     ${LUA_ROOT}/lvm.cpp
+    ${LUA_ROOT}/ltable.cpp
     ${LUA_ROOT}/lzio.cpp
 )
 
