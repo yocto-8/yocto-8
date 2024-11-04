@@ -226,6 +226,8 @@ set(SIZE_SENSITIVE_SOURCES
     ${CORE_ROOT}/p8/parser.cpp
 
     ${FIXMATH_ROOT}/fix16_str.cpp
+
+    ${FATFS_SOURCES}
 )
 
 set_property(
