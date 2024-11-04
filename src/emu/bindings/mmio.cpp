@@ -23,11 +23,11 @@ u8 &byte_at(PicoAddr addr) { return emu::emulator.memory().get_byte(addr); }
 int y8_peek(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
-	const PicoAddr base = luaL_checkunsigned(state, 1);
+	const PicoAddr base = lua_tounsigned(state, 1);
 
 	std::size_t n = 1;
 	if (argument_count >= 2) {
-		n = std::min(luaL_checkunsigned(state, 2), 8192u);
+		n = std::min(lua_tounsigned(state, 2), 8192u);
 	}
 
 	for (std::size_t i = 0; i < n; ++i) {
@@ -40,11 +40,11 @@ int y8_peek(lua_State *state) {
 int y8_peek2(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
-	const PicoAddr base = luaL_checkunsigned(state, 1);
+	const PicoAddr base = lua_tounsigned(state, 1);
 
 	std::size_t n = 1;
 	if (argument_count >= 2) {
-		n = std::min(luaL_checkunsigned(state, 2), 8192u);
+		n = std::min(lua_tounsigned(state, 2), 8192u);
 	}
 
 	for (std::size_t i = 0; i < n; ++i) {
@@ -59,11 +59,11 @@ int y8_peek2(lua_State *state) {
 int y8_peek4(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
-	const PicoAddr base = luaL_checkunsigned(state, 1);
+	const PicoAddr base = lua_tounsigned(state, 1);
 
 	std::size_t n = 1;
 	if (argument_count >= 2) {
-		n = std::min(luaL_checkunsigned(state, 2), 8192u);
+		n = std::min(lua_tounsigned(state, 2), 8192u);
 	}
 
 	for (std::size_t i = 0; i < n; ++i) {
@@ -79,11 +79,11 @@ int y8_peek4(lua_State *state) {
 int y8_poke(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
-	const PicoAddr base = luaL_checkunsigned(state, 1);
+	const PicoAddr base = lua_tounsigned(state, 1);
 
 	for (int i = 0; i < argument_count - 1; ++i) {
 		// first parameter is arg 1, first value is arg 2
-		byte_at(base + i) = luaL_checkunsigned(state, i + 2);
+		byte_at(base + i) = lua_tounsigned(state, i + 2);
 	}
 
 	return 0;
@@ -92,11 +92,11 @@ int y8_poke(lua_State *state) {
 int y8_poke2(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
-	const PicoAddr base = luaL_checkunsigned(state, 1);
+	const PicoAddr base = lua_tounsigned(state, 1);
 
 	for (int i = 0; i < argument_count - 1; ++i) {
 		const auto addr = base + i * 4;
-		const u16 value = luaL_checkunsigned(state, i + 2);
+		const u16 value = lua_tounsigned(state, i + 2);
 		byte_at(addr + 0) = (value >> 0) & 0xFF;
 		byte_at(addr + 1) = (value >> 8) & 0xFF;
 	}
@@ -107,7 +107,7 @@ int y8_poke2(lua_State *state) {
 int y8_poke4(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
-	const PicoAddr base = luaL_checkunsigned(state, 1);
+	const PicoAddr base = lua_tounsigned(state, 1);
 
 	for (int i = 0; i < argument_count - 1; ++i) {
 		const auto addr = base + i * 4;

@@ -453,7 +453,7 @@ int y8_cls(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
 	if (argument_count >= 1) {
-		palette_entry = luaL_checkunsigned(state, 1);
+		palette_entry = lua_tounsigned(state, 1);
 	}
 
 	device<devices::DrawStateMisc>.set_text_point({0, 0});
@@ -588,7 +588,7 @@ int y8_spr(lua_State *state) {
 
 	const auto argument_count = lua_gettop(state);
 
-	const auto sprite_index = luaL_checkunsigned(state, 1);
+	const auto sprite_index = lua_tounsigned(state, 1);
 
 	const int world_origin_x = lua_tointeger(state, 2);
 	const int world_origin_y = lua_tointeger(state, 3);
@@ -760,10 +760,10 @@ int y8_clip(lua_State *state) {
 	const auto argument_count = lua_gettop(state);
 
 	if (argument_count >= 4) {
-		x = luaL_checkunsigned(state, 1);
-		y = luaL_checkunsigned(state, 2);
-		width = luaL_checkunsigned(state, 3);
-		height = luaL_checkunsigned(state, 4);
+		x = lua_tounsigned(state, 1);
+		y = lua_tounsigned(state, 2);
+		width = lua_tounsigned(state, 3);
+		height = lua_tounsigned(state, 4);
 	}
 
 	// FIXME: clip_previous optional parameter
