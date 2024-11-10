@@ -61,6 +61,8 @@ extern "C" {
 #define CFG_TUSB_DEBUG 0
 #endif
 
+#define USB_MAX_ENDPOINTS 4
+
 // Enable Device stack
 #define CFG_TUD_ENABLED 1
 
