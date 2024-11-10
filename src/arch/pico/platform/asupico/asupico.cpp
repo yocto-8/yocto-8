@@ -285,9 +285,9 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	return psram_size;
 }
 
-void init_emulator(std::size_t psram_size) {
+void init_emulator(std::size_t heap_size) {
 	emu::emulator.init(
-		std::span(reinterpret_cast<std::byte *>(heap), psram_size));
+		std::span(reinterpret_cast<std::byte *>(heap), heap_size));
 }
 
 // void init_video_ssd1351() {

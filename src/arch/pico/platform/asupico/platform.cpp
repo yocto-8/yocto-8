@@ -61,7 +61,7 @@ void init_hardware() {
 	printf("Initializing USB\n");
 	init_usb_device();
 	printf("Configuring emulator\n");
-	init_emulator(psram_size);
+	init_emulator(heap_size);
 	printf("Hardware init done\n");
 }
 
