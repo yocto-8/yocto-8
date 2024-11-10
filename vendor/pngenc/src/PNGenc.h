@@ -21,17 +21,10 @@
 //
 #ifndef __PNGENC__
 #define __PNGENC__
-#if defined( __MACH__ ) || defined( __LINUX__ ) || defined( __MCUXPRESSO )
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <stdio.h>
-#define memcpy_P memcpy
-#define PROGMEM
-#else
-#endif
-#include "zutil.h"
 #include "deflate.h"
+
+#include <stdint.h>
+
 //
 // PNG Encoder
 // Written by Larry Bank

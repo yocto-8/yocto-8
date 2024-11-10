@@ -431,6 +431,7 @@ target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC ${Y8_DEFINITIONS})
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
     ${LUA_ROOT}
     ${FIXMATH_ROOT}
+    ${PNGENC_ROOT}
     ${ZLIB_ROOT}
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
