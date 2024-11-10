@@ -259,16 +259,17 @@ SECTIONS
     __scratch_y_source__ = LOADADDR(.scratch_y);
 
     .psram_bss (NOLOAD) : {
+        . = ALIGN(4);
         __psram_start__ = .;
-        *(.psram_bss.*)
+        *(.psram_bss*)
         . = ALIGN(4);
         __psram_end__ = .;
     } > PSRAM
     __psram_source__ = LOADADDR(.psram_bss);
 
     .psram_heap (NOLOAD): {
-        __psram_heap_start__ = .;
         . = ALIGN(4);
+        __psram_heap_start__ = .;
     } > PSRAM
 
     /* .stack*_dummy section doesn't contains any symbols. It is only
