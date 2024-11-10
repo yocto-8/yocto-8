@@ -258,7 +258,7 @@ SECTIONS
     } > SCRATCH_Y AT > FLASH
     __scratch_y_source__ = LOADADDR(.scratch_y);
 
-    .psram_bss : {
+    .psram_bss (NOLOAD) : {
         __psram_start__ = .;
         *(.psram_bss.*)
         . = ALIGN(4);
@@ -267,7 +267,7 @@ SECTIONS
     __psram_source__ = LOADADDR(.psram_bss);
 
     .psram_heap (NOLOAD): {
-        __psram_heap_start = .;
+        __psram_heap_start__ = .;
         . = ALIGN(4);
     } > PSRAM
 
@@ -295,8 +295,8 @@ SECTIONS
     } > FLASH =0xaa
 
     /* y8 psram provides */
-    PROVIDE(__psram_heap_start = __psram_heap_start);
-    PROVIDE(__psram_heap_end = ORIGIN(PSRAM) + LENGTH(PSRAM));
+    PROVIDE(__psram_start = ORIGIN(PSRAM));
+    PROVIDE(__psram_heap_start = __psram_heap_start__);
 
     /* stack limit is poorly named, but historically is maximum heap ptr */
     __StackLimit = ORIGIN(RAM) + LENGTH(RAM);

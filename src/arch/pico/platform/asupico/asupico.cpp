@@ -286,10 +286,8 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 }
 
 void init_emulator(std::size_t psram_size) {
-	heap_limit = reinterpret_cast<void *>(Y8_EXTMEM_START + psram_size - 1);
-
 	emu::emulator.init(
-		std::span(reinterpret_cast<std::byte *>(Y8_EXTMEM_START), psram_size));
+		std::span(reinterpret_cast<std::byte *>(heap), psram_size));
 }
 
 // void init_video_ssd1351() {

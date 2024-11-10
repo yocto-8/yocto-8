@@ -26,7 +26,10 @@ typedef struct {
 	size_t top;   // top free addr
 } Heap;
 
-static Heap *const heap = reinterpret_cast<Heap *>(Y8_EXTMEM_START);
+extern "C" {
+extern char __psram_heap_start;
+}
+static Heap *const heap = reinterpret_cast<Heap *>(&__psram_heap_start);
 extern void *heap_limit;
 static constexpr size_t heap_split_thresh = 16;
 static constexpr size_t heap_alignment = sizeof(void *);

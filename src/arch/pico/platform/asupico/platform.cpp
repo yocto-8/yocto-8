@@ -15,7 +15,7 @@
 // provided by linker script
 extern "C" {
 extern char __heap_start, __heap_end;
-extern char __psram_heap_start, __psram_heap_end;
+extern char __psram_start, __psram_heap_start;
 extern char __flash_binary_start, __flash_binary_end;
 }
 
@@ -32,17 +32,22 @@ void init_hardware() {
 	release_assert(y8_firmware_size < Y8_RESERVED_FIRMWARE_SIZE);
 	printf("Int. FAT size: %d bytes\n", y8_fatfs_size);
 	printf("  Heap#1 size: %d bytes\n", &__heap_end - &__heap_start);
-	printf("  Heap#2 size: %d bytes\n",
-	       &__psram_heap_end - &__psram_heap_start);
 
 	printf("Configuring frequency and clock divisors\n");
 	init_flash_frequency();
 	init_default_frequency();
 	printf("Configuring PSRAM\n");
 	const auto psram_size = init_psram_pimoroni();
+	const auto psram_reserved = &__psram_heap_start - &__psram_start;
+	release_assert(psram_size > 0);
+	printf("   PSRAM size: %d bytes\n", psram_size);
 	printf("Configuring PSRAM heap\n");
+	const std::size_t heap_size = psram_size - psram_reserved;
+	heap_limit = reinterpret_cast<void *>(reinterpret_cast<char *>(heap) +
+	                                      heap_size - 1);
 	ta_init();
-	printf("PSRAM configured with size %dKiB\n", psram_size / 1024);
+	printf("  Heap#2 size: %d bytes (buffers: %d)\n", heap_size,
+	       psram_reserved);
 	printf("Configuring GPIO\n");
 	init_basic_gpio();
 	printf("Configuring video\n");

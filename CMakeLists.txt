@@ -314,9 +314,6 @@ elseif(Y8_ARCH STREQUAL "pico")
             ${ARCH_ROOT}/video/dwoqspi.cpp # FIXME: proper compile-time API for driver selection
             ${CORE_ROOT}/emu/tinyalloc.cpp # TODO: cleaner way to include this
         )
-
-        # extmem size is autodetected at runtime
-        add_compile_definitions(Y8_USE_EXTMEM Y8_EXTMEM_START=0x11000000)
     elseif(Y8_PLATFORM STREQUAL "picosystem")
         set(PLATFORM_ROOT "${ARCH_ROOT}/platform/picosystem")
         set(PLATFORM_SOURCES
