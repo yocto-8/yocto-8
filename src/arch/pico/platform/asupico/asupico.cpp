@@ -20,7 +20,12 @@
 
 namespace arch::pico::platform::asupico {
 
-HardwareState hw;
+namespace state {
+// video::SSD1351 ssd1351;
+video::DWO dwo;
+std::array<io::PushButton, 6> buttons;
+[[gnu::section(Y8_PSRAM_SECTION)]] FATFS flash_fatfs;
+} // namespace state
 
 void __no_inline_not_in_flash_func(init_flash_frequency)() {
 	uint32_t interrupt_state = save_and_disable_interrupts();
@@ -90,12 +95,12 @@ void init_basic_gpio() {
 	pwm_set_enabled(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN), true);
 	pwm_set_wrap(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN), 65535);
 
-	hw.buttons[0].init(16);
-	hw.buttons[1].init(18);
-	hw.buttons[2].init(17);
-	hw.buttons[3].init(19);
-	hw.buttons[4].init(20);
-	hw.buttons[5].init(21);
+	state::buttons[0].init(16);
+	state::buttons[1].init(18);
+	state::buttons[2].init(17);
+	state::buttons[3].init(19);
+	state::buttons[4].init(20);
+	state::buttons[5].init(21);
 }
 
 std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
@@ -314,19 +319,19 @@ void init_video_dwo() {
 
 	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(video_spi));
 
-	asupico::hw.dwo.init({.spi = video_spi,
-	                      .pio = pio0,
-	                      .pinout = {
-							  .sclk = 2,
-							  .cs = 5,
-							  .te = 11,
-							  .sio0 = 7,
-							  .qsi1 = 8,
-							  .qsi2 = 9,
-							  .qsi3 = 10,
-							  .rst = 14,
-							  .pwr_en = 15,
-						  }});
+	asupico::state::dwo.init({.spi = video_spi,
+	                          .pio = pio0,
+	                          .pinout = {
+								  .sclk = 2,
+								  .cs = 5,
+								  .te = 11,
+								  .sio0 = 7,
+								  .qsi1 = 8,
+								  .qsi2 = 9,
+								  .qsi3 = 10,
+								  .rst = 14,
+								  .pwr_en = 15,
+							  }});
 }
 
 } // namespace arch::pico::platform::asupico

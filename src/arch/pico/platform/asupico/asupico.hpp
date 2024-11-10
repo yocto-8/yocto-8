@@ -8,14 +8,12 @@
 
 namespace arch::pico::platform::asupico {
 
-struct HardwareState {
-	// video::SSD1351 ssd1351;
-	video::DWO dwo;
-	std::array<io::PushButton, 6> buttons;
-	FATFS flash_fatfs;
-};
-
-extern HardwareState hw;
+namespace state {
+// video::SSD1351 ssd1351;
+extern video::DWO dwo;
+extern std::array<io::PushButton, 6> buttons;
+extern FATFS flash_fatfs;
+} // namespace state
 
 void init_flash_frequency();
 void init_default_frequency();

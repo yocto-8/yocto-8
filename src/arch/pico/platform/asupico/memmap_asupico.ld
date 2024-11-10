@@ -37,6 +37,8 @@ MEMORY
     */
     SCRATCH_Y(rwx) : ORIGIN = 0x20080000, LENGTH = 4k
     SCRATCH_X(rwx) : ORIGIN = 0x20081000, LENGTH = 4k
+
+    PSRAM(rwx) : ORIGIN = 0x11000000, LENGTH = 8192k
 }
 
 ENTRY(_entry_point)
@@ -256,6 +258,19 @@ SECTIONS
     } > SCRATCH_Y AT > FLASH
     __scratch_y_source__ = LOADADDR(.scratch_y);
 
+    .psram_bss : {
+        __psram_start__ = .;
+        *(.psram_bss.*)
+        . = ALIGN(4);
+        __psram_end__ = .;
+    } > PSRAM
+    __psram_source__ = LOADADDR(.psram_bss);
+
+    .psram_heap (NOLOAD): {
+        __psram_heap_start = .;
+        . = ALIGN(4);
+    } > PSRAM
+
     /* .stack*_dummy section doesn't contains any symbols. It is only
      * used for linker to calculate size of stack sections, and assign
      * values to stack symbols later
@@ -278,6 +293,10 @@ SECTIONS
         KEEP(*(.embedded_end_block*))
         PROVIDE(__flash_binary_end = .);
     } > FLASH =0xaa
+
+    /* y8 psram provides */
+    PROVIDE(__psram_heap_start = __psram_heap_start);
+    PROVIDE(__psram_heap_end = ORIGIN(PSRAM) + LENGTH(PSRAM));
 
     /* stack limit is poorly named, but historically is maximum heap ptr */
     __StackLimit = ORIGIN(RAM) + LENGTH(RAM);

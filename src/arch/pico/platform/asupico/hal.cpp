@@ -15,15 +15,15 @@ hal::ButtonState update_button_state() {
 
 	// FIXME: btnp implementation wrong and equivalent to btn
 
-	for (std::size_t i = 0; i < asupico::hw.buttons.size(); ++i) {
-		held_key_mask |= asupico::hw.buttons[i] << i;
+	for (std::size_t i = 0; i < asupico::state::buttons.size(); ++i) {
+		held_key_mask |= asupico::state::buttons[i] << i;
 	}
 
 	return {.held_key_mask = held_key_mask, .pressed_key_mask = held_key_mask};
 }
 
 void load_rgb_palette(std::span<std::uint32_t, 32> new_palette) {
-	asupico::hw.dwo.load_rgb_palette(new_palette);
+	asupico::state::dwo.load_rgb_palette(new_palette);
 }
 
 std::span<const std::uint32_t, 32> get_default_palette() {

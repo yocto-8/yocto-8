@@ -15,6 +15,7 @@
 // provided by linker script
 extern "C" {
 extern char __heap_start, __heap_end;
+extern char __psram_heap_start, __psram_heap_end;
 extern char __flash_binary_start, __flash_binary_end;
 }
 
@@ -30,7 +31,9 @@ void init_hardware() {
 	       Y8_RESERVED_FIRMWARE_SIZE);
 	release_assert(y8_firmware_size < Y8_RESERVED_FIRMWARE_SIZE);
 	printf("Int. FAT size: %d bytes\n", y8_fatfs_size);
-	printf("    Heap size: %d bytes\n", &__heap_end - &__heap_start);
+	printf("  Heap#1 size: %d bytes\n", &__heap_end - &__heap_start);
+	printf("  Heap#2 size: %d bytes\n",
+	       &__psram_heap_end - &__psram_heap_start);
 
 	printf("Configuring frequency and clock divisors\n");
 	init_flash_frequency();
@@ -61,8 +64,8 @@ void present_frame(FrameCopiedCallback *callback) {
 	// asupico::hw.ssd1351.copy_framebuffer(emu::device<devices::Framebuffer>,
 	//                                      emu::device<devices::ScreenPalette>);
 
-	asupico::hw.dwo.copy_framebuffer(emu::device<devices::Framebuffer>,
-	                                 emu::device<devices::ScreenPalette>);
+	asupico::state::dwo.copy_framebuffer(emu::device<devices::Framebuffer>,
+	                                     emu::device<devices::ScreenPalette>);
 
 	if (callback != nullptr) {
 		callback();
@@ -74,7 +77,7 @@ void present_frame(FrameCopiedCallback *callback) {
 
 void local_core_init() {
 	// asupico::hw.ssd1351.init_dma_on_this_core();
-	asupico::hw.dwo.init_dma_on_this_core();
+	asupico::state::dwo.init_dma_on_this_core();
 }
 
 std::span<const std::uint32_t, 32> get_default_palette() {
