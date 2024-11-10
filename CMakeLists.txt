@@ -215,6 +215,20 @@ set(FATFS_SOURCES
     ${FATFS_ROOT}/ffunicode.c
 )
 
+set(ZLIB_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/zlib/")
+set(ZLIB_SOURCES
+    ${ZLIB_ROOT}/adler32.c
+    ${ZLIB_ROOT}/crc32.c
+    ${ZLIB_ROOT}/deflate.c
+    ${ZLIB_ROOT}/trees.c
+    ${ZLIB_ROOT}/zutil.c
+)
+
+set(PNGENC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pngenc/src/")
+set(PNGENC_SOURCES
+    ${PNGENC_ROOT}/PNGenc.cpp
+)
+
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
 set(SIZE_SENSITIVE_SOURCES
@@ -228,6 +242,10 @@ set(SIZE_SENSITIVE_SOURCES
     ${FIXMATH_ROOT}/fix16_str.cpp
 
     ${FATFS_SOURCES}
+
+    ${ZLIB_SOURCES}
+
+    ${PNGENC_SOURCES}
 )
 
 set_property(
@@ -237,7 +255,7 @@ set_property(
 )
 
 set_property(
-    SOURCE ${CORE_SOURCES} ${LUA_SOURCES} ${FIXMATH_SOURCES} ${FATFS_SOURCES}
+    SOURCE ${CORE_SOURCES} ${LUA_SOURCES} ${FIXMATH_SOURCES} ${FATFS_SOURCES} ${ZLIB_SOURCES} ${PNGENC_SOURCES}
     APPEND PROPERTY COMPILE_OPTIONS
     ${LTO_FLAGS}
 )
@@ -398,6 +416,8 @@ endif()
 target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${CORE_SOURCES})
 target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${LUA_SOURCES})
 target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${FIXMATH_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${ZLIB_SOURCES})
+target_sources(${CORE_LIBRARY_TARGET} PRIVATE ${PNGENC_SOURCES})
 
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC ${ARCH_ROOT})
 
@@ -409,7 +429,8 @@ target_compile_options(${CORE_LIBRARY_TARGET}
 target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC ${Y8_DEFINITIONS})
 
 target_include_directories(${CORE_LIBRARY_TARGET} PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua"
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath"
+    ${LUA_ROOT}
+    ${FIXMATH_ROOT}
+    ${ZLIB_ROOT}
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )

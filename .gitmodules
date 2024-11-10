@@ -7,4 +7,6 @@
 [submodule "libfixmath"]
 	path = vendor/libfixmath
 	url = git@github.com:yocto-8/libfixmath.git
-	
+[submodule "vendor/zlib"]
+	path = vendor/zlib
+	url = git@github.com:madler/zlib.git
