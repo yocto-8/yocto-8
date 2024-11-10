@@ -195,9 +195,10 @@ inline void draw_sprite(Point sprite_origin, int sprite_width,
 	}
 }
 
-inline void
-draw_circle(Point origin, int radius, std::invocable<Point> auto point_plotter,
-            std::invocable<Point, Point> auto symmetric_point_plotter) {
+[[gnu::flatten]]
+inline void draw_circle(Point origin, int radius,
+                        std::invocable<Point> auto plot_point,
+                        std::invocable<float, float, float> auto plot_hline) {
 	// i don't know how this works but it should
 	int f = 1 - radius;
 	int ddf_x = 0;
@@ -206,10 +207,9 @@ draw_circle(Point origin, int radius, std::invocable<Point> auto point_plotter,
 	int x = 0;
 	int y = radius;
 
-	point_plotter(Point(origin.x, origin.y - radius));
-	point_plotter(Point(origin.x, origin.y + radius));
-	symmetric_point_plotter(Point(origin.x - radius, origin.y),
-	                        Point(origin.x + radius, origin.y));
+	plot_point({origin.x, origin.y - radius});
+	plot_point({origin.x, origin.y + radius});
+	plot_hline(origin.x - radius, origin.x + radius, origin.y);
 
 	while (x < y) {
 		if (f >= 0) {
@@ -222,14 +222,10 @@ draw_circle(Point origin, int radius, std::invocable<Point> auto point_plotter,
 		ddf_x += 2;
 		f += ddf_x + 1;
 
-		symmetric_point_plotter(Point(origin.x - x, origin.y + y),
-		                        Point(origin.x + x, origin.y + y));
-		symmetric_point_plotter(Point(origin.x - x, origin.y - y),
-		                        Point(origin.x + x, origin.y - y));
-		symmetric_point_plotter(Point(origin.x - y, origin.y + x),
-		                        Point(origin.x + y, origin.y + x));
-		symmetric_point_plotter(Point(origin.x - y, origin.y - x),
-		                        Point(origin.x + y, origin.y - x));
+		plot_hline(origin.x - x, origin.x + x, origin.y + y);
+		plot_hline(origin.x - x, origin.x + x, origin.y - y);
+		plot_hline(origin.x - y, origin.x + y, origin.y + x);
+		plot_hline(origin.x - y, origin.x + y, origin.y - x);
 	}
 }
 
@@ -535,13 +531,12 @@ int y8_circfill(lua_State *state) {
 
 	detail::draw_circle(
 		screen_origin, radius, [&](Point p) { plot_point(p); },
-		[&](Point a, Point b) {
-			const int x_min = std::max(std::min(a.x, b.x), int(clip.x_begin()));
-			const int x_max =
-				std::min(std::max(a.x, b.x), int(clip.x_end() - 1));
+		[&](int x1, int x2, int y) {
+			const int x_min = std::max(std::min(x1, x2), int(clip.x_begin()));
+			const int x_max = std::min(std::max(x1, x2), int(clip.x_end() - 1));
 
 			for (int x = x_min; x <= x_max; ++x) {
-				detail::set_pixel_with_pattern(Point(x, a.y), raw_color);
+				detail::set_pixel_with_pattern({x, y}, raw_color);
 			}
 		});
 
@@ -745,6 +740,7 @@ int y8_fillp(lua_State *state) {
 	std::uint16_t pattern = 0;
 
 	if (argument_count >= 1) {
+		// FIXME: decimal part used for flags
 		pattern = lua_tounsigned(state, 1);
 	}
 
