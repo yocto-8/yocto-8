@@ -10,9 +10,9 @@ extern "C" {
 #ifdef Y8_USE_EXTMEM
 #include "tlsf.hpp"
 
-[[gnu::always_inline]]
+[[gnu::section(Y8_SRAM_SECTION)]]
 inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
-                            bool egc_recently) {
+                            [[maybe_unused]] bool egc_recently) {
 	(void)ud;
 
 	// static int heap_use = 0;
