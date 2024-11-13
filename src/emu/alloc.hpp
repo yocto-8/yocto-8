@@ -26,19 +26,20 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 	// but can make use of a secondary memory pool as a fallback.
 
 	// The secondary memory pool is used only when malloc() fails to allocate.
-	// Currently, we trigger the GC to use the secondary heap as a last resort.
-	// (NOTE: the performance characteristics of doing this without a smarter
-	// heuristic are to be determined.)
+	// Y8_USE_EGC_HEURISTIC enables triggering the GC to prefer using the backup
+	// heap only as a last resort, but this seems counter-productive in general.
 
 	// The idea of letting Lua consume all of the malloc() heap is somewhat fine
 	// for us, because we never allocate memory dynamically elsewhere.
 
+#ifdef Y8_USE_EGC_HEURISTIC
 	// egc counter: only retry emergency GC (EGC) if xxKiB were freed from the
 	// main heap since the last EGC trigger
 	static constexpr size_t egc_cooldown = 16384;
 
 	// init the counter to the cooldown to allow one first EGC
 	static size_t bytes_freed_since_egc = egc_cooldown;
+#endif
 
 	const auto &secondary_heap = *static_cast<std::span<std::byte> *>(ud);
 
@@ -50,7 +51,9 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 	};
 
 	const auto c_free = [&] {
+#ifdef Y8_USE_EGC_HEURISTIC
 		bytes_freed_since_egc += osize;
+#endif
 		free(ptr);
 	};
 
@@ -78,17 +81,14 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 			return malloc_ptr;
 		}
 
+#ifdef Y8_USE_EGC_HEURISTIC
 		if (!egc_recently && bytes_freed_since_egc >= egc_cooldown) {
 			// trigger Lua's EGC
 			printf("EGC\n");
 			bytes_freed_since_egc = 0;
 			return nullptr;
 		}
-
-		// if (!egc_recently) {
-		// 	printf("Fallback heap alloc with %d freed from main\n",
-		// 	       bytes_freed_since_egc);
-		// }
+#endif
 
 		if (!has_extra_heap) {
 			return nullptr;
