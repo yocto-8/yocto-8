@@ -28,6 +28,8 @@ Emulator::~Emulator() { lua_close(lua()); }
 
 void Emulator::init(std::span<std::byte> backup_heap_buffer) {
 	_backup_heap = backup_heap_buffer;
+	_backup_heap_tlsf = tlsf_create_with_pool(backup_heap_buffer.data(),
+	                                          backup_heap_buffer.size());
 
 	const auto default_palette = hal::get_default_palette();
 	std::copy(default_palette.begin(), default_palette.end(), _palette.begin());

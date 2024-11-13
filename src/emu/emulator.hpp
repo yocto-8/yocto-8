@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lstate.hpp"
+#include "tlsf.hpp"
 #include <array>
 #include <lua.hpp>
 #include <span>
@@ -53,6 +54,7 @@ class Emulator {
 	constexpr Memory memory() { return Memory{std::span(_memory)}; }
 
 	auto get_backup_heap_buffer() const { return _backup_heap; }
+	tlsf_t get_backup_heap() const { return _backup_heap_tlsf; }
 
 	auto &palette() { return _palette; }
 
@@ -68,6 +70,7 @@ class Emulator {
 
 	private:
 	EmulatorPersistentState _persistent_state;
+	tlsf_t _backup_heap_tlsf;
 	std::span<std::byte> _backup_heap;
 	std::array<std::uint8_t, 65536> _memory;
 	std::array<std::uint32_t, 32> _palette;

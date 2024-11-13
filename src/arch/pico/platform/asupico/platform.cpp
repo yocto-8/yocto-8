@@ -4,7 +4,6 @@
 #include <arch/pico/fs/hwinit.hpp>
 #include <arch/pico/usb/hwinit.hpp>
 #include <cstdio>
-#include <emu/tinyalloc.hpp>
 #include <pico/flash.h>
 #include <platform/asupico/asupico.hpp>
 #include <platform/platform.hpp>
@@ -41,11 +40,7 @@ void init_hardware() {
 	const auto psram_reserved = &__psram_heap_start - &__psram_start;
 	release_assert(psram_size > 0);
 	printf("   PSRAM size: %d bytes\n", psram_size);
-	printf("Configuring PSRAM heap\n");
 	const std::size_t heap_size = psram_size - psram_reserved;
-	heap_limit = reinterpret_cast<void *>(reinterpret_cast<char *>(heap) +
-	                                      heap_size - 1);
-	ta_init();
 	printf("  Heap#2 size: %d bytes (buffers: %d)\n", heap_size,
 	       psram_reserved);
 	printf("Configuring GPIO\n");

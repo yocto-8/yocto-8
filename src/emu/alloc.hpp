@@ -1,5 +1,6 @@
 #pragma once
 
+#include "emu/emulator.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -7,7 +8,7 @@
 
 extern "C" {
 #ifdef Y8_USE_EXTMEM
-#include "tinyalloc.hpp"
+#include "tlsf.hpp"
 
 [[gnu::always_inline]]
 inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
@@ -60,7 +61,7 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		}
 
 		if (is_ptr_on_slow_heap()) {
-			ta_free(ptr);
+			tlsf_free(emu::emulator.get_backup_heap(), ptr);
 		} else {
 			c_free();
 		}
@@ -93,35 +94,23 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 			return nullptr;
 		}
 
-		return ta_alloc(nsize);
+		return tlsf_malloc(emu::emulator.get_backup_heap(), nsize);
 	};
 
-	const auto realloc_from_main_to_extra_heap = [&]() -> void * {
+	const auto realloc_from_main_to_slow_heap = [&]() -> void * {
 		if (!has_extra_heap) {
 			return nullptr;
 		}
 
-		const auto new_ptr = ta_alloc(nsize);
+		const auto new_ptr =
+			tlsf_malloc(emu::emulator.get_backup_heap(), nsize);
 
 		if (new_ptr == nullptr) {
-			printf("slow heap exhausted!!\n");
 			return nullptr;
 		}
 
 		memcpy(new_ptr, ptr, osize < nsize ? osize : nsize);
 		c_free();
-		return new_ptr;
-	};
-
-	const auto slow_realloc = [&]() -> void * {
-		const auto new_ptr = auto_malloc();
-
-		if (new_ptr == nullptr) {
-			return nullptr;
-		}
-
-		memcpy(new_ptr, ptr, osize < nsize ? osize : nsize);
-		auto_free();
 		return new_ptr;
 	};
 
@@ -134,21 +123,21 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		// this does happen; so let's not bother accidentally figuring out
 		// if we're triggering some bad behavior un umm_realloc/newlib realloc
 		return ptr;
-	} else if (nsize < osize) {
+	} else { // nsize > osize OR nsize < osize
 		if (!is_ptr_on_slow_heap()) {
+			// try realloc within fast heap
 			const auto nptr = realloc(ptr, nsize);
 
 			if (nptr != nullptr) {
 				return nptr;
 			}
 
-			return realloc_from_main_to_extra_heap();
+			// on failure, perform slow path realloc on backup heap
+			return realloc_from_main_to_slow_heap();
 		}
 
-		return slow_realloc();
-	} else // nsize > osize
-	{
-		return slow_realloc();
+		// orig pointer on slow heap
+		return tlsf_realloc(emu::emulator.get_backup_heap(), ptr, nsize);
 	}
 }
 #else

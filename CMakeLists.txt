@@ -312,7 +312,7 @@ elseif(Y8_ARCH STREQUAL "pico")
             ${PLATFORM_ROOT}/hal.cpp
             ${PLATFORM_ROOT}/platform.cpp
             ${ARCH_ROOT}/video/dwoqspi.cpp # FIXME: proper compile-time API for driver selection
-            ${CORE_ROOT}/emu/tinyalloc.cpp # TODO: cleaner way to include this
+            ${CORE_ROOT}/emu/tlsf.cpp # TODO: cleaner way to include this
         )
 
         # extmem size is autodetected at runtime

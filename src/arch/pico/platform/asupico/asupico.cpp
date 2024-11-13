@@ -6,7 +6,6 @@
 #include <platform/asupico/asupico.hpp>
 
 #include <cstdio>
-#include <emu/tinyalloc.hpp>
 #include <ff.h>
 #include <hardware/clocks.h>
 #include <hardware/structs/pads_qspi.h>
@@ -285,9 +284,12 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	return psram_size;
 }
 
+extern "C" {
+extern std::byte __psram_heap_start;
+}
+
 void init_emulator(std::size_t heap_size) {
-	emu::emulator.init(
-		std::span(reinterpret_cast<std::byte *>(heap), heap_size));
+	emu::emulator.init(std::span(&__psram_heap_start, heap_size));
 }
 
 // void init_video_ssd1351() {
