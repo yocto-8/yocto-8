@@ -119,6 +119,7 @@ endif()
 
 set(CORE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/")
 set(CORE_SOURCES
+    ${CORE_ROOT}/emu/alloc.cpp
     ${CORE_ROOT}/emu/emulator.cpp
     ${CORE_ROOT}/emu/bindings/input.cpp
     ${CORE_ROOT}/emu/bindings/math.cpp
@@ -345,6 +346,7 @@ elseif(Y8_ARCH STREQUAL "pico")
         pico_multicore
         pico_rand
         pico_flash
+        hardware_xip_cache
         hardware_pwm
         pico_unique_id
         tinyusb_device
@@ -389,6 +391,8 @@ elseif(Y8_ARCH STREQUAL "pico")
     # https://github.com/raspberrypi/pico-sdk/issues/1903
     # however, enabling it does mess up debugging for some reason
     # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_EMBED_XIP_SETUP=1)
+
+    # target_link_options(${CORE_LIBRARY_TARGET} PUBLIC -Wl,--wrap=malloc,--wrap=free,--wrap=realloc)
 
     # needed for a LTO hack
     # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STDIO_SHORT_CIRCUIT_CLIB_FUNCS=0)

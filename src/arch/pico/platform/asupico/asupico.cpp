@@ -23,7 +23,8 @@ namespace state {
 // video::SSD1351 ssd1351;
 video::DWO dwo;
 std::array<io::PushButton, 6> buttons;
-[[gnu::section(Y8_PSRAM_SECTION)]] FATFS flash_fatfs;
+// FIXME: buffer not in PSRAM because we cannot access(?) PSRAM during flashing
+/*[[gnu::section(Y8_PSRAM_SECTION)]]*/ FATFS flash_fatfs;
 } // namespace state
 
 void __no_inline_not_in_flash_func(init_flash_frequency)() {
@@ -285,11 +286,12 @@ std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 }
 
 extern "C" {
-extern std::byte __psram_heap_start;
+extern char __psram_heap_start;
 }
 
 void init_emulator(std::size_t heap_size) {
-	emu::emulator.init(std::span(&__psram_heap_start, heap_size));
+	emu::emulator.init(std::span(
+		reinterpret_cast<std::byte *>(&__psram_heap_start), heap_size));
 }
 
 // void init_video_ssd1351() {

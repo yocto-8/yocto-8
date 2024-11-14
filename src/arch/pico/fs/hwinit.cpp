@@ -14,9 +14,10 @@ void init_flash_fatfs() {
 		printf("Failed to mount flash FatFS (err=%d)\n", res);
 
 		// format flash partition
+		// reuse work buffer from the unmounted FatFS object
 		MKFS_PARM fmt_opt = {FM_ANY, 0, 0, 0, 0};
-		// FIXME: check if f_mkfs still works with no working buffer
-		res = f_mkfs("/flash/", &fmt_opt, nullptr, 0);
+		res = f_mkfs("/flash/", &fmt_opt,
+		             platform::asupico::state::flash_fatfs.win, FF_MAX_SS);
 
 		if (res != FR_OK) {
 			printf("Failed to format flash FatFS (err=%d)\n", res);
