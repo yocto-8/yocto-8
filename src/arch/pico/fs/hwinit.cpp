@@ -30,9 +30,9 @@ void init_flash_fatfs() {
 			       res);
 			release_abort("FatFS failed");
 		}
-	}
 
-	f_setlabel("/flash/y8-flash");
+		f_setlabel("/flash/y8flash");
+	}
 }
 
 } // namespace arch::pico
