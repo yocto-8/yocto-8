@@ -22,3 +22,7 @@ extern "C" {
 
 #endif
 }
+
+// void *operator new(std::size_t sz);
+// void operator delete([[maybe_unused]] void *ptr) {}
+// void operator delete([[maybe_unused]] void *ptr, std::size_t) noexcept {}
