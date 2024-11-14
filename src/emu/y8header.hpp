@@ -52,12 +52,6 @@ local count = function(t, v)
 	end
 	return n
 end
-
-function __panic(msg)
-	printh("PANIC: " .. msg)
-	print(":(", 0, 0, 7)
-	print(msg)
-end
 )"
 
 	/// This re-exports certain globals into the `local` scope of the cart.

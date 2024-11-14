@@ -326,12 +326,20 @@ Emulator::HookResult Emulator::run_hook(const char *name) {
 void Emulator::panic(const char *message) {
 	device<devices::DrawPalette>.reset();
 	device<devices::ScreenPalette>.reset();
-	// device<devices::DrawStateMisc>.reset();
+	device<devices::DrawStateMisc>.reset();
 	device<devices::Framebuffer>.clear(0);
+	device<devices::DrawStateMisc>.set_text_point({4, 4});
 
-	lua_getglobal(lua(), "__panic");
+	printf("PANIC: %s\n", message);
+
+	device<devices::DrawStateMisc>.raw_pen_color() = 7;
+	lua_getglobal(lua(), "print");
+	lua_pushstring(lua(), "unrecoverable error");
+	lua_pcall(lua(), 1, 0, 0);
+
+	device<devices::DrawStateMisc>.raw_pen_color() = 6;
+	lua_getglobal(lua(), "print");
 	lua_pushstring(lua(), message);
-
 	lua_pcall(lua(), 1, 0, 0);
 
 	hal::present_frame();
