@@ -1,6 +1,7 @@
 #include "lua.hpp"
 #include <array>
 
+#include <emu/bindings/fs.hpp>
 #include <emu/bindings/input.hpp>
 #include <emu/bindings/math.hpp>
 #include <emu/bindings/misc.hpp>
@@ -80,7 +81,9 @@ static constexpr auto y8_std = std::to_array<Binding>({
 	{"rotr", bindings::y8_rotr},
 	{"band", bindings::y8_band},
 	{"bor", bindings::y8_bor},
+	{"bxor", bindings::y8_bxor},
 	{"sgn", bindings::y8_sgn},
+	{"bnot", bindings::y8_bnot},
 
 	{"cursor", bindings::y8_cursor},
 	{"printh", bindings::y8_printh},
