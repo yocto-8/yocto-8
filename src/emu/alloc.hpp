@@ -7,17 +7,11 @@
 #include <span>
 
 #ifdef Y8_USE_EXTMEM
-extern tlsf_t fast_heap;
-extern tlsf_t slow_heap;
-extern std::span<char> slow_heap_span;
+extern tlsf_t global_heap;
 #endif
 
 extern "C" {
 
-#ifdef Y8_USE_EXTMEM
-void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
-                     [[maybe_unused]] bool must_not_fail);
-#else
 inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
                             [[maybe_unused]] bool must_not_fail) {
 	(void)ud;
@@ -34,5 +28,4 @@ inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		return realloc(ptr, nsize);
 	}
 }
-#endif
 }

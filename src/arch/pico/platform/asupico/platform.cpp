@@ -34,9 +34,8 @@ void init_hardware() {
 	printf("Int. FAT size: %d bytes\n", y8_fatfs_size);
 	printf("  Heap#1 size: %d bytes\n", &__heap_end - &__heap_start);
 
-	fast_heap =
+	global_heap =
 		tlsf_create_with_pool(&__heap_start, &__heap_end - &__heap_start);
-	printf("%p %p\n", &__heap_start, &__heap_end - &__heap_start);
 
 	printf("Configuring frequency and clock divisors\n");
 	init_flash_frequency();
@@ -51,8 +50,7 @@ void init_hardware() {
 	const std::size_t heap_size = psram_size - psram_reserved;
 	printf("  Heap#2 size: %d bytes (buffers: %d)\n", heap_size,
 	       psram_reserved);
-	slow_heap_span = std::span{&__psram_heap_start, heap_size};
-	slow_heap = tlsf_create_with_pool(&__psram_heap_start, heap_size);
+	tlsf_add_pool(global_heap, &__psram_heap_start, heap_size);
 	printf("Configuring GPIO\n");
 	init_basic_gpio();
 	printf("Configuring video\n");
