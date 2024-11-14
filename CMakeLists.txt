@@ -117,6 +117,7 @@ set(CORE_SOURCES
     ${CORE_ROOT}/emu/bindings/table.cpp
     ${CORE_ROOT}/emu/bindings/time.cpp
     ${CORE_ROOT}/emu/bindings/video.cpp
+    ${CORE_ROOT}/emu/bindings/fs.cpp
     ${CORE_ROOT}/p8/parser.cpp
 )
 

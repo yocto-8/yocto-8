@@ -60,6 +60,8 @@ static constexpr auto y8_std = std::to_array<Binding>({
 	{"memset", bindings::y8_memset},
 	{"reload", bindings::y8_reload},
 	{"load", bindings::y8_load},
+	{"ls", bindings::y8_ls},
+	{"dir", bindings::y8_ls},
 
 	{"abs", bindings::y8_abs},
 	{"flr", bindings::y8_flr},

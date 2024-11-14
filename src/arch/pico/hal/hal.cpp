@@ -129,6 +129,36 @@ const char *fs_read_buffer(void *context, std::size_t *size) {
 	return nullptr;
 }
 
+// FIXME: consistency around string_view and const char*, add a wrapper for
+// const char* if that exists?
+
+DirectoryListStatus fs_list_directory(DirectoryListCallback *callback, void *ud,
+                                      const char *path) {
+	DIR dir;
+	FRESULT res = f_opendir(&dir, path != nullptr ? path : ".");
+
+	if (res != FR_OK) {
+		return DirectoryListStatus::FAIL;
+	}
+
+	for (;;) {
+		FILINFO info;
+		res = f_readdir(&dir, &info);
+		if (res != FR_OK || info.fname[0] == '\0') {
+			break;
+		}
+
+		FileInfo out_info{.kind = (info.fattrib & AM_DIR) != 0
+		                              ? FileInfo::Kind::DIRECTORY
+		                              : FileInfo::Kind::FILE,
+		                  .name = static_cast<const char *>(info.fname)};
+
+		callback(ud, out_info);
+	}
+
+	return DirectoryListStatus::SUCCESS;
+}
+
 std::uint32_t get_unique_seed() { return std::uint32_t(get_rand_32()); }
 
 } // namespace hal

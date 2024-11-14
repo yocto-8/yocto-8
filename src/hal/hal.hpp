@@ -95,6 +95,28 @@ using ReaderCallback = const char *(void *context, std::size_t *size);
 /// fs_create_open_context. Compatible with @ref FileChunkReaderCallback
 [[nodiscard]] const char *fs_read_buffer(void *context, std::size_t *size);
 
+struct FileInfo {
+	enum class Kind { DIRECTORY, FILE };
+
+	Kind kind;
+	std::string_view name;
+};
+
+/// @brief Callback called to describe a single file or directory when
+/// enumerating files in a directory. When it returns false, enumeration may be
+/// aborted.
+using DirectoryListCallback = bool(void *ud, const FileInfo &info);
+
+enum class DirectoryListStatus { SUCCESS, FAIL };
+
+/// @brief Enumerate files in a directory, invoking the callback for each
+/// element. See @ref DirectoryListCallback for more details.
+/// @arg path is the path of the directory to enumerate (potentially relative to
+/// the active directory). When `nullptr` (the default), refer to the active
+/// directory.
+DirectoryListStatus fs_list_directory(DirectoryListCallback *callback, void *ud,
+                                      const char *path = nullptr);
+
 /// @brief Attempt to get a true random seed.
 [[nodiscard]] std::uint32_t get_unique_seed();
 
