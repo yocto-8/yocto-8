@@ -1,15 +1,22 @@
 #pragma once
 
+#include "emu/tlsf.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <span>
+
+#ifdef Y8_USE_EXTMEM
+extern tlsf_t fast_heap;
+extern tlsf_t slow_heap;
+extern std::span<char> slow_heap_span;
+#endif
 
 extern "C" {
-#ifdef Y8_USE_EXTMEM
 
-// define in .cpp
+#ifdef Y8_USE_EXTMEM
 void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
-                     [[maybe_unused]] bool egc_recently);
+                     [[maybe_unused]] bool must_not_fail);
 #else
 inline void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
                             [[maybe_unused]] bool must_not_fail) {

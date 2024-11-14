@@ -27,7 +27,7 @@ class Emulator {
 	Emulator(Emulator &&) = delete;
 	Emulator &operator=(Emulator &&) = delete;
 
-	void init(std::span<std::byte> backup_heap_buffer);
+	void init();
 	void bind_globals();
 
 	void set_active_cart_path(std::string_view cart_path);
@@ -53,9 +53,6 @@ class Emulator {
 
 	constexpr Memory memory() { return Memory{std::span(_memory)}; }
 
-	auto get_backup_heap_buffer() const { return _backup_heap; }
-	tlsf_t get_backup_heap() const { return _backup_heap_tlsf; }
-
 	auto &palette() { return _palette; }
 
 	std::uint64_t get_update_start_time() { return _update_start_time; }
@@ -70,8 +67,6 @@ class Emulator {
 
 	private:
 	EmulatorPersistentState _persistent_state;
-	tlsf_t _backup_heap_tlsf;
-	std::span<std::byte> _backup_heap;
 	std::array<std::uint8_t, 65536> _memory;
 	std::array<std::uint32_t, 32> _palette;
 	LG _lua_preallocated_state;

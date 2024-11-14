@@ -355,18 +355,8 @@ elseif(Y8_ARCH STREQUAL "pico")
 
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC Y8_INFINITE_LOOP_EXIT)
 
-    # NOTE: we require PICO_MALLOC_PANIC=0 here for the following reasons:
-    # 1. usage of the secondary memory pool requires us to handle failing allocs.
-    # 2. dynamic allocation in non-desktop platforms is forbidden, so we can check
-    # malloc return values in the only place it can be used: the lua allocator.
-    # 3. we rely on the lua emergency GC, which can save us in this usecase.
-
-    # NOTE: since we currently skip PICO_MALLOC above, this solves that
-    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_MALLOC_PANIC=0)
-
-    # NOTE: we forbid malloc outsides of lua malloc; and that excludes any work
-    # on the second core.
-    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_USE_MALLOC_MUTEX=0)
+    # We use SKIP_PICO_MALLOC so that we wrap the C alloc functions ourselves
+    target_link_options(${CORE_LIBRARY_TARGET} PUBLIC -Wl,--wrap=malloc,--wrap=free,--wrap=realloc)
 
     # Let the pico-sdk configure the MPU to protect the end of the stack, to
     # detect certain kinds of stack overflows (presumably not all if large
@@ -391,8 +381,6 @@ elseif(Y8_ARCH STREQUAL "pico")
     # https://github.com/raspberrypi/pico-sdk/issues/1903
     # however, enabling it does mess up debugging for some reason
     # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_EMBED_XIP_SETUP=1)
-
-    # target_link_options(${CORE_LIBRARY_TARGET} PUBLIC -Wl,--wrap=malloc,--wrap=free,--wrap=realloc)
 
     # needed for a LTO hack
     # target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STDIO_SHORT_CIRCUIT_CLIB_FUNCS=0)

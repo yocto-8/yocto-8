@@ -26,15 +26,11 @@ namespace emu {
 
 Emulator::~Emulator() { lua_close(lua()); }
 
-void Emulator::init(std::span<std::byte> backup_heap_buffer) {
-	_backup_heap = backup_heap_buffer;
-	_backup_heap_tlsf = tlsf_create_with_pool(backup_heap_buffer.data(),
-	                                          backup_heap_buffer.size());
-
+void Emulator::init() {
 	const auto default_palette = hal::get_default_palette();
 	std::copy(default_palette.begin(), default_palette.end(), _palette.begin());
 
-	lua_newstate(y8_lua_realloc, &_backup_heap, &_lua_preallocated_state,
+	lua_newstate(y8_lua_realloc, nullptr, &_lua_preallocated_state,
 	             _memory.data());
 
 #ifdef Y8_EXPERIMENTAL_GENGC
@@ -184,7 +180,7 @@ void Emulator::run_until_shutdown() {
 			break;
 		} catch (const EmulatorResetRequest &e) {
 			lua_close(lua());
-			init(_backup_heap);
+			init();
 			load_from_path(_persistent_state.load_path_cstr.data());
 		}
 	}

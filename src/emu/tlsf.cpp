@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "coredefs.hpp"
 #include "tlsf.hpp"
 
 #if defined(__cplusplus)
@@ -916,25 +917,8 @@ pool_t tlsf_add_pool(tlsf_t tlsf, void *mem, size_t bytes) {
 	const size_t pool_overhead = tlsf_pool_overhead();
 	const size_t pool_bytes = align_down(bytes - pool_overhead, ALIGN_SIZE);
 
-	if (((ptrdiff_t)mem % ALIGN_SIZE) != 0) {
-		printf("tlsf_add_pool: Memory must be aligned by %u bytes.\n",
-		       (unsigned int)ALIGN_SIZE);
-		return 0;
-	}
-
-	if (pool_bytes < block_size_min || pool_bytes > block_size_max) {
-#if defined(TLSF_64BIT)
-		printf("tlsf_add_pool: Memory size must be between 0x%x and 0x%x00 "
-		       "bytes.\n",
-		       (unsigned int)(pool_overhead + block_size_min),
-		       (unsigned int)((pool_overhead + block_size_max) / 256));
-#else
-		printf("tlsf_add_pool: Memory size must be between %u and %u bytes.\n",
-		       (unsigned int)(pool_overhead + block_size_min),
-		       (unsigned int)(pool_overhead + block_size_max));
-#endif
-		return 0;
-	}
+	debug_assert(((ptrdiff_t)mem % ALIGN_SIZE) == 0);
+	debug_assert(pool_bytes >= block_size_min && pool_bytes < block_size_max);
 
 	/*
 	** Create the main free block. Offset the start of the block slightly
@@ -1009,11 +993,7 @@ tlsf_t tlsf_create(void *mem) {
 	}
 #endif
 
-	if (((tlsfptr_t)mem % ALIGN_SIZE) != 0) {
-		printf("tlsf_create: Memory must be aligned to %u bytes.\n",
-		       (unsigned int)ALIGN_SIZE);
-		return 0;
-	}
+	debug_assert(((tlsfptr_t)mem % ALIGN_SIZE) == 0);
 
 	control_construct(tlsf_cast(control_t *, mem));
 

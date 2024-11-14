@@ -289,11 +289,6 @@ extern "C" {
 extern char __psram_heap_start;
 }
 
-void init_emulator(std::size_t heap_size) {
-	emu::emulator.init(std::span(
-		reinterpret_cast<std::byte *>(&__psram_heap_start), heap_size));
-}
-
 // void init_video_ssd1351() {
 // 	spi_inst_t *video_spi = spi0;
 // 	// The datasheet mentions a rise/fall time of 15ns, i.e. 30ns per cycle,

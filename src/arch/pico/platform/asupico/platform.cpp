@@ -1,9 +1,11 @@
 #include "devices/screenpalette.hpp"
 #include "emu/emulator.hpp"
+#include "emu/tlsf.hpp"
 #include "fs/types.hpp"
 #include <arch/pico/fs/hwinit.hpp>
 #include <arch/pico/usb/hwinit.hpp>
 #include <cstdio>
+#include <emu/alloc.hpp>
 #include <pico/flash.h>
 #include <platform/asupico/asupico.hpp>
 #include <platform/platform.hpp>
@@ -32,10 +34,16 @@ void init_hardware() {
 	printf("Int. FAT size: %d bytes\n", y8_fatfs_size);
 	printf("  Heap#1 size: %d bytes\n", &__heap_end - &__heap_start);
 
+	fast_heap =
+		tlsf_create_with_pool(&__heap_start, &__heap_end - &__heap_start);
+	printf("%p %p\n", &__heap_start, &__heap_end - &__heap_start);
+
 	printf("Configuring frequency and clock divisors\n");
 	init_flash_frequency();
 	init_default_frequency();
 	printf("Configuring PSRAM\n");
+	// we must do this sort of early as C dynamic allocs are broken before PSRAM
+	// is initialized, although we keep those to virtually 0 outside of lua
 	const auto psram_size = init_psram_pimoroni();
 	const auto psram_reserved = &__psram_heap_start - &__psram_start;
 	release_assert(psram_size > 0);
@@ -43,6 +51,8 @@ void init_hardware() {
 	const std::size_t heap_size = psram_size - psram_reserved;
 	printf("  Heap#2 size: %d bytes (buffers: %d)\n", heap_size,
 	       psram_reserved);
+	slow_heap_span = std::span{&__psram_heap_start, heap_size};
+	slow_heap = tlsf_create_with_pool(&__psram_heap_start, heap_size);
 	printf("Configuring GPIO\n");
 	init_basic_gpio();
 	printf("Configuring video\n");
@@ -56,7 +66,7 @@ void init_hardware() {
 	printf("Initializing USB\n");
 	init_usb_device();
 	printf("Configuring emulator\n");
-	init_emulator(heap_size);
+	emu::emulator.init();
 	printf("Hardware init done\n");
 }
 

@@ -1,12 +1,26 @@
 #include "alloc.hpp"
 
-#include "emulator.hpp"
-
-#include <span>
+#ifdef Y8_USE_EXTMEM
+tlsf_t fast_heap;
+tlsf_t slow_heap;
+std::span<char> slow_heap_span;
+#endif
 
 extern "C" {
 #ifdef Y8_USE_EXTMEM
-#include "tlsf.hpp"
+
+// NOLINTNEXTLINE
+[[gnu::used]] void *__wrap_malloc(size_t size) {
+	return tlsf_malloc(slow_heap, size);
+}
+
+// NOLINTNEXTLINE
+[[gnu::used]] void __wrap_free(void *ptr) { tlsf_free(slow_heap, ptr); }
+
+// NOLINTNEXTLINE
+[[gnu::used]] void *__wrap_realloc(void *ptr, size_t new_size) {
+	return tlsf_realloc(slow_heap, ptr, new_size);
+}
 
 [[gnu::section(Y8_SRAM_SECTION)]]
 void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
@@ -39,20 +53,16 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 	static size_t bytes_freed_since_egc = egc_cooldown;
 #endif
 
-	const auto &secondary_heap = *static_cast<std::span<std::byte> *>(ud);
-
-	const bool has_extra_heap = !secondary_heap.empty();
-
 	const auto is_ptr_on_slow_heap = [&] {
-		return has_extra_heap && ptr >= secondary_heap.data() &&
-		       ptr < secondary_heap.data() + secondary_heap.size();
+		return ptr >= slow_heap_span.data() &&
+		       ptr < slow_heap_span.data() + slow_heap_span.size();
 	};
 
-	const auto c_free = [&] {
+	const auto fast_heap_free = [&] {
 #ifdef Y8_USE_EGC_HEURISTIC
 		bytes_freed_since_egc += osize;
 #endif
-		free(ptr);
+		tlsf_free(fast_heap, ptr);
 	};
 
 	// Free this pointer no matter the heap it was allocated in.
@@ -62,14 +72,14 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		}
 
 		if (is_ptr_on_slow_heap()) {
-			tlsf_free(emu::emulator.get_backup_heap(), ptr);
+			tlsf_free(slow_heap, ptr);
 		} else {
-			c_free();
+			fast_heap_free();
 		}
 	};
 
 	const auto auto_malloc = [&]() -> void * {
-		void *malloc_ptr = malloc(nsize);
+		void *malloc_ptr = tlsf_malloc(fast_heap, nsize);
 
 		if (malloc_ptr != nullptr) {
 			/*if (!has_alloc_succeeded_since_egc)
@@ -88,27 +98,18 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 		}
 #endif
 
-		if (!has_extra_heap) {
-			return nullptr;
-		}
-
-		return tlsf_malloc(emu::emulator.get_backup_heap(), nsize);
+		return tlsf_malloc(slow_heap, nsize);
 	};
 
-	const auto realloc_from_main_to_slow_heap = [&]() -> void * {
-		if (!has_extra_heap) {
-			return nullptr;
-		}
-
-		const auto new_ptr =
-			tlsf_malloc(emu::emulator.get_backup_heap(), nsize);
+	const auto realloc_fast_to_slow = [&]() -> void * {
+		const auto new_ptr = tlsf_malloc(slow_heap, nsize);
 
 		if (new_ptr == nullptr) {
 			return nullptr;
 		}
 
 		memcpy(new_ptr, ptr, osize < nsize ? osize : nsize);
-		c_free();
+		fast_heap_free();
 		return new_ptr;
 	};
 
@@ -124,19 +125,20 @@ void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize,
 	} else { // nsize > osize OR nsize < osize
 		if (!is_ptr_on_slow_heap()) {
 			// try realloc within fast heap
-			const auto nptr = realloc(ptr, nsize);
+			const auto nptr = tlsf_realloc(fast_heap, ptr, nsize);
 
 			if (nptr != nullptr) {
 				return nptr;
 			}
 
 			// on failure, perform slow path realloc on backup heap
-			return realloc_from_main_to_slow_heap();
+			return realloc_fast_to_slow();
 		}
 
 		// orig pointer on slow heap
-		return tlsf_realloc(emu::emulator.get_backup_heap(), ptr, nsize);
+		return tlsf_realloc(slow_heap, ptr, nsize);
 	}
 }
+
 #endif
 }
