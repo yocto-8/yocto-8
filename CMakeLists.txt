@@ -355,6 +355,8 @@ elseif(Y8_ARCH STREQUAL "pico")
     # Leaves plenty of space for stuff there.
     target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_CORE1_STACK_SIZE=0x200)
 
+    target_compile_definitions(${CORE_LIBRARY_TARGET} PUBLIC PICO_STDIO_ENABLE_CRLF_SUPPORT=0)
+
     # NOTE: as of 2.0.0, the pico-sdk is not including XIP setup code for the
     # flash, resulting in suboptimal timing for the stock flash
     # https://github.com/raspberrypi/pico-sdk/issues/1903
