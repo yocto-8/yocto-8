@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lstate.hpp"
-#include "tlsf.hpp"
 #include <array>
 #include <lua.hpp>
 #include <span>
@@ -88,5 +87,3 @@ inline constexpr auto device = emulator.memory().device<Device>(map_address);
 // NOLINTEND
 
 } // namespace emu
-
-#include "alloc.hpp"
