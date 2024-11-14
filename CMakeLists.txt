@@ -80,12 +80,9 @@ if(Y8_ARCH STREQUAL "pico")
         "-Wstack-usage=256"
         "-fstack-usage"
 
-        # this could save >10KiB of flash space from pointless exception handling
-        # stuff. however, it also switches out the libc/newlib which swaps it out to
-        # an allocator that is way worse in our case.
-        #
-        # if we ever bypass the system malloc it may be worth enabling this, and
-        # removing the compilerhacks
+        # nano specs turn exception raise into terminate(?) but we do actually
+        # use exceptions (mostly from the load trigger mechanism to interrupt
+        # execution from anywhere in the VM)
         # "--specs=nano.specs"
     )
 endif()
