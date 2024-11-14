@@ -318,6 +318,7 @@ void init_video_dwo() {
 
 	asupico::state::dwo.init({.spi = video_spi,
 	                          .pio = pio0,
+	                          .pio_sm = 0,
 	                          .pinout = {
 								  .sclk = 2,
 								  .cs = 5,
