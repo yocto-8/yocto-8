@@ -119,8 +119,6 @@ static constexpr auto y8_numeric_globals = std::to_array<NumericGlobal>({
 	{u8"⬇️", 3},
 	{u8"🅾️", 4},
 	{u8"❎", 5},
-	// TODO: add literals for from_fix16 e.g. 0x0000'8000_raw_fix16
-	// patterns
 	{u8"█", 0x0000'8000_raw_fix16},
 	{u8"▒", 0x5A5A'8000_raw_fix16},
 	{u8"░", 0x7D7D'8000_raw_fix16},
