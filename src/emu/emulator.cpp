@@ -91,7 +91,7 @@ void Emulator::trigger_load_from_vm(std::string_view cart_path) {
 	            cart_path.size());
 	_persistent_state.load_path_cstr[cart_path.size()] = '\0';
 
-	throw EmulatorResetRequest();
+	throw EmulatorReset();
 }
 
 bool Emulator::load_from_path(std::string_view cart_path) {
@@ -174,15 +174,44 @@ void Emulator::handle_repl() {
 }
 
 void Emulator::run_until_shutdown() {
+	// This loop makes use of exceptions to handle loading and panics.
+	//
+	// This is kinda hacky for a few reasons, including:
+	// - attempting to reduce stack space usage
+	// - avoiding unbounded recursion like panic->repl->panic->etc
+	// - proper exception handling for handle_repl and such
+
 	for (;;) {
 		try {
 			run_once();
 			break;
-		} catch (const EmulatorResetRequest &e) {
-			lua_close(lua());
-			init();
-			load_from_path(_persistent_state.load_path_cstr.data());
+		} catch (const EmulatorReset &e) {
+			goto reset_handler;
+		} catch (const EmulatorPanic &e) {
+			goto panic_handler;
 		}
+
+	reset_handler: {
+		lua_close(lua());
+		init();
+		try {
+			load_from_path(_persistent_state.load_path_cstr.data());
+		} catch (...) {
+		}
+		continue;
+	}
+
+	panic_handler: {
+		for (;;) {
+			try {
+				handle_repl();
+			} catch (const EmulatorReset &e) {
+				goto reset_handler;
+			} catch (...) {
+			}
+			flip();
+		}
+	}
 	}
 }
 
@@ -308,15 +337,8 @@ void Emulator::panic(const char *message) {
 	hal::present_frame();
 
 #ifdef Y8_INFINITE_LOOP_EXIT
-	for (;;) {
-		// FIXME: this can result in way too deep recursion
-		// (panic->handle_repl->exec)
-		// This should be partly mitigated by not calling panic() for
-		// handle_repl, and this includes changing the configured Lua error
-		// handler
-		handle_repl();
-		flip();
-	}
+	// TODO: optional breakpoint?
+	throw EmulatorPanic();
 #else
 	exit(1);
 #endif
