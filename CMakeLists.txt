@@ -39,7 +39,7 @@ elseif(Y8_ARCH STREQUAL "pico")
     set(SKIP_PICO_MALLOC 1)
     set(PICO_CXX_ENABLE_EXCEPTIONS 1)
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src/arch/pico/platform/boards/)
-    set(LTO_FLAGS "-flto=auto")
+    set(LTO_FLAGS "-flto=auto" "-O2" "-fpeel-loops")
     include(vendor/pico-sdk/pico_sdk_init.cmake)
 else()
     message(FATAL_ERROR "Y8_ARCH not specified or illegal")
@@ -47,34 +47,35 @@ endif()
 
 project(yocto-8)
 
-set(PERF_FLAGS
-    "-O2"
+# flags common to all TUs
+set(COMMON_FLAGS
 
-    # is a net gain, for some reason
-    # TODO: recheck performance, maybe it's not relevant
-    "-ffast-math"
+    # default to -Os for all sources, but we override it just later
+    "-Os"
+
+    # ninja opens a pipe so the compiler disables ansi escape sequences by
+    # default. let's force it for now
+    "-fdiagnostics-color=always"
+
+    # relative path
+    "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/src/=src/"
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(PERF_FLAGS ${PERF_FLAGS}
+    set(COMMON_FLAGS ${COMMON_FLAGS}
         "-fimplicit-constexpr"
     )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if(Y8_ARCH STREQUAL "pico")
-        set(PERF_FLAGS ${PERF_FLAGS}
+        set(COMMON_FLAGS ${COMMON_FLAGS}
             "-flto=thin"
         )
     endif()
 endif()
 
-set(LUA_EXTRA_CXXFLAGS
-    "-Wno-implicit-fallthrough"
-    "-Wno-unused-function"
-)
-
 if(Y8_ARCH STREQUAL "pico")
-    set(PERF_FLAGS
-        ${PERF_FLAGS}
+    set(COMMON_FLAGS
+        ${COMMON_FLAGS}
         "-fno-threadsafe-statics"
 
         "-Wstack-usage=256"
@@ -86,16 +87,6 @@ if(Y8_ARCH STREQUAL "pico")
         # "--specs=nano.specs"
     )
 endif()
-
-set(COMMON_FLAGS ${PERF_FLAGS}
-
-    # ninja opens a pipe so the compiler disables ansi escape sequences by
-    # default. let's force it for now
-    "-fdiagnostics-color=always"
-
-    # relative path
-    "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/src/=src/"
-)
 
 add_link_options(${COMMON_FLAGS} ${LTO_FLAGS})
 add_compile_options(${COMMON_FLAGS})
@@ -176,27 +167,6 @@ set(LUA_SOURCES
     ${LUA_ROOT}/lzio.cpp
 )
 
-# compile Lua as C++ - we need this for the fixmath black magic
-set_property(
-    SOURCE ${LUA_SOURCES}
-    APPEND PROPERTY COMPILE_OPTIONS
-    ${LUA_EXTRA_CXXFLAGS}
-)
-
-set_property(
-    SOURCE ${LUA_ROOT}/lvm.cpp
-    APPEND PROPERTY COMPILE_OPTIONS
-
-    # increasing the inlining threshold and using -O3 adds a few KiB of code
-    # size here (which goes to SRAM) but it seems to help execution time by ~5%
-    #
-    # it might be that a single inline is responsible for this; can we find
-    # which?
-    ${LUA_EXTRA_CXXFLAGS}
-    "-finline-limit=200"
-    "-Ofast"
-)
-
 # Commented out: for now, use C++ exceptions, not longjmp.
 # add_compile_definitions(LUA_USE_LONGJMP)
 set(FIXMATH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libfixmath/libfixmath/")
@@ -227,6 +197,12 @@ set(PNGENC_SOURCES
     ${PNGENC_ROOT}/PNGenc.cpp
 )
 
+set_property(
+    SOURCE ${CORE_SOURCES} ${LUA_SOURCES} ${FIXMATH_SOURCES} ${FATFS_SOURCES} ${ZLIB_SOURCES} ${PNGENC_SOURCES}
+    APPEND PROPERTY COMPILE_OPTIONS
+    ${LTO_FLAGS}
+)
+
 # we care more about code size than about performance for some functionality.
 # for these, use lighter optimization levels
 set(SIZE_SENSITIVE_SOURCES
@@ -251,11 +227,17 @@ set_property(
     APPEND PROPERTY COMPILE_OPTIONS
     "-Os"
 )
-
 set_property(
-    SOURCE ${CORE_SOURCES} ${LUA_SOURCES} ${FIXMATH_SOURCES} ${FATFS_SOURCES} ${ZLIB_SOURCES} ${PNGENC_SOURCES}
+    SOURCE ${LUA_ROOT}/lvm.cpp
     APPEND PROPERTY COMPILE_OPTIONS
-    ${LTO_FLAGS}
+
+    # increasing the inlining threshold and using -O3 adds a few KiB of code
+    # size here (which goes to SRAM) but it seems to help execution time by ~5%
+    #
+    # it might be that a single inline is responsible for this; can we find
+    # which?
+    "-finline-limit=200"
+    "-Ofast"
 )
 
 if(Y8_ARCH STREQUAL "desktop")
