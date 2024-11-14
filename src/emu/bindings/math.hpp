@@ -20,7 +20,8 @@ int y8_rotl(lua_State *state);
 int y8_rotr(lua_State *state);
 int y8_band(lua_State *state);
 int y8_bor(lua_State *state);
-int y8_bor(lua_State *state);
+int y8_bxor(lua_State *state);
 int y8_sgn(lua_State *state);
+int y8_bnot(lua_State *state);
 
 } // namespace emu::bindings
