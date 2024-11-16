@@ -136,8 +136,8 @@ void init_basic_gpio() {
 	pwm_set_wrap(pwm_gpio_to_slice_num(config.led_pin), 65535);
 
 	state::buttons[0].init(config.button_pinout.dir_left);
-	state::buttons[1].init(config.button_pinout.dir_up);
-	state::buttons[2].init(config.button_pinout.dir_right);
+	state::buttons[1].init(config.button_pinout.dir_right);
+	state::buttons[2].init(config.button_pinout.dir_up);
 	state::buttons[3].init(config.button_pinout.dir_down);
 	state::buttons[4].init(config.button_pinout.act_o);
 	state::buttons[5].init(config.button_pinout.act_x);
