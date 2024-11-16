@@ -1,4 +1,4 @@
-#include "fs/types.hpp"
+#include "video/dwoqspi.hpp"
 #include <array>
 #include <cstdint>
 #include <hardware/pwm.h>
@@ -18,6 +18,46 @@
 #include <hardwarestate.hpp>
 
 namespace arch::pico::platform::asupico {
+
+struct GlobalConstants {
+	std::size_t spi_video_clock;
+	video::DWO::Config dwo;
+	struct {
+		int dir_left, dir_up, dir_right, dir_down, act_o, act_x;
+	} button_pinout; // TODO: unify across arch
+	int led_pin;
+	int psram_cs;
+	vreg_voltage core_voltage;
+	unsigned core_frequency_khz;
+};
+
+static const GlobalConstants config = {.spi_video_clock = 50'000'000,
+                                       .dwo = {.spi = spi0,
+                                               .pio = pio0,
+                                               .pio_sm = 0,
+                                               .pinout =
+                                                   {
+													   .sclk = 2,
+													   .cs = 5,
+													   .te = 11,
+													   .sio0 = 7,
+													   .qsi1 = 8,
+													   .qsi2 = 9,
+													   .qsi3 = 10,
+													   .rst = 14,
+													   .pwr_en = 15,
+												   }},
+                                       .button_pinout = {.dir_left = 16,
+                                                         .dir_up = 17,
+                                                         .dir_right = 18,
+                                                         .dir_down = 19,
+                                                         .act_o = 20,
+                                                         .act_x = 21},
+                                       .led_pin = PICO_DEFAULT_LED_PIN,
+                                       .psram_cs =
+                                           PIMORONI_PICO_PLUS2_PSRAM_CS_PIN,
+                                       .core_voltage = VREG_VOLTAGE_1_25,
+                                       .core_frequency_khz = 351000};
 
 namespace state {
 // video::SSD1351 ssd1351;
@@ -79,8 +119,8 @@ void __no_inline_not_in_flash_func(init_flash_frequency)() {
 }
 
 void init_default_frequency() {
-	vreg_set_voltage(VREG_VOLTAGE_1_25);
-	set_sys_clock_khz(351000, true);
+	vreg_set_voltage(config.core_voltage);
+	set_sys_clock_khz(config.core_frequency_khz, true);
 
 	// clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
 	// 351 * MHZ, 351 * MHZ);
@@ -91,22 +131,22 @@ void init_default_frequency() {
 void init_stdio() { stdio_init_all(); }
 
 void init_basic_gpio() {
-	gpio_set_function(PICO_DEFAULT_LED_PIN, GPIO_FUNC_PWM);
-	pwm_set_enabled(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN), true);
-	pwm_set_wrap(pwm_gpio_to_slice_num(PICO_DEFAULT_LED_PIN), 65535);
+	gpio_set_function(config.led_pin, GPIO_FUNC_PWM);
+	pwm_set_enabled(pwm_gpio_to_slice_num(config.led_pin), true);
+	pwm_set_wrap(pwm_gpio_to_slice_num(config.led_pin), 65535);
 
-	state::buttons[0].init(16);
-	state::buttons[1].init(18);
-	state::buttons[2].init(17);
-	state::buttons[3].init(19);
-	state::buttons[4].init(20);
-	state::buttons[5].init(21);
+	state::buttons[0].init(config.button_pinout.dir_left);
+	state::buttons[1].init(config.button_pinout.dir_up);
+	state::buttons[2].init(config.button_pinout.dir_right);
+	state::buttons[3].init(config.button_pinout.dir_down);
+	state::buttons[4].init(config.button_pinout.act_o);
+	state::buttons[5].init(config.button_pinout.act_x);
 }
 
 std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
 	// RP2350 QMI PSRAM initialization code from CircuitPython
 
-	gpio_set_function(PIMORONI_PICO_PLUS2_PSRAM_CS_PIN, GPIO_FUNC_XIP_CS1);
+	gpio_set_function(config.psram_cs, GPIO_FUNC_XIP_CS1);
 	int psram_size;
 	psram_size = 0;
 
@@ -289,47 +329,11 @@ extern "C" {
 extern char __psram_heap_start;
 }
 
-// void init_video_ssd1351() {
-// 	spi_inst_t *video_spi = spi0;
-// 	// The datasheet mentions a rise/fall time of 15ns, i.e. 30ns per cycle,
-// 	// hence we try to target 33.333333MHz. What exactly will be achieved does
-// 	// depend on the PERI clock.
-// 	// spi_init(video_spi, 33'333'333);
-
-// 	// NEVERMIND: There is some coruption that could be attributed to too high
-// 	// SPI freq. Even if specific to the dupont cable mess setup, it's better
-// 	// to just be safe here.
-// 	spi_init(video_spi, 25'000'000);
-
-// 	printf("SSD1351 baudrate: %d\n", spi_get_baudrate(video_spi));
-
-// 	asupico::hw.ssd1351.init(
-// 		{.spi = video_spi,
-// 	     .pinout = {.sclk = 2, .tx = 3, .rst = 4, .cs = 5, .dc = 6}});
-// }
-
 void init_video_dwo() {
-	spi_inst_t *video_spi = spi0;
-	// 60MHz is a slight OC over the 50MHz recommended per the datasheet
-	// but it aligns better with our target frequency
-	spi_init(video_spi, 50'000'000);
+	spi_init(config.dwo.spi, config.spi_video_clock);
+	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(config.dwo.spi));
 
-	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(video_spi));
-
-	asupico::state::dwo.init({.spi = video_spi,
-	                          .pio = pio0,
-	                          .pio_sm = 0,
-	                          .pinout = {
-								  .sclk = 2,
-								  .cs = 5,
-								  .te = 11,
-								  .sio0 = 7,
-								  .qsi1 = 8,
-								  .qsi2 = 9,
-								  .qsi3 = 10,
-								  .rst = 14,
-								  .pwr_en = 15,
-							  }});
+	asupico::state::dwo.init(config.dwo);
 }
 
 } // namespace arch::pico::platform::asupico
