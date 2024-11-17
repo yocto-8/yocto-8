@@ -74,6 +74,10 @@ class DWO {
 		Pinout pinout;
 	};
 
+	/// Initialize the display in a blocking fashion using the provided config.
+	/// After `init` is called, the callee should ensure to handle rising edge
+	/// events on the TE pin via IRQ, to initiate scanout immediately after
+	/// vsync.
 	void init(Config config);
 
 	/// Configure a DMA channel to write 32-bit words to the SPI TX we use.

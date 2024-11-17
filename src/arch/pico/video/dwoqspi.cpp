@@ -12,22 +12,9 @@
 
 namespace arch::pico::video {
 
-uint32_t frame_start, vsync_last;
-
 [[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::noinline]] void
 dwo_global_dma_handler() {
 	DWO::active_instance->scanline_dma_update();
-}
-
-[[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::noinline]] void
-dwo_vsync_signal_irq_handler(uint gpio, uint32_t events) {
-	if (gpio == DWO::active_instance->_pinout.te) {
-		const auto cur_time = time_us_64();
-
-		// printf("%fms\n", (cur_time - vsync_last) / 1000.0f);
-		vsync_last = cur_time;
-		DWO::active_instance->start_scanout();
-	}
 }
 
 void DWO::_switch_hardware_spi() {
@@ -90,9 +77,6 @@ void DWO::_switch_pio() {
 	_submit_init_sequence();
 
 	_dma_channel = dma_claim_unused_channel(true);
-
-	gpio_set_irq_enabled_with_callback(_pinout.te, GPIO_IRQ_EDGE_RISE, true,
-	                                   dwo_vsync_signal_irq_handler);
 }
 
 [[gnu::cold]] void DWO::init_dma_on_this_core() {
@@ -283,7 +267,6 @@ void DWO::scanline_dma_update() {
 	if (_scanned_out_lines == rows) {
 		// deselect chip and return
 		_front_dma_fb_offset = 0;
-		// printf("== %fms\n", (time_us_64() - frame_start) / 1000.0f);
 		gpio_put(_pinout.cs, 1);
 		return;
 	}
@@ -316,8 +299,6 @@ void DWO::start_scanout() {
 		// Return from this; let it finish the frame.
 		return;
 	}
-
-	frame_start = time_us_64();
 
 	// TODO: continuous write
 	_switch_hardware_spi();

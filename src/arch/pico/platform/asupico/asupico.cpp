@@ -1,7 +1,9 @@
 #include "video/dwoqspi.hpp"
 #include <array>
 #include <cstdint>
+#include <hardware/irq.h>
 #include <hardware/pwm.h>
+#include <hardware/regs/intctrl.h>
 #include <pico/stdio.h>
 #include <platform/asupico/asupico.hpp>
 
@@ -66,6 +68,14 @@ std::array<io::PushButton, 6> buttons;
 // FIXME: buffer not in PSRAM because we cannot access(?) PSRAM during flashing
 /*[[gnu::section(Y8_PSRAM_SECTION)]]*/ FATFS flash_fatfs;
 } // namespace state
+
+[[gnu::section(Y8_CORE1_SRAM_SECTION), gnu::noinline]] void
+gpio_irq_handler(uint gpio, uint32_t event_mask) {
+	if (gpio == config.dwo.pinout.te &&
+	    (event_mask & GPIO_IRQ_EDGE_RISE) != 0) {
+		state::dwo.start_scanout();
+	}
+}
 
 void __no_inline_not_in_flash_func(init_flash_frequency)() {
 	uint32_t interrupt_state = save_and_disable_interrupts();
@@ -141,6 +151,9 @@ void init_basic_gpio() {
 	state::buttons[3].init(config.button_pinout.dir_down);
 	state::buttons[4].init(config.button_pinout.act_o);
 	state::buttons[5].init(config.button_pinout.act_x);
+
+	gpio_set_irq_callback(gpio_irq_handler);
+	irq_set_enabled(IO_IRQ_BANK0, true);
 }
 
 std::size_t __no_inline_not_in_flash_func(init_psram_pimoroni)() {
@@ -334,6 +347,8 @@ void init_video_dwo() {
 	printf("DO0206FMST01 baudrate: %d\n", spi_get_baudrate(config.dwo.spi));
 
 	asupico::state::dwo.init(config.dwo);
+
+	gpio_set_irq_enabled(config.dwo.pinout.te, GPIO_IRQ_EDGE_RISE, true);
 }
 
 } // namespace arch::pico::platform::asupico
