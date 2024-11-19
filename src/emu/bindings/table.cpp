@@ -135,9 +135,6 @@ int y8_foreach(lua_State *state) {
 		lua_rawgeti(state, 1, i); // push table[i]
 
 		if (!lua_isnil(state, -1)) {
-			// save/push current value of table[i] for later check
-			lua_pushvalue(state, -1);
-
 			// prepare call to function(table[i]):
 			// push function
 			lua_pushvalue(state, 2);
@@ -164,7 +161,8 @@ int y8_foreach(lua_State *state) {
 
 			if (!equalobj(state, old_value, new_value)) {
 				lua_settop(state, -2); // pop value
-				continue;              // skip incrementing
+
+				continue; // skip incrementing
 			}
 			lua_settop(state, -2); // pop value
 		} else {
