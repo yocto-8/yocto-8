@@ -209,7 +209,7 @@ class LookaheadReader {
 
 	private:
 	bool _read_next_fs_buffer() {
-		debug_assert(_remaining_fs_buffer_size() == 0);
+		debug_assert(_file_buffer.empty() || _remaining_file_buffer().empty());
 
 		std::size_t fs_buffer_size = 0;
 		const char *fs_buffer_start = _fs_reader(_fs_ud, &fs_buffer_size);
