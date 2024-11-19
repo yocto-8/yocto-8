@@ -253,6 +253,7 @@ if(Y8_ARCH STREQUAL "desktop")
     )
     set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
     add_definitions(-UNDEBUG)
+    add_definitions(-Dlua_assert=assert)
 
     add_executable(y8
         ${ARCH_SOURCES}
