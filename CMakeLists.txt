@@ -223,23 +223,25 @@ set(SIZE_SENSITIVE_SOURCES
     ${PNGENC_SOURCES}
 )
 
-set_property(
-    SOURCE ${SIZE_SENSITIVE_SOURCES}
-    APPEND PROPERTY COMPILE_OPTIONS
-    "-Os"
-)
-set_property(
-    SOURCE ${LUA_ROOT}/lvm.cpp
-    APPEND PROPERTY COMPILE_OPTIONS
+if(NOT Y8_ARCH STREQUAL "desktop")
+    set_property(
+        SOURCE ${SIZE_SENSITIVE_SOURCES}
+        APPEND PROPERTY COMPILE_OPTIONS
+        "-Os"
+    )
+    set_property(
+        SOURCE ${LUA_ROOT}/lvm.cpp
+        APPEND PROPERTY COMPILE_OPTIONS
 
-    # increasing the inlining threshold and using -O3 adds a few KiB of code
-    # size here (which goes to SRAM) but it seems to help execution time by ~5%
-    #
-    # it might be that a single inline is responsible for this; can we find
-    # which?
-    "-finline-limit=200"
-    "-Ofast"
-)
+        # increasing the inlining threshold and using -O3 adds a few KiB of code
+        # size here (which goes to SRAM) but it seems to help execution time by ~5%
+        #
+        # it might be that a single inline is responsible for this; can we find
+        # which?
+        "-finline-limit=200"
+        "-Ofast"
+    )
+endif()
 
 if(Y8_ARCH STREQUAL "desktop")
     set(SANITIZER_FLAGS "-fsanitize=address,undefined -ggdb")
