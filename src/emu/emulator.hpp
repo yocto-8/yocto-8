@@ -69,6 +69,7 @@ class Emulator {
 	std::array<std::uint8_t, 65536> _memory;
 	std::array<std::uint32_t, 32> _palette;
 	LG _lua_preallocated_state;
+	bool _lua_ready = false;
 
 	hal::ButtonState _button_state;
 

@@ -24,7 +24,11 @@
 
 namespace emu {
 
-Emulator::~Emulator() { lua_close(lua()); }
+Emulator::~Emulator() {
+	if (_lua_ready) {
+		lua_close(lua());
+	}
+}
 
 void Emulator::init() {
 	const auto default_palette = hal::get_default_palette();
@@ -32,6 +36,7 @@ void Emulator::init() {
 
 	lua_newstate(y8_lua_realloc, nullptr, &_lua_preallocated_state,
 	             _memory.data());
+	_lua_ready = true;
 
 #ifdef Y8_EXPERIMENTAL_GENGC
 	// printf("Buggy Lua 5.2 Generational GC enabled\n");
