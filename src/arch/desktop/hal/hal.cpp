@@ -125,6 +125,8 @@ DirectoryListStatus fs_list_directory(DirectoryListCallback *callback, void *ud,
 		callback(ud, out_info);
 	}
 	closedir(d); // finally close the directory
+
+	return DirectoryListStatus::SUCCESS;
 }
 
 std::uint32_t get_unique_seed() { return rand(); }
