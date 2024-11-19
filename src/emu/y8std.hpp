@@ -63,6 +63,7 @@ static constexpr auto y8_std = std::to_array<Binding>({
 	{"load", bindings::y8_load},
 	{"ls", bindings::y8_ls},
 	{"dir", bindings::y8_ls},
+	{"cd", bindings::y8_cd},
 
 	{"abs", bindings::y8_abs},
 	{"flr", bindings::y8_flr},

@@ -77,8 +77,6 @@ class Emulator {
 	std::uint64_t _frame_target_time = 0;
 };
 
-// void *y8_lua_realloc(void *ud, void *ptr, size_t osize, size_t nsize);
-
 // NOLINTBEGIN
 extern Emulator emulator;
 

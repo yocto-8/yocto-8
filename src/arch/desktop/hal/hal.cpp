@@ -7,6 +7,7 @@
 
 #include "../window.hpp"
 #include "hal/types.hpp"
+#include <dirent.h>
 #include <emu/emulator.hpp>
 #include <unistd.h>
 
@@ -99,6 +100,31 @@ const char *fs_read_buffer(void *context, std::size_t *size) {
 	}
 
 	return real_context.buf.data();
+}
+
+DirectoryListStatus fs_list_directory(DirectoryListCallback *callback, void *ud,
+                                      const char *path) {
+	DIR *d = opendir(path);
+	if (d == NULL) {
+		return DirectoryListStatus::FAIL;
+	}
+
+	dirent *dir;
+	while ((dir = readdir(d)) != nullptr) {
+		std::string_view name = dir->d_name;
+
+		if (name == "." || name == "..") {
+			continue;
+		}
+
+		FileInfo out_info{.kind = (dir->d_type != DT_DIR
+		                               ? FileInfo::Kind::FILE
+		                               : FileInfo::Kind::DIRECTORY),
+		                  .name = name};
+
+		callback(ud, out_info);
+	}
+	closedir(d); // finally close the directory
 }
 
 std::uint32_t get_unique_seed() { return rand(); }

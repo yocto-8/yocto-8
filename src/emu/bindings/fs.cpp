@@ -45,4 +45,21 @@ int y8_ls(lua_State *state) {
 	return 1;
 }
 
+int y8_cd(lua_State *state) {
+	const auto argument_count = lua_gettop(state);
+
+	if (argument_count >= 1) {
+		std::string_view path;
+		{ // read input into a string_view
+			std::size_t path_size;
+			const char *path_buf = lua_tolstring(state, 1, &path_size);
+			path = {path_buf, path_size};
+		}
+
+		hal::fs_set_working_directory(path);
+	}
+
+	return 0;
+}
+
 } // namespace emu::bindings
