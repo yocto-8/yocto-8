@@ -246,13 +246,13 @@ if(Y8_ARCH STREQUAL "desktop")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
-
     set(ARCH_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/src/arch/desktop")
     set(ARCH_SOURCES
         ${ARCH_ROOT}/hal/hal.cpp
         ${ARCH_ROOT}/main.cpp
     )
     set(ARCH_HAL_ROOT "${ARCH_ROOT}/hal/")
+    add_definitions(-UNDEBUG)
 
     add_executable(y8
         ${ARCH_SOURCES}
