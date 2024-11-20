@@ -7,6 +7,7 @@
 #include <devices/image.hpp>
 #include <devices/map.hpp>
 #include <devices/music.hpp>
+#include <devices/sfx.hpp>
 #include <devices/spriteflags.hpp>
 #include <emu/bufferio.hpp>
 #include <hal/hal.hpp>
@@ -48,6 +49,9 @@ enum class ParserStatus {
 
 	/// Failed to match a sfx pattern in a music block
 	BAD_MUSIC_PATTERN,
+
+	/// Failed to match a SFX block
+	BAD_SFX_ROW,
 };
 
 enum class ParserState {
@@ -114,6 +118,8 @@ struct RemappedDevices {
 	y8::PicoAddr map_addr;
 	devices::SpriteFlags gff;
 	y8::PicoAddr gff_addr;
+	devices::Sfx sfx;
+	y8::PicoAddr sfx_addr;
 	devices::Music music;
 	y8::PicoAddr music_addr;
 
@@ -136,7 +142,7 @@ class Parser {
 
 	ParserState _current_state;
 
-	std::size_t _off_gfx, _off_map, _off_gff, _off_music;
+	std::size_t _off_gfx, _off_map, _off_gff, _off_sfx, _off_music;
 
 	global_State *_lua_global_state;
 };

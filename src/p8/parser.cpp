@@ -77,6 +77,8 @@ RemappedDevices RemappedDevices::from_config(ParserMapConfig config) {
 	        .map_addr = config.remap(devices::Map::default_map_address),
 	        .gff = config.remap_device<devices::SpriteFlags>(memory),
 	        .gff_addr = config.remap(devices::SpriteFlags::default_map_address),
+	        .sfx = config.remap_device<devices::Sfx>(memory),
+	        .sfx_addr = config.remap(devices::Sfx::default_map_address),
 	        .music = config.remap_device<devices::Music>(memory),
 	        .music_addr = config.remap(devices::Music::default_map_address)};
 }
@@ -85,7 +87,8 @@ Parser::Parser(ParserMapConfig map_config, global_State *lua_global_state)
 	: _mapping(map_config), _dev{RemappedDevices::from_config(map_config)},
 	  _current_state(ParserState::EXPECT_HEADER), _off_gfx(0),
 	  _off_map(128 * 32), // we start on the bottom 32 rows
-	  _off_gff(0), _off_music(0), _lua_global_state(lua_global_state) {}
+	  _off_gff(0), _off_sfx(0), _off_music(0),
+	  _lua_global_state(lua_global_state) {}
 
 // NOLINTNEXTLINE
 #define PARSER_CHECK(cond, err_code)                                           \
@@ -205,8 +208,57 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 		}
 
 		case ParserState::PARSING_SFX: {
-			// FIXME: implement SFX block parsing
+			if (r.consume_empty_line()) {
+				break;
+			}
+
+			for (std::size_t i = 0; i < 4; ++i) {
+				// TODO: write helper for hex reading
+
+				int byte_high = hex_digit(r.consume_char());
+				PARSER_CHECK(byte_high != -1, ParserStatus::BAD_SFX_ROW);
+				int byte_low = hex_digit(r.consume_char());
+				PARSER_CHECK(byte_low != -1, ParserStatus::BAD_SFX_ROW);
+
+				// header appears first in sfx line, but is after the notes in
+				// memory format, hence the +64
+				if (_mapping.is_target_mapped(_dev.sfx_addr + _off_sfx + 64 +
+				                              i)) {
+					_dev.sfx.get_byte(_off_sfx + 64 + i) =
+						(byte_high << 4) | byte_low;
+				}
+			}
+
+			for (std::size_t i = 0; i < 32; ++i) {
+				std::array<u8, 5> nibbles;
+
+				for (std::size_t nibble_idx = 0; nibble_idx < 5; ++nibble_idx) {
+					int nibble = hex_digit(r.consume_char());
+					PARSER_CHECK(nibble != -1, ParserStatus::BAD_SFX_ROW);
+					nibbles[nibble_idx] = nibble;
+				}
+
+				if (_mapping.is_target_mapped(_dev.sfx_addr + _off_sfx +
+				                              i * 2)) {
+					// FIXME: check endianness + nibble order!
+					const u8 pitch = (nibbles[0] << 4) | nibbles[1];
+					const u8 waveform = nibbles[2];
+					const u8 volume = nibbles[3];
+					const u8 effect = nibbles[4];
+					const bool is_custom_instrument = (waveform >> 3) & 0b1;
+
+					const u16 encoded_note =
+						(((pitch & 0b111111) << 0) | ((waveform & 0b111) << 6) |
+					     ((volume & 0b111) << 9) | ((effect & 0b111) << 12) |
+					     (is_custom_instrument << 15));
+
+					_dev.sfx.get<u16>(_dev.sfx_addr + _off_sfx + i * 2) =
+						encoded_note;
+				}
+			}
+
 			r.consume_until_next_line();
+			_off_sfx += 68;
 			break;
 		}
 
@@ -243,13 +295,14 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 				// i.e. flag 0 goes to patterns[0], etc.
 				pattern |= ((flag >> i) & 0b1) << 7;
 
-				if (_mapping.is_target_mapped(_dev.music_addr + _off_music * 4 +
+				if (_mapping.is_target_mapped(_dev.music_addr + _off_music +
 				                              i)) {
-					_dev.music.get_byte(_off_music * 4 + i) = pattern;
+					_dev.music.get_byte(_off_music + i) = pattern;
 				}
 			}
 
 			r.consume_until_next_line();
+			_off_music += 4;
 			break;
 		}
 

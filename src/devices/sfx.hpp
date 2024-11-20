@@ -4,10 +4,10 @@
 
 namespace devices {
 
-struct Music : emu::MMIODevice<256> {
+struct Sfx : emu::MMIODevice<256> {
 	using MMIODevice::MMIODevice;
 
-	static constexpr y8::PicoAddr default_map_address = 0x3100;
+	static constexpr y8::PicoAddr default_map_address = 0x3200;
 };
 
 } // namespace devices
