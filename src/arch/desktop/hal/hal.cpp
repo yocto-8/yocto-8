@@ -104,7 +104,7 @@ const char *fs_read_buffer(void *context, std::size_t *size) {
 
 DirectoryListStatus fs_list_directory(DirectoryListCallback *callback, void *ud,
                                       const char *path) {
-	DIR *d = opendir(path);
+	DIR *d = opendir(path != nullptr ? path : ".");
 	if (d == NULL) {
 		return DirectoryListStatus::FAIL;
 	}
