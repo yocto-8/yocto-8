@@ -68,11 +68,18 @@ def compare_p8_y8_outputs(p8_output, y8_output):
     # compute diff, just import the libs here lol
     import difflib
 
-    diff = list(
-        difflib.ndiff(
-            p8_output.splitlines(keepends=True), y8_output.splitlines(keepends=True)
-        )
-    )
+    p8_lines = p8_output.splitlines(keepends=True)
+    y8_lines = y8_output.splitlines(keepends=True)
+
+    if len(p8_lines) == len(y8_lines):
+        diff = []
+        for i, (p8_line, y8_line) in enumerate(zip(p8_lines, y8_lines)):
+            if p8_line != y8_line:
+                diff.append(f"line {i:>5}: -{p8_line}")
+                diff.append(f"            +{y8_line}")
+    else:
+        # elif len(p8_lines) < 100 and len(y8_lines) < 100:
+        diff = list(difflib.ndiff(p8_lines, y8_lines))
 
     assert p8_output == y8_output, f"y8 erroneously caused this diff:\n{''.join(diff)}"
 
