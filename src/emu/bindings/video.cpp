@@ -519,6 +519,8 @@ int y8_circfill(lua_State *state) {
 		radius = lua_tointeger(state, 3);
 	}
 
+	// TODO: adjust radius depending on if 0x5f36 is set
+
 	if (argument_count >= 4) {
 		raw_color = lua_tounsigned(state, 4);
 	}
