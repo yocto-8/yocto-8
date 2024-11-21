@@ -293,6 +293,7 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 				// `flag` contains four flags at the least significant bits
 				// each flag is mapped to one pattern, at the MSB.
 				// i.e. flag 0 goes to patterns[0], etc.
+				pattern &= 0b0111'1111;
 				pattern |= ((flag >> i) & 0b1) << 7;
 
 				if (_mapping.is_target_mapped(_dev.music_addr + _off_music +
