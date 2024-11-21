@@ -1,34 +1,38 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
-printh("SPRITE SHEET")
+function printat(i)
+    printh("@" .. tostr(i, true) .. ": " .. @i)
+end
+
+printh("=== SPRITE SHEET")
 for i=0x0000,0x0FFF do
-    printh(tostr(@i, true))
+    printat(i)
 end
 
-printh("SHARED SPRITE SHEET / MAP")
+printh("=== SHARED SPRITE SHEET / MAP")
 for i=0x1000,0x1FFF do
-    printh(tostr(@i, true))
+    printat(i)
 end
 
-printh("MAP")
+printh("=== MAP")
 for i=0x2000,0x2FFF do
-    printh(tostr(@i, true))
+    printat(i)
 end
 
-printh("SPRITE FLAGS")
+printh("=== SPRITE FLAGS")
 for i=0x3000,0x30FF do
-    printh(tostr(@i, true))
+    printat(i)
 end
 
-printh("MUSIC")
+printh("=== MUSIC")
 for i=0x3100,0x31FF do
-    printh(tostr(@i, true))
+    printat(i)
 end
 
-printh("SOUND EFFECTS")
+printh("=== SOUND EFFECTS")
 for i=0x3200,0x42FF do
-    printh(tostr(@i, true))
+    printat(i)
 end
 
 printh("====DONE====")
