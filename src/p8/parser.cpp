@@ -240,20 +240,22 @@ ParserStatus Parser::consume(hal::ReaderCallback &fs_reader, void *fs_ud) {
 
 				if (_mapping.is_target_mapped(_dev.sfx_addr + _off_sfx +
 				                              i * 2)) {
-					// FIXME: check endianness + nibble order!
-					const u8 pitch = (nibbles[0] << 4) | nibbles[1];
-					const u8 waveform = nibbles[2];
-					const u8 volume = nibbles[3];
-					const u8 effect = nibbles[4];
+					const u16 pitch = (nibbles[0] << 4) | nibbles[1];
+					const u16 waveform = nibbles[2];
+					const u16 volume = nibbles[3];
+					const u16 effect = nibbles[4];
 					const bool is_custom_instrument = (waveform >> 3) & 0b1;
 
-					const u16 encoded_note =
-						(((pitch & 0b111111) << 0) | ((waveform & 0b111) << 6) |
-					     ((volume & 0b111) << 9) | ((effect & 0b111) << 12) |
-					     (is_custom_instrument << 15));
+					u16 encoded_note = 0;
+					encoded_note |= (pitch & 0b111111) << 0;
+					encoded_note |= (waveform & 0b111) << 6;
+					encoded_note |= (volume & 0b111) << 9;
+					// quirk: p8 does NOT mask the MSB of the effect nibble!
+					// this does overlap with the custom instrument flag.
+					encoded_note |= (effect /*& 0b111*/) << 12;
+					encoded_note |= is_custom_instrument << 15;
 
-					_dev.sfx.get<u16>(_dev.sfx_addr + _off_sfx + i * 2) =
-						encoded_note;
+					_dev.sfx.get<u16>(_off_sfx + i * 2) = encoded_note;
 				}
 			}
 
