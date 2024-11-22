@@ -375,7 +375,7 @@ int y8_ord(lua_State *state) {
 	for (int i = start_index; i < start_index + count; ++i) {
 		int str_index = i - 1;
 		if (str_index >= 0 && str_index < int(input.size())) {
-			lua_pushunsigned(state, input[str_index]);
+			lua_pushunsigned(state, std::uint8_t(input[str_index]));
 		} else {
 			lua_pushnil(state);
 		}
