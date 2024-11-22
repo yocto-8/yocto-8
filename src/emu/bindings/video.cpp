@@ -273,7 +273,53 @@ inline Point draw_text(Point origin, std::string_view text,
 
 		// P8SCII handling
 		switch (c) {
-		case 0:
+		case 0: // '\0' => terminate printing
+			goto terminate_printing;
+		case 1: // '\*' => repeat next character P0 times
+			// TODO
+			break;
+		case 2: // '\#' => draw solid background
+			// TODO
+			break;
+		case 3: // '\-' => move cursor horizontally by P0 -16
+			// TODO
+			break;
+		case 4: // '\|' => move cursor vertically by P0 -16
+			// TODO
+			break;
+		case 5: // '\+' => move cursor horizontally by P0 -16, vertically by P1
+		        // -16
+			// TODO
+			break;
+		case 6: // '\^' => special command
+			// TODO
+			break;
+		case 7: // '\a' => audio command
+			// TODO
+			break;
+		case 8: // '\b' => backspace
+			// TODO
+			break;
+		case 9: // '\t' => tab
+			// TODO
+			break;
+		case 10: // '\n' => newline
+			// TODO
+			break;
+		case 11: // '\v' => decorate previous character
+			// TODO
+			break;
+		case 12: // '\f' => set foreground color
+			// TODO
+			break;
+		case 13: // '\r' => carriage return
+			// TODO
+			break;
+		case 14: // '\14' => switch font defined at 0x5600
+			// TODO
+			break;
+		case 15: // '\15' => switch font to default
+			// TODO
 			break;
 		default: {
 			glyph_width = draw_glyph(current_position, c, font, pen_color);
@@ -296,6 +342,7 @@ inline Point draw_text(Point origin, std::string_view text,
 		}
 	}
 
+terminate_printing:
 	current_position.x = origin.x;
 	current_position.y += glyph_height + 1;
 
