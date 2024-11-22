@@ -1,6 +1,7 @@
 #include "fix16.hpp"
 #include "hal/hal.hpp"
 #include "lobject.hpp"
+#include "lp8scii.hpp"
 
 #include <cassert>
 #include <cinttypes>
@@ -129,10 +130,12 @@ int y8_printh(lua_State *state) {
 				LUA_QL("tostring") " must return a string to " LUA_QL("print"));
 		}
 		if (i > 1) {
-			printf("\t");
+			putchar('\t');
 		}
-
-		printf("%s", s);
+		for (std::size_t i = 0; i < l; ++i) {
+			printf("%s", p8scii_to_utf8(
+							 reinterpret_cast<const std::uint8_t *>(s)[i]));
+		}
 		lua_pop(state, 1); /* pop result */
 	}
 	printf("\n");
@@ -383,5 +386,7 @@ int y8_ord(lua_State *state) {
 
 	return count;
 }
+
+int y8_chr(lua_State *state) { const auto arg_count = lua_gettop(state); }
 
 } // namespace emu::bindings
